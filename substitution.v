@@ -542,19 +542,6 @@ Proof.
   apply bool_dec.
 Qed.
 
-(** clear_irr removes the duplicates of proofs of propositions that
- * have proof irrelevance. *)
-Ltac clear_irr :=
-  repeat match goal with
-           | [ H1 : cover_vars ?a ?b, H2 : cover_vars ?a ?b |- _ ] =>
-             assert (H2 = H1) by apply cover_vars_proof_irrelevance; subst
-           | [ H1 : cover_vars_upto ?a ?b ?c, H2 : cover_vars_upto ?a ?b ?c |- _ ] =>
-             assert (H2 = H1) by apply cover_vars_upto_proof_irrelevance; subst
-           | [ H1 : wf_term ?a, H2 : wf_term ?a |- _ ] =>
-             assert (H2 = H1) by apply wf_term_proof_irrelevance; subst
-           | [ H1 : isprog ?a, H2 : isprog ?a |- _ ] =>
-             assert (H2 = H1) by apply isprog_proof_irrelevance; subst
-         end.
 
 Lemma dom_sub_snoc :
   forall s v t,
@@ -1271,6 +1258,25 @@ Fixpoint lsubstd (t : NTerm) (sub : Substitution) (p: disjoint_bv_sub t sub): NT
 
 End SubstGeneric.
 
+Ltac false_disjoint :=
+match goal with
+| [ H: !( disjoint  _ _) |- _] => provefalse; apply H; clear H; disjoint_reasoningv
+end.
+
+(** clear_irr removes the duplicates of proofs of propositions that
+ * have proof irrelevance. *)
+Ltac clear_irr :=
+  repeat match goal with
+           | [ H1 : cover_vars ?a ?b, H2 : cover_vars ?a ?b |- _ ] =>
+             assert (H2 = H1) by apply cover_vars_proof_irrelevance; subst
+           | [ H1 : cover_vars_upto ?a ?b ?c, H2 : cover_vars_upto ?a ?b ?c |- _ ] =>
+             assert (H2 = H1) by apply cover_vars_upto_proof_irrelevance; subst
+           | [ H1 : wf_term ?a, H2 : wf_term ?a |- _ ] =>
+             assert (H2 = H1) by apply wf_term_proof_irrelevance; subst
+           | [ H1 : isprog ?a, H2 : isprog ?a |- _ ] =>
+             assert (H2 = H1) by apply isprog_proof_irrelevance; subst
+         end.
+
 Fixpoint lsubst_aux {gts : GenericTermSig} (nt : NTerm) (sub : Substitution) : NTerm :=
   match nt with
   | vterm var =>
@@ -1649,10 +1655,6 @@ Proof.
     apply Hdis in Hin. sp.
 Qed.
 
-Ltac false_disjoint :=
-match goal with
-| [ H: !( disjoint  _ _) |- _] => provefalse; apply H; clear H; disjoint_reasoningv
-end.
 
 Lemma flat_map_free_var_vterm: forall lv, flat_map free_vars (map vterm lv)=lv.
 Proof.
@@ -1717,6 +1719,16 @@ Proof.
   rw split_eta; simpl; allrw; sp; omega.
 Qed.
 
+
+Lemma prog_sub_csub2sub :
+  forall sub, prog_sub (csub2sub sub).
+Proof.
+  introv hn; allapply in_csub2sub; sp.
+Qed.
+Hint Immediate prog_sub_csub2sub.
+
+Definition hide_csub2sub sub := csub2sub sub.
+
 Ltac simpl_sub :=
 (match goal with
 | [ H : context[dom_sub (combine _ _)] |- _] => rewrite dom_sub_combine in H;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
@@ -1736,15 +1748,6 @@ end).
 
 Tactic Notation  "spcl" := spc;simpl_list.
 Tactic Notation  "spcls" := repeat(simpl_list);sp;repeat(simpl_sub).
-
-Lemma prog_sub_csub2sub :
-  forall sub, prog_sub (csub2sub sub).
-Proof.
-  introv hn; allapply in_csub2sub; sp.
-Qed.
-Hint Immediate prog_sub_csub2sub.
-
-Definition hide_csub2sub sub := csub2sub sub.
 
 Ltac change_to_lsubst_aux4 :=
   unfold lsubst;
@@ -6773,12 +6776,6 @@ Proof.
   prove_sub_range_sat.
 Qed.
 
-Ltac fold_applybt := let XX := fresh "XX" in 
-match goal with
-[ |- context [lsubst ?e [(?v1, ?t1)]]] => 
-  assert (apply_bterm (bterm [v1] e) [t1] = lsubst e [(v1, t1)]) as XX by auto;
-    rewrite <- XX; clear XX
-end.
 
 Lemma simple_lsubst_cons2 :
   forall t v u sub,
@@ -7265,3 +7262,294 @@ Qed.
   write anything below that is not supposed to be included in the Tech Report*)
 (* end hide*)
 End SubstGeneric2.
+
+(** the stuff below are duplicates of above *)
+
+Hint Immediate cover_vars_cterm.
+Hint Rewrite (fun gs => @lsubst_nil gs).
+Hint Rewrite (fun gs => @csubst_nil gs).
+Hint Immediate prog_sub_csub2sub.
+Hint Resolve subst_preserves_isprog : isprog.
+Hint Rewrite (fun gs => @lsubst_sub_nil gs).
+Hint Resolve prog_sub_implies_wf : slow.
+Hint Resolve disjoint_sub_filter_r_flatmap2 : slow.
+Hint Resolve disjoint_sym : slow.
+    Hint Resolve sub_filter_sat.
+Hint Resolve disjoint_sym_eauto disjoint_flat_map_r : slow.
+
+Ltac disjoint_flat := allunfold disjoint_bv_sub; allunfold sub_range_sat; allsimpl;
+  repeat match goal with
+|[ H: (LIn (_,?t) ?sub), H2 : (disjoint (flat_map ?f (range ?sub)) ?l)  |- disjoint (?f ?t) ?l ] =>
+  exact ((tiff_snd (disjoint_sub_as_flat_map _ _ _) H2 _ _ H))
+|[ H: (LIn (_,?t) ?sub), H2 : (disjoint ?l (flat_map ?f (range ?sub)))  |- disjoint (?f ?t) ?l ] =>
+  exact ((tiff_snd (disjoint_sub_as_flat_map _ _ _) 
+  (disjoint_sym_impl _ _ _ H2) _ _ H))
+|[ H: (LIn (bterm ?lv _) ?lbt), H2 : (disjoint (flat_map free_vars (range ?sub)) 
+      (flat_map bound_vars_bterm ?lbt))  |- _ ] => 
+    pose proof (disjoint_lbt_bt2 _ _ _ _ H2 H); apply hide_hyp in H2
+|[ H: (LIn (bterm ?lv _) ?lbt), H2 : (disjoint (flat_map bound_vars_bterm ?lbt)
+      (flat_map free_vars (range ?sub)))  |- _ ] => 
+      pose proof (disjoint_lbt_bt2 _ _ _ _ (disjoint_sym_impl _ _ _ H2) H);
+      apply hide_hyp in H
+| [ H:( forall _ _, LIn (_, _) _
+                    -> disjoint (free_vars _) _) |- _ ] =>
+      apply disjoint_sub_as_flat_map in H
+| [ |- ( forall _ _, LIn (_, _) _
+                    -> disjoint (free_vars _) _) ] =>
+      apply disjoint_sub_as_flat_map
+end ; allrw <- hide_hyp.
+
+Ltac disjoint_flat_sf :=
+repeat match goal with
+| [|- disjoint (flat_map _ (range (sub_filter _ _))) _] =>
+    apply disjoint_sub_filter_r_flatmap2
+| [|- disjoint _ (flat_map _ (range (sub_filter _ _)))] =>
+    apply disjoint_sym; apply disjoint_sub_filter_r_flatmap2
+end.
+
+Ltac disjoint_flat2 := allunfold disjoint_bv_sub; allunfold sub_range_sat; allsimpl;
+  match goal with
+|[ H: (LIn (_,?t) ?sub), H2 : (disjoint (flat_map ?f (range ?sub)) ?l)  |- disjoint (?f ?t) ?l ] =>
+  exact ((snd (disjoint_sub_as_flat_map _ _ _) H2 _ _ H))
+|[ H: (LIn (_,?t) ?sub), H2 : (disjoint ?l (flat_map ?f (range ?sub)))  |- disjoint (?f ?t) ?l ] =>
+  exact ((snd (disjoint_sub_as_flat_map _ _ _) 
+  (disjoint_sym_impl _ _ _ H2) _ _ H))
+| [ H:( forall _ _, LIn (_, _) _
+                    -> disjoint (free_vars _) _) |- _ ] =>
+      apply disjoint_sub_as_flat_map in H
+| [ |- ( forall _ _, LIn (_, _) _
+                    -> disjoint (free_vars _) _) ] =>
+      apply disjoint_sub_as_flat_map
+end.
+
+
+Ltac dsub_find sn :=
+  match goal with
+    | [  |- context[sub_find ?s ?v] ] =>
+      let sns := fresh sn "s" in
+      remember (sub_find s v) as sn;
+        destruct sn as [sns |]
+    | [ H: context[sub_find ?s ?v] |- _ ] =>
+      let sns := fresh sn "s" in
+      remember (sub_find s v) as sn;
+        destruct sn as [sns |]
+  end.
+
+(** 1 or less renaming subgoals. see lsubst_nest_swap2 for an example*)
+Ltac almost_complete1 t :=
+  ((t;fail) || (t;[])).
+
+Ltac dis_almost_complete1 t :=
+  try(almost_complete1 t);try (apply disjoint_sym; almost_complete1 t).
+
+
+
+(** update it in substitution.v *)
+Ltac disjoint_sub_filter :=
+        let tac1:=(eapply disjoint_sub_filter_l;eauto) in 
+        let tac2:=(eapply disjoint_sub_filter_r_flatmap;eauto) in 
+          dis_almost_complete1 tac1;dis_almost_complete1 tac2;disjoint_reasoningv;
+ (
+  let maintac := apply disjoint_sub_filter_r_flatmap2; disjoint_reasoningv in
+  match goal with 
+  |[ |- (disjoint (flat_map _ (range (sub_filter _ _ ))) _ )]
+    =>  maintac
+  |[ |- ( disjoint _ (flat_map _ (range (sub_filter _ _ ))))]
+    => apply disjoint_sym; maintac
+  | [ |- disjoint (dom_sub (sub_filter ?sub ?lv)) ?lv ] 
+      =>  apply disjoint_dom_sub_filt; fail
+  | [ |- disjoint ?lv (dom_sub (sub_filter ?sub ?lv)) ] 
+      =>  apply disjoint_sym; apply disjoint_dom_sub_filt; fail
+  | [ H : (disjoint (dom_sub (sub_filter ?sub ?lv)) ?lv) |- _] 
+      =>  clear H
+  | [ H : ?lv (disjoint (dom_sub (sub_filter ?sub ?lv))) |- _] 
+      =>  clear H
+  | [ |- disjoint (dom_sub (sub_filter ?sub _)) _ ] 
+      =>  apply disjoint_dom_sub_filt2; disjoint_reasoningv
+  | [ |- disjoint _ (dom_sub (sub_filter ?sub _))] 
+      =>  apply disjoint_sym; apply disjoint_dom_sub_filt2; disjoint_reasoningv
+    
+  end
+  ).
+
+  Ltac disjoint_lsubst :=
+  let maintacf := apply disjoint_free_vars_lsubst_aux;
+     disjoint_reasoningv;try(disjoint_sub_filter) in
+  let maintacb := apply disjoint_bound_vars_lsubst_aux;
+     disjoint_reasoningv;try(disjoint_sub_filter) in
+  match goal with 
+  |[ |- disjoint (free_vars (lsubst_aux _ _ ))  _ ]
+    => maintacf  
+  |[ |- disjoint _ (free_vars (lsubst_aux _ _ ))]
+    =>  apply disjoint_sym ; maintacf
+  |[ |- disjoint (bound_vars (lsubst_aux _ _ ))  _ ]
+    => maintacb  
+  |[ |- disjoint _ (bound_vars (lsubst_aux _ _ ))]
+    =>  apply disjoint_sym ; maintacb
+  end.
+
+Ltac dlmap_find sn :=
+match goal with
+| [  |- context[lmap_find deq_nvar ?s ?v]] => 
+  let sns := fresh sn "s" in
+  remember (lmap_find deq_nvar s v) as sn;
+  destruct sn as [sns |]
+| [  H:context[lmap_find deq_nvar ?s ?v] |- _ ] => 
+  let sns := fresh sn "s" in
+  remember (lmap_find deq_nvar s v) as sn;
+  destruct sn as [sns |]
+end.
+  
+
+Ltac dsub_find2 sn :=
+match goal with
+| [  |- context[sub_find ?s ?v]] => 
+  let sns := fresh sn "s" in
+  remember (sub_find s v) as sn;
+  let H := get_last_hyp tt in
+  let H' := fresh H "l" in
+  (destruct sn as [sns |];
+  symmetry in H;
+  try (pose proof (sub_find_some _ _ _  H) as H');
+  try (pose proof (sub_find_none2 _ _  H) as H'))
+| [ H: context[sub_find ?s ?v] |- _ ] => 
+  let sns := fresh sn "s" in
+  remember (sub_find s v) as sn;
+  destruct sn as [sns |]
+end.
+
+
+Ltac fold_applybt := let XX := fresh "XX" in 
+match goal with
+[ |- context [lsubst ?e [(?v1, ?t1)]]] => 
+  assert (apply_bterm (bterm [v1] e) [t1] = lsubst e [(v1, t1)]) as XX by auto;
+    rewrite <- XX; clear XX
+end.
+
+Ltac simpl_sub :=
+(match goal with
+| [ H : context[dom_sub (combine _ _)] |- _] => rewrite dom_sub_combine in H;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
+| [ |-  context[dom_sub (combine _ _)] ] => rewrite dom_sub_combine;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
+| [ H : context[range (combine _ _)] |- _] => rewrite dom_range_combine in H;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
+| [ |-  context[range (combine _ _)] ] => rewrite dom_range_combine;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
+| [ H : context[range (var_ren _ _)] |- _] => unfold var_ren in H
+| [ |-  context[range (var_ren _ _)] ] => unfold var_ren
+| [ H : context[dom_sub (var_ren _ _)] |- _] => unfold var_ren in H
+| [ |-  context[dom_sub (var_ren _ _)] ] => unfold var_ren
+| [ H : context[flat_map free_vars (map vterm _)] |- _] => rewrite flat_map_free_var_vterm in H
+| [ |-  context[flat_map free_vars (map vterm _)] ] => rewrite flat_map_free_var_vterm
+| [ H : context[flat_map bound_vars (map vterm _)] |- _] => rewrite flat_map_bound_var_vterm in H
+| [ |-  context[flat_map bound_vars (map vterm _)] ] => rewrite flat_map_bound_var_vterm
+| [ H : isprogram _ |- _ ] => allrewrite (fst (H))
+end).
+
+Tactic Notation  "spcl" := spc;simpl_list.
+Tactic Notation  "spcls" := repeat(simpl_list);sp;repeat(simpl_sub).
+
+Ltac change_to_lsubst_aux4 :=
+  unfold lsubst;
+  allunfold disjoint_bv_sub;
+  (repeat match goal with
+            | [ |- context [csub2sub ?sub] ] =>
+              let name := fresh "ps_csub2sub" in
+              pose proof (prog_sub_csub2sub sub) as name;
+            fold (hide_csub2sub sub)
+          end);
+  allunfold hide_csub2sub;
+  allunfold prog_sub;
+  allunfold sub_range_sat;
+  (repeat match goal with
+            | [ H:(forall _ _, LIn (_, _) _ -> isprogram _) |- _ ] =>
+              progress(rw (prog_sub_flatmap_range _ H))
+            | [ H:( forall _ _, LIn (_, _) _
+                                -> disjoint (free_vars _) (bound_vars _)) |- _ ] =>
+              apply disjoint_sub_as_flat_map in H;apply disjoint_sym in H
+          end);
+  repeat(cases_if;clears_last; [|sp;disjoint_reasoningv;spcls;try(false_disjoint)]).
+
+
+Ltac simpl_sub5 :=
+(match goal with
+| [ H : (prog_sub _) |- _ ] => (allrewrite (prog_sub_flatmap_range _ H))
+| [ H : isprogram _ |- _ ] => allrewrite (fst (H))
+| [ H : (forall _ _, LIn (_, _) _  -> isprogram _) |- _ ] => (allrewrite (prog_sub_flatmap_range _ H))
+| [ H : context[dom_sub (combine _ _)] |- _] => rewrite dom_sub_combine in H;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
+| [ |-  context[dom_sub (combine _ _)] ] => rewrite dom_sub_combine;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
+| [ H : context[range (combine _ _)] |- _] => rewrite dom_range_combine in H;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
+| [ |-  context[range (combine _ _)] ] => rewrite dom_range_combine;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
+| [ H : context[range (var_ren _ _)] |- _] => unfold var_ren in H
+| [ |-  context[range (var_ren _ _)] ] => unfold var_ren
+| [ H : context[dom_sub (var_ren _ _)] |- _] => unfold var_ren in H
+| [ |-  context[dom_sub (var_ren _ _)] ] => unfold var_ren
+| [ H : context[flat_map free_vars (map vterm _)] |- _] => rewrite flat_map_free_var_vterm in H
+| [ |-  context[flat_map free_vars (map vterm _)] ] => rewrite flat_map_free_var_vterm
+| [ H : context[flat_map bound_vars (map vterm _)] |- _] => rewrite flat_map_bound_var_vterm in H
+| [ |-  context[flat_map bound_vars (map vterm _)] ] => rewrite flat_map_bound_var_vterm
+end).
+
+Ltac lsubst_lsubst_aux_eq H :=
+match goal with
+| [ |- context[lsubst ?t ?sub]] =>
+  assert (lsubst t sub = lsubst_aux t sub) as H;
+  [change_to_lsubst_aux4; sp ;fail | rw H]
+end.
+
+Ltac lsubst_lsubst_aux_eq_hyp H Hyp :=
+let T := type of Hyp in 
+match T with
+|  context[lsubst ?t ?sub] => 
+  assert (lsubst t sub = lsubst_aux t sub) as H;
+  [change_to_lsubst_aux4; sp  | rewrite H in Hyp ]
+end.
+
+Ltac disjoint_flat3 := allunfold disjoint_bv_sub; allunfold sub_range_sat; allsimpl;
+  match goal with
+|[ H: (LIn (_,?t) ?sub), H2 : (disjoint (flat_map ?f (range ?sub)) ?l)  |- disjoint (?f ?t) ?l ] =>
+  exact ((snd (disjoint_sub_as_flat_map _ _ _) H2 _ _ H))
+|[ H: (LIn (_,?t) ?sub), H2 : (disjoint ?l (flat_map ?f (range ?sub)))  |- disjoint (?f ?t) ?l ] =>
+  exact ((snd (disjoint_sub_as_flat_map _ _ _) 
+  (disjoint_sym_impl _ _ _ H2) _ _ H))
+|[ H: (LIn _ ?tl), H2 : (disjoint _ (flat_map _ ?tl))  |- _ ] =>
+    apply ((tiff_fst (disjoint_flat_map_r _ _ _ _ _)) H2) in H; hide_hyp H
+|[ H: (LIn _ ?tl), H2 : (disjoint (flat_map _ ?tl) _)  |- _ ] =>
+    apply ((tiff_fst (disjoint_flat_map_l _ _ _ _ _)) H2) in H; hide_hyp H
+| [ H:( forall _ _, LIn (_, _) _
+                    -> disjoint (free_vars _) _) |- _ ] =>
+      apply disjoint_sub_as_flat_map in H
+| [ |- ( forall _ _, LIn (_, _) _
+                    -> disjoint (free_vars _) _) ] =>
+      apply disjoint_sub_as_flat_map
+end.
+
+Ltac fold_lsubst_ot :=
+match goal with
+[ |- context [ (oterm ?o (map (fun _ : BTerm => lsubst_bterm_aux _ ?sub) ?lbt))]]
+  => let Hf := fresh "xxx" in
+      let ts := eval simpl in (lsubst_aux (oterm o lbt) sub)  in
+        assert (ts = lsubst_aux (oterm o lbt) sub) as Hf by refl;
+        rewrite Hf; clear Hf
+  end.
+
+Ltac prove_sub_range_sat := 
+  let Hin := fresh "Hin" in 
+  introv Hin; simpl in Hin;
+   repeat(dorn Hin;auto); try(inverts Hin); subst;auto.
+
+Ltac lsubst_aux_ot_eq Hyp := let T := type of Hyp in
+  let Hf := fresh Hyp "lseq" in
+  match T with 
+    context [ lsubst_aux (oterm ?o ?lbt) ?sub] =>
+      let ts := eval simpl in (lsubst_aux (oterm o lbt) sub)  in
+        assert (ts = lsubst_aux (oterm o lbt) sub) as Hf by refl 
+  end.
+Ltac fold_lsubst_subh Hyp := let T := type of Hyp in
+match T with
+  | [(?v1 ,lsubst ?t1 ?sub)] => fold (lsubst_sub [v1,t1] sub)
+end.
+
+Ltac fold_lsubst_sub :=
+match goal with
+| [ |- context [ [(?v1 ,lsubst ?t1 ?sub), (?v2 ,lsubst ?t2 ?sub)] ] ] => fold (lsubst_sub [(v1,t1),(v2,t2)] sub)
+| [ |- context [ [(?v1 ,lsubst ?t1 ?sub)] ] ] => fold (lsubst_sub [(v1,t1)] sub)
+end.
+
