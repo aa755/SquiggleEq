@@ -1,82 +1,11 @@
-(*
-
-  Copyright 2014 Cornell University
-
-  This file is part of VPrl (the Verified Nuprl project).
-
-  VPrl is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  VPrl is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with VPrl.  If not, see <http://www.gnu.org/licenses/>.
-
-
-  Website: http://nuprl.org/html/verification/
-  Authors: Abhishek Anand & Vincent Rahli
-
-*)
-
 
 Require Export Recdef.
 Require Export Eqdep_dec.
 Require Export opid.
 Require Export variables.
-(** printing #  $\times$ #×# *)
-(** printing <=>  $\Leftrightarrow$ #&hArr;# *)
-(** printing $  $\times$ #×# *)
-(** printing &  $\times$ #×# *)
 
-(**
-  We can now define the terms of the Nuprl language as an inductive type.
-  There are several considerations in choosing the right definition.
-  The definition needs to be general enough so that adding
-  new constructs to the term language does
-  not break proofs about general properties of general operations on terms.
-  For example, the substitution operation and the alpha equality
-  relation only care about the getting access to the variables and
-  do not care about the other operators(constucts) of the language.
-
-  Our term definition(similar to %\cite{Howe:1989}%)
-  exposes the variables, especially the concept
-  of bound variables in a uniform way so that these
-  and many other operations and proofs work unchanged
-  when adding/removing constructs from the language.
-  These robust proofs run into several thousands of lines and include the
-  many properties about substitution and alpha equality that
-  we need for formalizing all of Nurpl.
-
-  Many alternative approaches for variable bindings
-  have been discussed in the
-  literature %~\cite{Pfenning:1988,Capretta:2007,Chlipala:cpdt}%.
-  Our choice avoided the overhead of translating
-  the paper definitions about Nuprl to some other style of variable
-  bindings.
-
-  We will first intuitively explain parts of the definition before showing it.
-  Firstly, we have a constructor ([vterm]) that builds a term([NTerm]) from a variable([NVar])).
-  Variable bindings are made explicit by the concept of a bound term ([BTerm]).
-  [bterm] is the only constructor of [BTerm]. It takes a list of variables (say [lv])
-  and a term (say [nt]) and constructs a bound term. Intuitively, a variable that is
-  free in [nt] gets bound to its first occurence in [lv], if any.
-  For example, the bound term [bterm [nvarx] (vterm nvarx)] will
-  be used soon in constructing an identity function($\lambda x.x$).
-
-  The rest of our term definition is
-  parametrized by a collection of
-  operators([Opid]). Operators take bound terms as input and construct another
-  term.  For example, there is an operator that takes [[bterm [nvarx] (vterm nvarx)]]
-  and constructs the lambda term $\lambda x.x$.
-  With that in mind, here is the inductive type([NTerm]) that represents the terms of Nurpl:
-
-
- *)
+Section terms.
+Context {gts : GenericTermSig}.
 Inductive NTerm : Set :=
 | vterm: NVar -> NTerm
 | oterm: Opid -> list BTerm -> NTerm
@@ -146,9 +75,6 @@ Notation "\\ f" :=
 
 *)
 
-Notation "(| a , b |)" :=
-  (oterm (Can NPair) [bterm [] a, bterm [] b]) (at level 70, right associativity).
-
 
 (* ------ CONSTRUCTORS ------ *)
 
@@ -156,9 +82,6 @@ Notation "(| a , b |)" :=
 (* --- primitives --- *)
 
 Definition mk_var (nv : NVar) := vterm nv.
-
-Definition mk_fix (f : NTerm) :=
-  oterm (NCan NFix) [ bterm [] f ].
 
 (* end hide *)
 (** %\noindent% Whenever we talk about the [NTerm] of a [BTerm], this is
@@ -252,36 +175,40 @@ with bt_wf : BTerm -> [univ] :=
 *)
 
 
-(* --- variables --- *)
+End terms.
+(* closing the section because there is a problem with
+  simpl and sections and mutual fixpoints
+https://coq.inria.fr/bugs/show_bug.cgi?id=3343  
+   *) 
 
-Fixpoint free_vars (t:NTerm) : list NVar :=
+(* --- variables --- *)
+Fixpoint free_vars  {gts : GenericTermSig} 
+  (t:NTerm) : list NVar :=
   match t with
   | vterm v => [v]
   | oterm op bts => flat_map free_vars_bterm  bts
   end
- with free_vars_bterm (bt : BTerm ) :=
+ with free_vars_bterm {gts : GenericTermSig} (bt : BTerm ) :=
   match bt with
   | bterm  lv nt => remove_nvars lv (free_vars nt)
   end.
 
-Fixpoint bound_vars (t : NTerm) : list NVar :=
+Fixpoint bound_vars {gts : GenericTermSig} (t : NTerm) : list NVar :=
   match t with
   | vterm v => []
   | oterm op bts => flat_map bound_vars_bterm  bts
   end
- with bound_vars_bterm (bt : BTerm ) :=
+ with bound_vars_bterm {gts : GenericTermSig} (bt : BTerm ) :=
   match bt with
   | bterm lv nt => lv ++ bound_vars nt
   end.
 
-
+Section termsCont.
+Context {gts : GenericTermSig}.
 Definition all_vars t := free_vars t ++ bound_vars t.
 
 Definition closed (t : NTerm) := free_vars t = [].
 (* Howe's T_0(L) *)
 Definition isprogram (t : NTerm) := closed t # nt_wf t.
 
-(** %\noindent \\*% Now, we will describe the [Opid]s of Nuprl and then describe some
-other useful definitions and lemmas about [NTerm]. *)
-
-(* end hide *)
+End termsCont.
