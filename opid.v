@@ -1,7 +1,5 @@
 
-Require Export BinInt.
 Require Export list.
-Require Export Coq.ZArith.ZArith_dec.
 
 
 Class GenericTermSig : Type :=
@@ -11,9 +9,10 @@ Class GenericTermSig : Type :=
   OpBindingsCan : CanonicalOp -> list nat;
   OpBindingsNCan : NonCanonicalOp -> list nat;
   canonical_dec : forall x y : CanonicalOp, {x = y} + {x <> y};
-  ncanonical_dec : forall x y : CanonicalOp, {x = y} + {x <> y}
+  ncanonical_dec : forall x y : NonCanonicalOp, {x = y} + {x <> y}
 }.
 
+Section opids.
 Context {gts : GenericTermSig}.
 
 Inductive Opid : Set :=
@@ -44,8 +43,10 @@ Proof.
   try destruct a; try destruct a0;
   try (left; auto; fail);
   try (right; sp; inversion H; fail).
+  destruct (canonical_dec c c0); subst; [left|right];
+     auto. intro Hc. inversion Hc. auto.
+  destruct (ncanonical_dec n n0); subst; [left|right];
+     auto. intro Hc. inversion Hc. auto.
+Qed.
 
-  eauto using canonical_dec.
-  eauto using ncanonical_dec.
-Abort.
-
+End opids.
