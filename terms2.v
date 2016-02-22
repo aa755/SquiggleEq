@@ -237,7 +237,6 @@ Proof.
 Qed.
 
 
-Hint Constructors nt_wf bt_wf.
 
 Definition wf_term t := wft t = true.
 
@@ -435,15 +434,6 @@ Proof.
   apply bool_dec.
 Qed.
 
-Ltac irr_step :=
-  match goal with
-    | [ H1 : isprog ?a, H2 : isprog ?a |- _ ] =>
-        assert (H2 = H1) by apply isprog_proof_irrelevance; subst
-    | [ H1 : isprog_vars ?vs ?a, H2 : isprog_vars ?vs ?a |- _ ] =>
-        assert (H2 = H1) by apply isprog_vars_proof_irrelevance; subst
-  end.
-
-Ltac irr := repeat irr_step.
 
 Require Export tactics.
 Lemma isprogram_eq :
@@ -684,7 +674,6 @@ Inductive isvalue : NTerm -> Type :=
            isprogram (oterm (Can c) bts)
            -> isvalue (oterm (Can c) bts).
 
-Hint Constructors isvalue.
 
 Inductive isovalue : NTerm -> Prop :=
   | isovl : forall (c : CanonicalOp) (bts : list BTerm),
@@ -766,6 +755,46 @@ Definition CVTerm3 := forall a b c, CVTerm [a;b;c].
 Definition mk_cvterm (vs : list NVar) (t : NTerm) (p : isprog_vars vs t) :=
   exist (isprog_vars vs) t p.
 
+
+
+Definition get_wterm (t : WTerm) := let (a,_) := t in a.
+Definition get_cvterm (vs : list NVar) (t : CVTerm vs) := let (a,_) := t in a.
+Definition get_bcterm (bt : BCTerm) := let (a,_) := bt in a.
+
+Definition selectbt (bts: list BTerm) (n:nat) : BTerm :=
+  nth n bts (bterm [] (vterm nvarx)).
+
+Definition isnoncan (t: NTerm):=
+match t with
+| vterm _ => False
+| oterm o _ => match o with
+               | Can _ => False
+               | NCan _ => True
+               end
+end.
+Lemma wf_cterm :
+  forall t, wf_term (get_cterm t).
+Proof.
+  introv; (  repeat match goal with
+           | [ H : CTerm |- _ ] => destruct H
+           | [ H : CVTerm _ |- _ ] => destruct H
+         end
+); simpl.
+  allrw isprog_eq; unfold isprogram in *; repnd; allrw nt_wf_eq; sp.
+Qed.
+
+End terms3Generic.
+
+Ltac irr_step :=
+  match goal with
+    | [ H1 : isprog ?a, H2 : isprog ?a |- _ ] =>
+        assert (H2 = H1) by apply isprog_proof_irrelevance; subst
+    | [ H1 : isprog_vars ?vs ?a, H2 : isprog_vars ?vs ?a |- _ ] =>
+        assert (H2 = H1) by apply isprog_vars_proof_irrelevance; subst
+  end.
+
+Ltac irr := repeat irr_step.
+
 Ltac destruct_cterms :=
   repeat match goal with
            | [ H : CTerm |- _ ] => destruct H
@@ -788,9 +817,124 @@ Ltac dest_cterm H :=
 (** A faster version of destruct_cterms.  We avoid destructing all of them. *)
 Ltac dest_cterms H := repeat (dest_cterm H).
 
-Definition get_wterm (t : WTerm) := let (a,_) := t in a.
-Definition get_cvterm (vs : list NVar) (t : CVTerm vs) := let (a,_) := t in a.
-Definition get_bcterm (bt : BCTerm) := let (a,_) := bt in a.
+Ltac clear_deps h :=
+  repeat match goal with
+           | [ H : context[h] |- _ ] => clear H
+         end.
+Tactic Notation "nterm_ind" ident(h) ident(c) :=
+  induction h using NTerm_better_ind;
+  [ Case_aux c "vterm"
+  | Case_aux c "oterm"
+  ].
+
+Tactic Notation "nterm_ind" ident(h) "as" simple_intropattern(I)  ident(c) :=
+  induction h as I using NTerm_better_ind;
+  [ Case_aux c "vterm"
+  | Case_aux c "oterm"
+  ].
+
+Tactic Notation "nterm_ind1" ident(h) "as" simple_intropattern(I)  ident(c) :=
+  induction h as I using NTerm_better_ind;
+  [ Case_aux c "vterm"
+  | Case_aux c "oterm"
+  ].
+
+Tactic Notation "nterm_ind1s" ident(h) "as" simple_intropattern(I)  ident(c) :=
+  induction h as I using NTerm_better_ind2;
+  [ Case_aux c "vterm"
+  | Case_aux c "oterm"
+  ].
+
+
+Ltac fold_terms_step :=
+  match goal with
+    | [ |- context[bterm [] ?x] ] => fold (nobnd x)
+    | [ |- context[vterm ?v] ] => fold (mk_var v)
+  end.
+
+Ltac fold_terms := repeat fold_terms_step.
+
+
+Ltac boolvar_step :=
+  match goal with
+    | [ |- context[beq_var ?v ?v] ] => rw <- beq_var_refl
+    | [ |- context[memvar ?v ?s] ] =>
+        let name := fresh "b" in
+          remember (memvar v s) as name;
+        match goal with
+          | [ H : name = memvar v s |- _ ] =>
+              symmetry in H;
+              destruct name;
+              [ rewrite fold_assert in H;
+                  trw_h assert_memvar H;
+                  simpl in H
+              | trw_h not_of_assert H;
+                  trw_h assert_memvar H;
+                  simpl in H
+              ]
+        end
+    | [ |- context[beq_var ?v1 ?v2] ] =>
+        let name := fresh "b" in
+          remember (beq_var v1 v2) as name;
+        match goal with
+          | [ H : name = beq_var v1 v2 |- _ ] =>
+            destruct name;
+              [ apply beq_var_true in H; subst
+              | apply beq_var_false in H
+              ]
+        end
+    | [ H : context[beq_var ?v ?v] |- _ ] => rw <- beq_var_refl in H
+  end.
+
+Ltac boolvar := repeat boolvar_step.
+Ltac unfold_all_mk :=
+       allunfold mk_var
+       ;allunfold nobnd.
+
+
+Hint Immediate wf_cterm : wf.
+Hint Constructors isvalue.
+Hint Constructors nt_wf bt_wf.
+
+Ltac rwselectbt :=
+match goal with
+|[ H1: bterm ?lv ?nt = selectbt ?lbt ?n , H2 : context [selectbt ?lbt ?n] |- _ ] => rewrite <- H1 in H2
+|[ H1: selectbt ?lbt ?n = bterm ?lv ?nt  , H2 : context [selectbt ?lbt ?n] |- _ ] => rewrite H1 in H2
+|[ H1: bterm ?lv ?nt = selectbt ?lbt ?n  |-  context [selectbt ?lbt ?n] ] => rewrite <- H1
+|[ H1: selectbt ?lbt ?n = bterm ?lv ?nt  |-  context [selectbt ?lbt ?n] ] => rewrite H1
+end.
+
+Tactic Notation "ntermd" ident(h) "as" simple_intropattern(I)  ident(c) :=
+  destruct h as I;
+  [ Case_aux c "vterm"
+  | Case_aux c "oterm"
+  ].
+Ltac prove_or := 
+  try (left;cpx;fail);
+  try (right;cpx;fail);
+  try (left;left;cpx;fail);
+  try (left;right;cpx;fail);
+  try (right;left;cpx;fail);
+  try (right;right;cpx;fail).
+
+Ltac fold_selectbt :=
+match goal with
+[ |- context [nth ?n ?lbt (bterm [] (vterm nvarx))] ] =>
+  fold (selectbt lbt n)
+end.
+
+Ltac d_isnoncan H := 
+  match type of H with
+    isnoncan ?t => let tlbt := fresh t "lbt" in let tnc := fresh t "nc" in
+              let tt := fresh "temp" in 
+              destruct t as [tt|tt tlbt];[inverts H as H; fail|];
+              destruct tt as [tt|tnc]; [inverts H as H; fail|]
+  end.
+
+
+Section terms4Generic.
+
+Context {gts : GenericTermSig}.
 
 Lemma cterm_eq :
   forall t u,
@@ -818,14 +962,7 @@ Proof.
   apply bool_dec.
 Qed.
 
-Lemma wf_cterm :
-  forall t, wf_term (get_cterm t).
-Proof.
-  introv; destruct_cterms; simpl.
-  allrw isprog_eq; unfold isprogram in *; repnd; allrw nt_wf_eq; sp.
-Qed.
 
-Hint Immediate wf_cterm : wf.
 
 Lemma free_vars_cterm :
   forall t, free_vars (get_cterm t) = [].
@@ -863,10 +1000,6 @@ Qed.
 Definition mk_cv (vs : list NVar) (t : CTerm) : CVTerm vs :=
   exist (isprog_vars vs) (get_cterm t) (mk_cv_pf vs t).
 
-Ltac clear_deps h :=
-  repeat match goal with
-           | [ H : context[h] |- _ ] => clear H
-         end.
 
 Lemma programs_bt_to_program :
   forall bts : list BCTerm,
@@ -902,8 +1035,6 @@ Definition list_rel {A} {B} (R : A -> B -> Prop) (ll : list A) (lr : list B) :=
 
 (** gets the nth element of a list of bterms. if n is out of range, it returns the variable x
 *)
-Definition selectbt (bts: list BTerm) (n:nat) : BTerm :=
-  nth n bts (bterm [] (vterm nvarx)).
 
 (* Howe defines T(L) as B_0(L) (no bterm constructor)
   and T_0(L) as closed terms of T(L)
@@ -1176,7 +1307,6 @@ Proof.
   rw isprogram_eq; sp.
 Qed.
 
-Hint Immediate isprogram_get_cterm.
 
 Lemma oterm_eq :
   forall o1 o2 l1 l2,
@@ -1202,7 +1332,7 @@ Theorem selectbt_map : forall lbt n (f: BTerm -> BTerm) ,
 Proof.
   induction lbt; introv Hlt. inverts Hlt.
   simpl. destruct n; subst. reflexivity.
-  allunfold selectbt. allsimpl.
+  unfold selectbt in *. allsimpl.
   assert (n < (length lbt)) by omega.
   auto.
 Qed.
@@ -1262,7 +1392,6 @@ Proof.
     destruct (Hind nt1 lv2 (injL(eq_refl _) ) nt2); subst;
     [left; auto |  right; intro Hc; inverts Hc;sp ].
 Defined.
-Hint Immediate deq_nterm.
 
 Lemma lin_lift_vterm :
   forall v lv,
@@ -1363,7 +1492,6 @@ Proof.
   inverts Heq; cpx.
 Qed.
 
-Hint Resolve deq_bterm.
 
 Inductive nt_wf2 : NTerm -> [univ] :=
   | wfvt2 : forall nv : NVar, nt_wf2 (vterm nv)
@@ -1413,57 +1541,6 @@ Proof.
 Qed.
 
 
-Ltac fold_terms_step :=
-  match goal with
-    | [ |- context[bterm [] ?x] ] => fold (nobnd x)
-    | [ |- context[vterm ?v] ] => fold (mk_var v)
-  end.
-
-Ltac fold_terms := repeat fold_terms_step.
-
-
-Ltac boolvar_step :=
-  match goal with
-    | [ |- context[beq_var ?v ?v] ] => rw <- beq_var_refl
-    | [ |- context[memvar ?v ?s] ] =>
-        let name := fresh "b" in
-          remember (memvar v s) as name;
-        match goal with
-          | [ H : name = memvar v s |- _ ] =>
-              symmetry in H;
-              destruct name;
-              [ rewrite fold_assert in H;
-                  trw_h assert_memvar H;
-                  simpl in H
-              | trw_h not_of_assert H;
-                  trw_h assert_memvar H;
-                  simpl in H
-              ]
-        end
-    | [ |- context[beq_var ?v1 ?v2] ] =>
-        let name := fresh "b" in
-          remember (beq_var v1 v2) as name;
-        match goal with
-          | [ H : name = beq_var v1 v2 |- _ ] =>
-            destruct name;
-              [ apply beq_var_true in H; subst
-              | apply beq_var_false in H
-              ]
-        end
-    | [ H : context[beq_var ?v ?v] |- _ ] => rw <- beq_var_refl in H
-  end.
-
-Ltac boolvar := repeat boolvar_step.
-
-
-
-Ltac rwselectbt :=
-match goal with
-|[ H1: bterm ?lv ?nt = selectbt ?lbt ?n , H2 : context [selectbt ?lbt ?n] |- _ ] => rewrite <- H1 in H2
-|[ H1: selectbt ?lbt ?n = bterm ?lv ?nt  , H2 : context [selectbt ?lbt ?n] |- _ ] => rewrite H1 in H2
-|[ H1: bterm ?lv ?nt = selectbt ?lbt ?n  |-  context [selectbt ?lbt ?n] ] => rewrite <- H1
-|[ H1: selectbt ?lbt ?n = bterm ?lv ?nt  |-  context [selectbt ?lbt ?n] ] => rewrite H1
-end.
 
 Definition bin_rel_nterm :=
   binrel_list  (vterm nvarx).
@@ -1499,33 +1576,11 @@ Proof.
   rw app_assoc; sp.
 Qed.
 
-Tactic Notation "ntermd" ident(h) "as" simple_intropattern(I)  ident(c) :=
-  destruct h as I;
-  [ Case_aux c "vterm"
-  | Case_aux c "oterm"
-  ].
-Ltac prove_or := 
-  try (left;cpx;fail);
-  try (right;cpx;fail);
-  try (left;left;cpx;fail);
-  try (left;right;cpx;fail);
-  try (right;left;cpx;fail);
-  try (right;right;cpx;fail).
-
-Ltac fold_selectbt :=
-match goal with
-[ |- context [nth ?n ?lbt (bterm [] (vterm nvarx))] ] =>
-  fold (selectbt lbt n)
-end.
 
 
-Hint Resolve nt_wf_implies : slow.
-Hint Resolve nt_wf_eq: slow.
-Hint Resolve is_program_ot_nth_nobnd : slow.
 Lemma isprog_ntwf_eauto : forall t, isprogram t -> nt_wf t.
 Proof. unfold isprogram. spc.
 Qed.
-Hint Resolve isprog_ntwf_eauto : slow.
 
 Theorem isprogram_ot_if_eauto :
   forall o bts,
@@ -1536,14 +1591,6 @@ Proof.
  intros. apply isprogram_ot_iff;spc.
 Qed.
 
-Definition isnoncan (t: NTerm):=
-match t with
-| vterm _ => False
-| oterm o _ => match o with
-               | Can _ => False
-               | NCan _ => True
-               end
-end.
 
 Lemma isprogramd :
   forall v, isprogram v
@@ -1565,20 +1612,6 @@ Proof.
   destruct o; cpx.
 Qed.
 
-
-
-
-
-
-Ltac d_isnoncan H := 
-  match type of H with
-    isnoncan ?t => let tlbt := fresh t "lbt" in let tnc := fresh t "nc" in
-              let tt := fresh "temp" in 
-              destruct t as [tt|tt tlbt];[inverts H as H; fail|];
-              destruct tt as [tt|tnc]; [inverts H as H; fail|]
-  end.
-
-
 Lemma fold_combine : forall {A B} (v:A) (t:B), 
   [(v,t)] = (combine [v] [t]).
 Proof.
@@ -1593,7 +1626,6 @@ Proof.
   inverts Hinc.
 Qed.
 
-Hint Immediate nvarx_nvary : slow.
 
 Lemma noncan_not_value : forall e,
   isnoncan e
@@ -1619,7 +1651,6 @@ Proof.
   eauto with slow.  
 Qed.
 
-Hint Resolve isprogram_ot_if_eauto : slow.
 
 Lemma newvars5_prop :
   forall v1 v2 v3 v4 v5 terms,
@@ -1701,13 +1732,18 @@ Proof.
   allrw; simpl; try (complete sp).
 Qed.
 
-Ltac unfold_all_mk :=
-       allunfold mk_var
-       ;allunfold nobnd.
+End terms4Generic.
 
 
-
-Hint Extern 100 (LIn _ _) => complete (simpl; sp) : isprog.
+Hint Resolve isprogram_ot_if_eauto : slow.
+Hint Immediate nvarx_nvary : slow.
+Hint Immediate isprogram_get_cterm.
 Hint Resolve isprog_implies : isprog.
-
-End terms3Generic.
+Hint Extern 100 (LIn _ _) => complete (simpl; sp) : isprog.
+Hint Resolve nt_wf_implies : slow.
+Hint Resolve nt_wf_eq: slow.
+Hint Resolve is_program_ot_nth_nobnd : slow.
+Hint Resolve deq_bterm.
+Hint Immediate deq_nterm.
+Hint Immediate isprogram_get_cterm.
+Hint Resolve isprog_ntwf_eauto : slow.
