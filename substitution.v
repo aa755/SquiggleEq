@@ -1269,7 +1269,9 @@ Fixpoint lsubstd (t : NTerm) (sub : Substitution) (p: disjoint_bv_sub t sub): NT
   *)
   (*if nullb sub then t else*)
 
-Fixpoint lsubst_aux (nt : NTerm) (sub : Substitution) : NTerm :=
+End SubstGeneric.
+
+Fixpoint lsubst_aux {gts : GenericTermSig} (nt : NTerm) (sub : Substitution) : NTerm :=
   match nt with
   | vterm var =>
       match sub_find sub var with
@@ -1278,7 +1280,7 @@ Fixpoint lsubst_aux (nt : NTerm) (sub : Substitution) : NTerm :=
       end
   | oterm op bts => oterm op (map (fun t => lsubst_bterm_aux t sub) bts)
   end
- with lsubst_bterm_aux (bt : BTerm) (sub : Substitution) : BTerm :=
+ with lsubst_bterm_aux {gts : GenericTermSig} (bt : BTerm) (sub : Substitution) : BTerm :=
   match bt with
   | bterm lv nt => bterm lv (lsubst_aux nt (sub_filter sub lv))
   end.
@@ -1294,12 +1296,12 @@ Fixpoint lsubst_aux (nt : NTerm) (sub : Substitution) : NTerm :=
 *)
 
 
-Fixpoint change_bvars_alpha (lv : list NVar ) (t : NTerm) :=
+Fixpoint change_bvars_alpha {gts : GenericTermSig} (lv : list NVar ) (t : NTerm) :=
 match t with
 | vterm v => vterm v
 | oterm o lbt => oterm o (map (change_bvars_alphabt lv) lbt)
 end
-with change_bvars_alphabt lv bt:=
+with change_bvars_alphabt {gts : GenericTermSig} lv bt:=
 match bt with
 | bterm blv bnt => 
     let bnt' := change_bvars_alpha lv bnt in
@@ -1308,6 +1310,23 @@ match bt with
     end
 end.
 
+Fixpoint lsubst_vs {gts : GenericTermSig} (vars : list NVar) (t : NTerm) (sub : Substitution) : NTerm :=
+  (*if nullb sub then t else*)
+  match t with
+  | vterm var =>
+      match sub_find sub var with
+      | Some t => t
+      | None => t
+      end
+  | oterm op bts => oterm op (map (fun t => lsubst_vs_bterm vars t sub) bts)
+  end
+ with lsubst_vs_bterm {gts : GenericTermSig} (vars : list NVar) (bt : BTerm) (sub : Substitution) : BTerm :=
+  match bt with
+  | bterm lv nt =>
+    let (x,s) := bvar_renamings_subst lv nt sub in
+    let (vs,ren) := x in
+      bterm vs (lsubst_vs (vars ++ vs) nt (ren ++ s))
+  end.
 
 (** % \noindent \\* %
   When we define alpha equality in the next section, we prove that
@@ -1316,11 +1335,15 @@ Finally, here is the function that safely perfoms
   a [Substitution] on an [NTerm].
 
 *)
-Definition lsubst (t : NTerm) (sub : Substitution) : NTerm :=
+
+Section SubstGeneric2.
+Context {gts : GenericTermSig}.
+Definition lsubst  (t : NTerm) (sub : Substitution) : NTerm :=
   let sfr := flat_map free_vars (range sub) in
     if dec_disjointv (bound_vars t) sfr
     then lsubst_aux t sub
     else lsubst_aux (change_bvars_alpha  sfr t) sub.
+
 
 (** %\noindent% The following definition will be useful while
     defining the computation system.
@@ -1415,23 +1438,6 @@ Proof.
   rw sub_mk_renames2_nil; simpl; auto.
 Qed.
 
-Fixpoint lsubst_vs (vars : list NVar) (t : NTerm) (sub : Substitution) : NTerm :=
-  (*if nullb sub then t else*)
-  match t with
-  | vterm var =>
-      match sub_find sub var with
-      | Some t => t
-      | None => t
-      end
-  | oterm op bts => oterm op (map (fun t => lsubst_vs_bterm vars t sub) bts)
-  end
- with lsubst_vs_bterm (vars : list NVar) (bt : BTerm) (sub : Substitution) : BTerm :=
-  match bt with
-  | bterm lv nt =>
-    let (x,s) := bvar_renamings_subst lv nt sub in
-    let (vs,ren) := x in
-      bterm vs (lsubst_vs (vars ++ vs) nt (ren ++ s))
-  end.
 
 (*
 Lemma isprogram_lsubst_vars_implies :
@@ -2771,7 +2777,7 @@ Proof.
   - Case "vterm".
     allrw disjoint_singleton_l; sp.
     remember (sub_find sub1 n); destruct o; symmetry in Heqo.
-    apply sub_find_some_app with (sub2 := sub2) in Heqo.
+    apply sub_find_some_app with (sub4 := sub2) in Heqo.
     rw Heqo; auto.
     rw sub_find_none_iff in Heqo.
     assert (! LIn n (dom_sub (sub1 ++ sub2))) as nin
@@ -4254,7 +4260,7 @@ Lemma  bvar_renamings_subst_vars:  forall lv nt sub sub1 sub2 lv',
    allvars_sub sub
    -> ((lv', sub1), sub2)=(bvar_renamings_subst lv nt sub)
    -> (allvars_sub sub1) # (allvars_sub sub2).
-Proof. introv Hall Heq. allunfold bvar_renamings_subst.
+Proof. introv Hall Heq. unfold bvar_renamings_subst in *.
   remember (sub_mk_renames2 lv (sub_free_vars (sub_filter sub lv)) 
    (dom_sub (sub_filter sub lv) ++ all_vars nt)) as smr.
   destruct smr.
@@ -4701,7 +4707,7 @@ Lemma sub_app_sat_iff :  forall P sub1 sub2,
 Proof. sp_iff Case.
   - introv sat  Hin. repnd. apply in_app_iff in Hin.
     dorn Hin; [ apply sat0 in Hin | apply sat in Hin]; trivial.
-  - introv  sat. allunfold sub_range_sat. split; intros; eapply sat;
+  - introv  sat. unfold  sub_range_sat in *. split; intros; eapply sat;
     apply in_app_iff; eauto.
 Qed.
 
@@ -6197,7 +6203,7 @@ Proof.
     intros bt Hin. destruct bt as [blv bnt].
     simpl. f_equal. rw sub_filter_app.
     Hint Resolve sub_filter_sat.
-    eapply Hind; allunfold prog_sub; allunfold disjoint_bv_sub; eauto.
+    eapply Hind; unfold prog_sub, disjoint_bv_sub in *; eauto.
     + allsimpl. 
       apply lin_lift with (f:=fun t : BTerm => lsubst_bterm_aux t sub) in Hin.
     eapply disjoint_flat_map_l in Hpr; eauto;[].
@@ -6719,7 +6725,8 @@ Lemma sub_range_sat_cons: forall h t P,
   sub_range_sat (h::t) P  <=> (P (snd h) # sub_range_sat t P).
 Proof.
   intros. rw cons_as_app. rw <- sub_app_sat_iff.
-  split; introv HH; repnd; dands; allunfold sub_range_sat; allsimpl; eauto;[].
+  split; introv HH; repnd; dands; unfold sub_range_sat in *;
+     allsimpl; eauto;[].
   introv Hin; in_reasoning. cpx. cpx.
 Qed.
 
@@ -7016,8 +7023,7 @@ Lemma prog_sub_sub_filter :
   forall s vs, prog_sub s -> prog_sub (sub_filter s vs).
 Proof.
   introv ps.
-  allunfold prog_sub.
-  allunfold sub_range_sat.
+  unfold prog_sub,sub_range_sat in *.
   introv i.
   apply in_sub_filter in i; repnd; discover; sp.
 Qed.
@@ -7258,4 +7264,4 @@ Qed.
 (* The line below should be at the end of the file. Do NOT
   write anything below that is not supposed to be included in the Tech Report*)
 (* end hide*)
-End SubstGeneric.
+End SubstGeneric2.
