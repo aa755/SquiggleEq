@@ -61,7 +61,8 @@ Require Export lmap.
 Definition Substitution   : Set := list (NVar # NTerm).
 ]]
  *)
-
+Section SubstGeneric.
+Context {gts : GenericTermSig}.
 (* begin hide *)
 Definition Substitution   : Set := lmap NVar NTerm.
 Definition WfSubstitution : Set := lmap NVar WTerm.
@@ -166,7 +167,7 @@ Definition prog_sub (sub : Substitution) := sub_range_sat sub isprogram.
 
 Definition wf_sub (sub : Substitution) := sub_range_sat sub nt_wf.
 
-
+Require Export list.
 (* will not specialize this lemma.. those are always trivial*)
 Lemma sub_app_sat :
   forall P sub1 sub2,
@@ -340,131 +341,7 @@ Definition cover_vars (t : NTerm) (sub : CSubstitution) :=
 Definition cover_vars_upto (t : NTerm) (sub : CSub) (vs : list NVar) :=
   subvars (free_vars t) (vs ++ dom_csub sub).
 
-(* begin hide *)
 
-Lemma covered_equality :
-  forall a b T vs,
-    covered (mk_equality a b T) vs
-    <=> covered a vs
-        # covered b vs
-        # covered T vs.
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma covered_tequality :
-  forall a b vs,
-    covered (mk_tequality a b) vs
-    <=> covered a vs
-        # covered b vs.
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma covered_axiom :
-  forall vs, covered mk_axiom vs.
-Proof.
-  unfold covered; sp; simpl.
-Qed.
-
-Hint Immediate covered_axiom.
-
-Lemma covered_uni :
-  forall vs i, covered (mk_uni i) vs.
-Proof.
-  unfold covered; sp; simpl.
-Qed.
-
-Hint Immediate covered_uni.
-
-Lemma covered_isect :
-  forall a v b vs,
-    covered (mk_isect a v b) vs
-    <=> covered a vs # covered b (v :: vs).
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma covered_eisect :
-  forall a v b vs,
-    covered (mk_eisect a v b) vs
-    <=> covered a vs # covered b (v :: vs).
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma covered_disect :
-  forall a v b vs,
-    covered (mk_disect a v b) vs
-    <=> covered a vs # covered b (v :: vs).
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma covered_set :
-  forall a v b vs,
-    covered (mk_set a v b) vs
-    <=> covered a vs # covered b (v :: vs).
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma covered_quotient :
-  forall a v1 v2 b vs,
-    covered (mk_quotient a v1 v2 b) vs
-    <=> covered a vs # covered b (v1 :: v2 :: vs).
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma covered_var :
-  forall v vs, covered (mk_var v) vs <=> LIn v vs.
-Proof.
-  unfold covered; sp; simpl.
-  rw subvars_prop; simpl; split; sp; subst; sp.
-Qed.
-
-Lemma covered_subvars :
-  forall t vs1 vs2,
-    subvars vs1 vs2
-    -> covered t vs1
-    -> covered t vs2.
-Proof.
-  intros.
-  allunfold covered.
-  apply subvars_trans with (vs2 := vs1); sp.
-Qed.
-
-Lemma covered_snoc_app_weak :
-  forall t vs1 vs2 v,
-    covered t (vs1 ++ vs2)
-    -> covered t (snoc vs1 v ++ vs2).
-Proof.
-  sp; allunfold covered; allrw subvars_prop; sp.
-  apply_in_hyp p.
-  allrw in_app_iff; allrw in_snoc; sp.
-Qed.
 
 
 (* filters out the mappings whose domain lies in vars *)
@@ -759,7 +636,7 @@ Lemma cover_vars_cterm :
 Proof.
   introv; destruct_cterms; simpl.
   rw cover_vars_eq.
-  allrw isprog_eq; allunfold isprogram; repnd; allrw; sp.
+  allrw isprog_eq; unfold isprogram in *; repnd; allrw; sp.
 Qed.
 Hint Immediate cover_vars_cterm.
 
@@ -799,494 +676,6 @@ Proof.
   apply subset_snoc_l; auto.
 Qed.
 
-Lemma cover_vars_axiom :
-  forall sub,
-    cover_vars mk_axiom sub.
-Proof.
-  intro; rw cover_vars_eq; rw subvars_eq; simpl.
-  unfold subset; allsimpl; sp.
-Qed.
-
-Hint Immediate cover_vars_axiom.
-
-Lemma cover_vars_axiom_iff :
-  forall sub,
-    cover_vars mk_axiom sub <=> True.
-Proof.
-  sp; split; sp.
-Qed.
-
-Lemma cover_vars_base :
-  forall sub,
-    cover_vars mk_base sub.
-Proof.
-  intro; rw cover_vars_eq; rw subvars_eq; simpl; sp.
-Qed.
-
-Hint Immediate cover_vars_base.
-
-Lemma cover_vars_base_iff :
-  forall sub,
-    cover_vars mk_base sub <=> True.
-Proof.
-  sp.
-Qed.
-
-Lemma over_vars_app_l :
-  forall vs1 vs2 sub,
-    over_vars (vs1 ++ vs2) sub <=> over_vars vs1 sub # over_vars vs2 sub.
-Proof.
-  sp; rw subvars_app_l; sp.
-Qed.
-
-Lemma cover_vars_equality :
-  forall a b T sub,
-    cover_vars (mk_equality a b T) sub
-    <=> cover_vars a sub
-        # cover_vars b sub
-        # cover_vars T sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); simpl.
-  repeat (rw remove_nvars_nil_l).
-  rw app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma cover_vars_tequality :
-  forall a b sub,
-    cover_vars (mk_tequality a b) sub
-    <=> cover_vars a sub
-        # cover_vars b sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); simpl.
-  repeat (rw remove_nvars_nil_l).
-  rw app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma cover_vars_approx :
-  forall a b sub,
-    cover_vars (mk_approx a b) sub
-    <=> cover_vars a sub
-        # cover_vars b sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); simpl.
-  repeat (rw remove_nvars_nil_l).
-  rw app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma cover_vars_cequiv :
-  forall a b sub,
-    cover_vars (mk_cequiv a b) sub
-    <=> cover_vars a sub
-        # cover_vars b sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); simpl.
-  repeat (rw remove_nvars_nil_l).
-  rw app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma cover_vars_apply :
-  forall a b sub,
-    cover_vars (mk_apply a b) sub
-    <=> cover_vars a sub
-        # cover_vars b sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); simpl.
-  repeat (rw remove_nvars_nil_l).
-  rw app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma cover_vars_sup :
-  forall a b sub,
-    cover_vars (mk_sup a b) sub
-    <=> cover_vars a sub
-        # cover_vars b sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); simpl.
-  repeat (rw remove_nvars_nil_l).
-  rw app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma cover_vars_member :
-  forall a T sub,
-    cover_vars (mk_member a T) sub
-    <=> cover_vars a sub
-        # cover_vars T sub.
-Proof.
-  sp; unfold mk_member.
-  rw cover_vars_equality; split; sp.
-Qed.
-
-Lemma cover_vars_type :
-  forall a sub,
-    cover_vars (mk_type a) sub
-    <=> cover_vars a sub.
-Proof.
-  sp; unfold mk_type.
-  rw cover_vars_tequality; split; sp.
-Qed.
-
-Lemma cover_vars_function :
-  forall a v b sub,
-    cover_vars (mk_function a v b) sub
-    <=> cover_vars a sub
-        # cover_vars_upto b (csub_filter sub [v]) [v].
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  rw remove_nvars_nil_l; rw app_nil_r.
-  rw subvars_app_l.
-  rw subvars_remove_nvars; simpl.
-  rw dom_csub_csub_filter.
-  assert (v :: remove_nvars [v] (dom_csub sub)
-          = [v] ++ remove_nvars [v] (dom_csub sub)) as eq by auto.
-  rw eq.
-  rw subvars_app_remove_nvars_r.
-  rw subvars_swap_r; sp.
-Qed.
-
-Lemma cover_vars_product :
-  forall a v b sub,
-    cover_vars (mk_product a v b) sub
-    <=> cover_vars a sub
-        # cover_vars_upto b (csub_filter sub [v]) [v].
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  rw remove_nvars_nil_l; rw app_nil_r.
-  rw subvars_app_l.
-  rw subvars_remove_nvars; simpl.
-  rw dom_csub_csub_filter.
-  assert (v :: remove_nvars [v] (dom_csub sub)
-          = [v] ++ remove_nvars [v] (dom_csub sub)) as eq by auto.
-  rw eq.
-  rw subvars_app_remove_nvars_r.
-  rw subvars_swap_r; sp.
-Qed.
-
-Lemma cover_vars_w :
-  forall a v b sub,
-    cover_vars (mk_w a v b) sub
-    <=> cover_vars a sub
-        # cover_vars_upto b (csub_filter sub [v]) [v].
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  rw remove_nvars_nil_l; rw app_nil_r.
-  rw subvars_app_l.
-  rw subvars_remove_nvars; simpl.
-  rw dom_csub_csub_filter.
-  assert (v :: remove_nvars [v] (dom_csub sub)
-          = [v] ++ remove_nvars [v] (dom_csub sub)) as eq by auto.
-  rw eq.
-  rw subvars_app_remove_nvars_r.
-  rw subvars_swap_r; sp.
-Qed.
-
-Lemma cover_vars_m :
-  forall a v b sub,
-    cover_vars (mk_m a v b) sub
-    <=> cover_vars a sub
-        # cover_vars_upto b (csub_filter sub [v]) [v].
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  rw remove_nvars_nil_l; rw app_nil_r.
-  rw subvars_app_l.
-  rw subvars_remove_nvars; simpl.
-  rw dom_csub_csub_filter.
-  assert (v :: remove_nvars [v] (dom_csub sub)
-          = [v] ++ remove_nvars [v] (dom_csub sub)) as eq by auto.
-  rw eq.
-  rw subvars_app_remove_nvars_r.
-  rw subvars_swap_r; sp.
-Qed.
-
-Lemma cover_vars_pw :
-  forall P ap A bp ba B cp ca cb C p sub,
-    cover_vars (mk_pw P ap A bp ba B cp ca cb C p) sub
-    <=> cover_vars P sub
-        # cover_vars_upto A (csub_filter sub [ap]) [ap]
-        # cover_vars_upto B (csub_filter sub [bp,ba]) [bp,ba]
-        # cover_vars_upto C (csub_filter sub [cp,ca,cb]) [cp,ca,cb]
-        # cover_vars p sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  allrw remove_nvars_nil_l; allrw app_nil_r.
-  allrw subvars_app_l.
-  allrw subvars_remove_nvars; simpl.
-  allrw dom_csub_csub_filter.
-
-  assert (ap :: remove_nvars [ap] (dom_csub sub)
-          = [ap] ++ remove_nvars [ap] (dom_csub sub)) as eq by auto.
-  rw eq; clear eq.
-
-  assert (bp :: ba :: remove_nvars [bp,ba] (dom_csub sub)
-          = [bp,ba] ++ remove_nvars [bp,ba] (dom_csub sub)) as eq by auto.
-  rw eq; clear eq.
-
-  assert (cp :: ca :: cb :: remove_nvars [cp,ca,cb] (dom_csub sub)
-          = [cp,ca,cb] ++ remove_nvars [cp,ca,cb] (dom_csub sub)) as eq by auto.
-  rw eq; clear eq.
-
-  allrw subvars_app_remove_nvars_r.
-
-  assert (forall vs1 vs2,
-            subvars vs1 (vs2 ++ dom_csub sub)
-                    <=> subvars vs1 (dom_csub sub ++ vs2))
-         as eq by (intros; apply subvars_swap_r; sp).
-
-  allrw eq; sp.
-Qed.
-
-Lemma cover_vars_pm :
-  forall  P ap A bp ba B cp ca cb C p sub,
-    cover_vars (mk_pm P ap A bp ba B cp ca cb C p) sub
-    <=> cover_vars P sub
-        # cover_vars_upto A (csub_filter sub [ap]) [ap]
-        # cover_vars_upto B (csub_filter sub [bp,ba]) [bp,ba]
-        # cover_vars_upto C (csub_filter sub [cp,ca,cb]) [cp,ca,cb]
-        # cover_vars p sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  allrw remove_nvars_nil_l; allrw app_nil_r.
-  allrw subvars_app_l.
-  allrw subvars_remove_nvars; simpl.
-  allrw dom_csub_csub_filter.
-
-  assert (ap :: remove_nvars [ap] (dom_csub sub)
-          = [ap] ++ remove_nvars [ap] (dom_csub sub)) as eq by auto.
-  rw eq; clear eq.
-
-  assert (bp :: ba :: remove_nvars [bp,ba] (dom_csub sub)
-          = [bp,ba] ++ remove_nvars [bp,ba] (dom_csub sub)) as eq by auto.
-  rw eq; clear eq.
-
-  assert (cp :: ca :: cb :: remove_nvars [cp,ca,cb] (dom_csub sub)
-          = [cp,ca,cb] ++ remove_nvars [cp,ca,cb] (dom_csub sub)) as eq by auto.
-  rw eq; clear eq.
-
-  allrw subvars_app_remove_nvars_r.
-
-  assert (forall vs1 vs2,
-            subvars vs1 (vs2 ++ dom_csub sub)
-                    <=> subvars vs1 (dom_csub sub ++ vs2))
-         as eq by (intros; apply subvars_swap_r; sp).
-
-  allrw eq; sp.
-Qed.
-
-Lemma cover_vars_upto_axiom :
-  forall vs sub, cover_vars_upto mk_axiom sub vs.
-Proof.
-  intros; unfold cover_vars_upto; simpl; sp.
-Qed.
-Hint Immediate cover_vars_upto_axiom.
-
-Lemma cover_vars_image :
-  forall a b sub,
-    cover_vars (mk_image a b) sub
-    <=> cover_vars a sub
-        # cover_vars b sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); simpl.
-  repeat (rw remove_nvars_nil_l).
-  rw app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma cover_vars_isect :
-  forall a v b sub,
-    cover_vars (mk_isect a v b) sub
-    <=> cover_vars a sub
-        # cover_vars_upto b (csub_filter sub [v]) [v].
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  rw remove_nvars_nil_l; rw app_nil_r.
-  rw subvars_app_l.
-  rw subvars_remove_nvars; simpl.
-  rw dom_csub_csub_filter.
-  assert (v :: remove_nvars [v] (dom_csub sub)
-          = [v] ++ remove_nvars [v] (dom_csub sub)) as eq by auto.
-  rw eq.
-  rw subvars_app_remove_nvars_r.
-  rw subvars_swap_r; sp.
-Qed.
-
-Lemma cover_vars_eisect :
-  forall a v b sub,
-    cover_vars (mk_eisect a v b) sub
-    <=> cover_vars a sub
-        # cover_vars_upto b (csub_filter sub [v]) [v].
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  rw remove_nvars_nil_l; rw app_nil_r.
-  rw subvars_app_l.
-  rw subvars_remove_nvars; simpl.
-  rw dom_csub_csub_filter.
-  assert (v :: remove_nvars [v] (dom_csub sub)
-          = [v] ++ remove_nvars [v] (dom_csub sub)) as eq by auto.
-  rw eq.
-  rw subvars_app_remove_nvars_r.
-  rw subvars_swap_r; sp.
-Qed.
-
-Lemma cover_vars_disect :
-  forall a v b sub,
-    cover_vars (mk_disect a v b) sub
-    <=> cover_vars a sub
-        # cover_vars_upto b (csub_filter sub [v]) [v].
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  rw remove_nvars_nil_l; rw app_nil_r.
-  rw subvars_app_l.
-  rw subvars_remove_nvars; simpl.
-  rw dom_csub_csub_filter.
-  assert (v :: remove_nvars [v] (dom_csub sub)
-          = [v] ++ remove_nvars [v] (dom_csub sub)) as eq by auto.
-  rw eq.
-  rw subvars_app_remove_nvars_r.
-  rw subvars_swap_r; sp.
-Qed.
-
-Lemma cover_vars_set :
-  forall a v b sub,
-    cover_vars (mk_set a v b) sub
-    <=> cover_vars a sub
-        # cover_vars_upto b (csub_filter sub [v]) [v].
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  rw remove_nvars_nil_l; rw app_nil_r.
-  rw subvars_app_l.
-  rw subvars_remove_nvars; simpl.
-  rw dom_csub_csub_filter.
-  assert (v :: remove_nvars [v] (dom_csub sub)
-          = [v] ++ remove_nvars [v] (dom_csub sub)) as eq by auto.
-  rw eq.
-  rw subvars_app_remove_nvars_r.
-  rw subvars_swap_r; sp.
-Qed.
-
-Lemma cover_vars_quotient :
-  forall a v1 v2 b sub,
-    cover_vars (mk_quotient a v1 v2 b) sub
-    <=> cover_vars a sub
-        # cover_vars_upto b (csub_filter sub [v1,v2]) [v1,v2].
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  rw remove_nvars_nil_l; rw app_nil_r.
-  rw subvars_app_l.
-  rw subvars_remove_nvars; simpl.
-  rw dom_csub_csub_filter.
-  assert (v1 :: v2 :: remove_nvars [v1,v2] (dom_csub sub)
-          = [v1,v2] ++ remove_nvars [v1,v2] (dom_csub sub)) as eq by auto.
-  rw eq.
-  rw subvars_app_remove_nvars_r.
-  rw subvars_swap_r; sp.
-Qed.
-
-Lemma cover_vars_lam :
-  forall v b sub,
-    cover_vars (mk_lam v b) sub
-    <=> cover_vars_upto b (csub_filter sub [v]) [v].
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  rw app_nil_r.
-  rw subvars_remove_nvars; simpl.
-  rw dom_csub_csub_filter.
-  assert (v :: remove_nvars [v] (dom_csub sub)
-          = [v] ++ remove_nvars [v] (dom_csub sub)) as eq by auto.
-  rw eq.
-  rw subvars_app_remove_nvars_r.
-  rw subvars_swap_r; sp.
-Qed.
-
-Lemma cover_vars_id :
-  forall sub, cover_vars mk_id sub.
-Proof.
-  unfold mk_id; sp.
-  rw cover_vars_lam; simpl.
-  unfold cover_vars_upto.
-  simpl.
-  rw subvars_eq.
-  unfold subset; simpl; sp.
-Qed.
-Hint Immediate cover_vars_id.
-
-Lemma cover_vars_squash :
-  forall a sub, cover_vars (mk_squash a) sub <=> cover_vars a sub.
-Proof.
-  introv.
-  rw cover_vars_image; split; sp.
-  apply cover_vars_lam; sp.
-Qed.
-
-Lemma cover_vars_subtype :
-  forall a b sub,
-    cover_vars (mk_subtype a b) sub
-    <=> cover_vars a sub
-        # cover_vars b sub.
-Proof.
-  sp; unfold mk_subtype, mk_vsubtype.
-  rw cover_vars_member.
-  rw cover_vars_function.
-  unfold cover_vars_upto.
-  rw subvars_eq; simpl.
-  rw subset_nil_l_iff.
-  split; sp.
-
-  rw cover_vars_eq; allrw subvars_prop; sp.
-  apply_in_hyp p; allsimpl; sp; subst.
-  allapply newvar_prop; sp.
-  allrewrite dom_csub_csub_filter.
-  allrw in_remove_nvars; sp.
-
-  rw dom_csub_csub_filter.
-  allrw cover_vars_eq.
-  apply subvars_cons_r.
-  allrw subvars_prop; sp.
-  apply_in_hyp p.
-  rw in_remove_nvars; simpl; sp; subst.
-  allapply newvar_prop; sp.
-Qed.
-
-Lemma cover_vars_cbv :
-  forall a v b sub,
-    cover_vars (mk_cbv a v b) sub
-    <=> cover_vars a sub
-        # cover_vars_upto b (csub_filter sub [v]) [v].
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  rw remove_nvars_nil_l; rw app_nil_r.
-  rw subvars_app_l.
-  rw subvars_remove_nvars; simpl.
-  rw dom_csub_csub_filter.
-  assert (v :: remove_nvars [v] (dom_csub sub)
-          = [v] ++ remove_nvars [v] (dom_csub sub)) as eq by auto.
-  rw eq.
-  rw subvars_app_remove_nvars_r.
-  rw subvars_swap_r; sp.
-Qed.
-
-Lemma cover_vars_halts :
-  forall a sub,
-    cover_vars (mk_halts a) sub
-    <=> cover_vars a sub.
-Proof.
-  sp; unfold mk_halts; split; sp; allrw cover_vars_eq; allsimpl;
-  allrw remove_nvars_nil_l; allrw app_nil_r;
-  allrw subvars_app_l; sp.
-Qed.
-
-Lemma cover_vars_uni :
-  forall i sub, cover_vars (mk_uni i) sub.
-Proof.
-  sp; rw cover_vars_eq; simpl.
-  autorewrite with core; sp.
-Qed.
-
-Hint Immediate cover_vars_uni.
 
 Definition CSubOver (vs : list NVar) : Set :=
   { s : CSubstitution | over_vars vs s }.
@@ -1317,13 +706,6 @@ Proof.
   unfold dom_sub, dom_lmap; intros; rw map_app; auto.
 Qed.
 
-Lemma dom_sub_map_axiom :
-  forall vars,
-    dom_sub (map (fun v => (v, mk_axiom)) vars) = vars.
-Proof.
-  induction vars; simpl; sp.
-  rw IHvars; sp.
-Qed.
 
 Lemma in_dom_sub_exists :
   forall v sub,
@@ -1814,31 +1196,6 @@ Proof.
   apply_in_hyp p; sp.
 Qed.
 
-(*
-Fixpoint update_bvar_subst (bvs: list NVar) (sub: Substitution) : Substitution :=
-      match bvs with
-      | [] =>  sub
-      | v::tv =>
-          let sub'  := sub_filter sub [v] in
-          let frees := sub_free_vars sub' in
-          let u     := sub_mk_rename v frees in
-          (v, vterm u):: (update_bvar_subst tv sub)
-       end.
-*)
-
-(*
-Fixpoint bvar_renamings_subst' (bvs: list NVar) (sub: Substitution)
-  : Substitution * (list NVar) :=
-  match bvs with
-    | [] => (sub,[])
-    | v::tv =>
-        let sub'  := sub_filter sub [v] in
-        let frees := sub_free_vars sub' in
-        let u     := sub_mk_rename v frees in
-        let r     := bvar_renamings_subst' tv sub in
-          ((v, vterm u) :: (fst r), u :: (snd r))
-  end.
-*)
 
 (** bvar_renamings_subst returns three things:
  * 1) a list of variables computed from vs such that the ones that
@@ -2139,23 +1496,6 @@ Proof.
   sp.
 Qed.
 
-Lemma csubst_mk_axiom :
-  forall sub, csubst mk_axiom sub = mk_axiom.
-Proof.
-  sp.
-Qed.
-
-Lemma csubst_mk_uni :
-  forall i sub, csubst (mk_uni i) sub = mk_uni i.
-Proof.
-  sp.
-Qed.
-
-Lemma csubst_mk_base :
-  forall sub, csubst mk_base sub = mk_base.
-Proof.
-  sp.
-Qed.
 
 Lemma lsubst_aux_nil :
   forall t, lsubst_aux t [] = t.
@@ -2665,12 +2005,7 @@ Definition subst_aux (t : NTerm) (v : NVar) (u : NTerm) : NTerm :=
 Definition subst (t : NTerm) (v : NVar) (u : NTerm) : NTerm :=
   lsubst t [(v,u)].
 
-Lemma axiom_sub_as_csubst :
-  forall t x,
-    subst t x mk_axiom = csubst t [(x,mkc_axiom)].
-Proof.
-  sp.
-Qed.
+
 
 (* in a separate commit, we might want to make everything compatible with
 Notation apply_bterm  (bt :BTerm) (lnt: list NTerm) : NTerm :=
@@ -2850,7 +2185,7 @@ Proof.
     remember (sub_find sub n); destruct o; symmetry in Heqo; simpl.
     + apply sub_find_some in Heqo.
       discover.
-      allunfold isprogram; allunfold closed; sp.
+      unfold isprogram, closed in *; sp.
       allrw.
       symmetry.
       rw <- null_iff_nil.
@@ -6782,89 +6117,6 @@ Proof.
 Qed.
 
 
-Lemma subst_mk_false :
-  forall v t,
-    ! LIn nvarx (free_vars t)
-    -> (subst mk_false v t = mk_false).
-Proof.
-  unfold subst. unfold lsubst. introv Hin.
-  change_to_lsubst_aux4; simpl; disjoint_reasoningv;sp.
-  allsimpl. rw memvar_dmemvar. clear d.
-  cases_ifn Hmem;
-  rw in_single_iff in Hmem;simpl;sp.
-  rw beq_deq. cases_if; sp.
-Qed.
-
-Lemma covered_cequiv :
-  forall a b vs,
-    covered (mk_cequiv a b) vs
-    <=> covered a vs
-        # covered b vs.
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma covered_approx :
-  forall a b vs,
-    covered (mk_approx a b) vs
-    <=> covered a vs
-        # covered b vs.
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma covered_fix :
-  forall f s, covered (mk_fix f) s <=> covered f s.
-Proof.
-  unfold mk_fix, covered; intros; simpl.
-  rw remove_nvars_nil_l; rw app_nil_r; sp.
-Qed.
-
-Lemma covered_id :
-  forall s, covered mk_id s.
-Proof.
-  unfold mk_id, covered; simpl; sp.
-Qed.
-Hint Immediate covered_id.
-
-Lemma covered_bot :
-  forall s, covered mk_bot s.
-Proof.
-  unfold mk_bot, mk_bottom.
-  intro; rw covered_fix; sp.
-Qed.
-Hint Immediate covered_bot.
-
-Lemma covered_mk_false :
-  forall s, covered mk_false s.
-Proof.
-  intro; rw covered_approx; sp.
-Qed.
-Hint Immediate covered_mk_false.
-
-Lemma covered_top :
-  forall s, covered mk_top s.
-Proof.
-  intro; rw covered_isect; sp.
-Qed.
-Hint Immediate covered_top.
-
-Lemma covered_lam :
-  forall v b vs,
-    covered (mk_lam v b) vs
-    <=> covered b (v :: vs).
-Proof.
-  unfold covered; sp; simpl.
-  rw app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
 
 Lemma lsubst_lsubst_aux2: forall t lvi lvo, 
   disjoint (bound_vars t) (lvo)
@@ -6894,59 +6146,6 @@ Proof.
   rw <- eq; sp.
 Qed.
 
-(*
-Lemma cover_vars_esquash :
-  forall T sub,
-    cover_vars (mk_esquash T) sub <=> cover_vars T sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); simpl.
-  repeat (rw remove_nvars_nil_l).
-  rw app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-*)
-
-Lemma cover_vars_apply2 :
-  forall a b c sub,
-    cover_vars (mk_apply2 a b c) sub
-    <=> cover_vars a sub
-        # cover_vars b sub
-        # cover_vars c sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); simpl.
-  repeat (rw remove_nvars_nil_l).
-  repeat (rw app_nil_r).
-  repeat (rw subvars_app_l); sp; split; sp.
-Qed.
-
-Definition subst_axiom (lv:list NVar): Substitution :=
-  (map (fun v => (v,mk_axiom)) lv).
-
-Hint Resolve isprogram_axiom.
-
-
-Lemma prog_subst_axiom: forall lv,
-  prog_sub (subst_axiom lv).
-Proof.
-  introv Hin.
-  rw in_map_iff in Hin.
-  exrepnd. inverts Hin0.
-  eauto.
-Qed.
-
-Hint Resolve prog_subst_axiom.
-
-Lemma close_with_axiom : forall t, 
-  nt_wf t
-  -> let sub := subst_axiom (free_vars t) in
-      (prog_sub sub) # (isprogram (lsubst t sub)).
-Proof.
-  introv Hnt. pose proof (prog_subst_axiom (free_vars t)) as Hpr.
-  simpl. split; auto;[].
-  apply isprogram_lsubst;try(sp;fail).
-  introv Hin. apply in_map_iff. exists (v, mk_axiom). split; auto.
-    unfold subst_axiom. apply in_map_iff. eexists;eauto.
-Qed.
 
 Ltac dlmap_find sn :=
 match goal with
@@ -7157,159 +6356,6 @@ Proof.
 Qed.
 
 Hint Resolve disjoint_sym_eauto disjoint_flat_map_r : slow.
-
-Lemma cover_vars_upto_lam :
-  forall vs v b sub,
-    cover_vars_upto (mk_lam v b) sub vs
-    <=> cover_vars_upto b (csub_filter sub [v]) (v :: vs).
-Proof.
-  introv.
-  unfold cover_vars_upto; simpl.
-  rw app_nil_r.
-  rw subvars_remove_nvars.
-  rw dom_csub_csub_filter.
-  allrw subvars_prop; simpl; split; sp.
-  apply_in_hyp p; allrw in_app_iff; allrw in_single_iff; sp.
-  rw in_remove_nvars; rw in_single_iff.
-  generalize (deq_nvar v x); intro o; sp.
-  right; right; sp.
-  apply_in_hyp p.
-  allrw in_app_iff; allrw in_remove_nvars; allrw in_single_iff; sp.
-Qed.
-
-Lemma cover_vars_upto_isect :
-  forall vs a v b sub,
-    cover_vars_upto (mk_isect a v b) sub vs
-    <=> cover_vars_upto a sub vs
-        # cover_vars_upto b (csub_filter sub [v]) (v :: vs).
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  allrw remove_nvars_nil_l; allrw app_nil_r.
-  allrw subvars_app_l.
-  allrw subvars_remove_nvars; simpl.
-  allrw dom_csub_csub_filter.
-  allrw subvars_prop; simpl; split; sp; apply_in_hyp p;
-  allrw in_app_iff; allrw in_remove_nvars; allrw in_single_iff; sp.
-  generalize (deq_nvar v x); intro o; sp.
-  right; right; sp.
-Qed.
-
-Lemma cover_vars_upto_eisect :
-  forall vs a v b sub,
-    cover_vars_upto (mk_eisect a v b) sub vs
-    <=> cover_vars_upto a sub vs
-        # cover_vars_upto b (csub_filter sub [v]) (v :: vs).
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  allrw remove_nvars_nil_l; allrw app_nil_r.
-  allrw subvars_app_l.
-  allrw subvars_remove_nvars; simpl.
-  allrw dom_csub_csub_filter.
-  allrw subvars_prop; simpl; split; sp; apply_in_hyp p;
-  allrw in_app_iff; allrw in_remove_nvars; allrw in_single_iff; sp.
-  generalize (deq_nvar v x); intro o; sp.
-  right; right; sp.
-Qed.
-
-Lemma cover_vars_upto_disect :
-  forall vs a v b sub,
-    cover_vars_upto (mk_disect a v b) sub vs
-    <=> cover_vars_upto a sub vs
-        # cover_vars_upto b (csub_filter sub [v]) (v :: vs).
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  allrw remove_nvars_nil_l; allrw app_nil_r.
-  allrw subvars_app_l.
-  allrw subvars_remove_nvars; simpl.
-  allrw dom_csub_csub_filter.
-  allrw subvars_prop; simpl; split; sp; apply_in_hyp p;
-  allrw in_app_iff; allrw in_remove_nvars; allrw in_single_iff; sp.
-  generalize (deq_nvar v x); intro o; sp.
-  right; right; sp.
-Qed.
-
-Lemma cover_vars_upto_set :
-  forall vs a v b sub,
-    cover_vars_upto (mk_set a v b) sub vs
-    <=> cover_vars_upto a sub vs
-        # cover_vars_upto b (csub_filter sub [v]) (v :: vs).
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  allrw remove_nvars_nil_l; allrw app_nil_r.
-  allrw subvars_app_l.
-  allrw subvars_remove_nvars; simpl.
-  allrw dom_csub_csub_filter.
-  allrw subvars_prop; simpl; split; sp; apply_in_hyp p;
-  allrw in_app_iff; allrw in_remove_nvars; allrw in_single_iff; sp.
-  generalize (deq_nvar v x); intro o; sp.
-  right; right; sp.
-Qed.
-
-Lemma cover_vars_upto_quotient :
-  forall vs a v1 v2 b sub,
-    cover_vars_upto (mk_quotient a v1 v2 b) sub vs
-    <=> cover_vars_upto a sub vs
-        # cover_vars_upto b (csub_filter sub [v1,v2]) (v1 :: v2 :: vs).
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  allrw remove_nvars_nil_l; allrw app_nil_r.
-  allrw subvars_app_l.
-  allrw subvars_remove_nvars; simpl.
-  allrw dom_csub_csub_filter.
-  allrw subvars_prop; simpl; split; sp; apply_in_hyp p;
-  allrw in_app_iff; allrw in_remove_nvars; allrw in_single_iff; sp;
-  generalize (deq_nvar v1 x); generalize (deq_nvar v2 x); intro o; sp;
-  right; right; right; allsimpl; sp.
-Qed.
-
-Lemma cover_vars_upto_base :
-  forall vs sub,
-    cover_vars_upto mk_base sub vs.
-Proof.
-  unfold cover_vars_upto; sp.
-Qed.
-Hint Immediate cover_vars_upto_base.
-
-Lemma cover_vars_upto_base_iff :
-  forall vs sub,
-    cover_vars_upto mk_base sub vs <=> True.
-Proof.
-  intros; split; sp.
-Qed.
-
-Lemma cover_vars_upto_equality :
-  forall vs a b T sub,
-    cover_vars_upto (mk_equality a b T) sub vs
-    <=> cover_vars_upto a sub vs
-        # cover_vars_upto b sub vs
-        # cover_vars_upto T sub vs.
-Proof.
-  intros; unfold cover_vars_upto; simpl.
-  allrw remove_nvars_nil_l; allrw app_nil_r.
-  allrw subvars_app_l; sp.
-Qed.
-
-Lemma cover_vars_upto_tequality :
-  forall vs a b sub,
-    cover_vars_upto (mk_tequality a b) sub vs
-    <=> cover_vars_upto a sub vs
-        # cover_vars_upto b sub vs.
-Proof.
-  intros; unfold cover_vars_upto; simpl.
-  allrw remove_nvars_nil_l; allrw app_nil_r.
-  allrw subvars_app_l; sp.
-Qed.
-
-Lemma cover_vars_upto_apply :
-  forall vs a b sub,
-    cover_vars_upto (mk_apply a b) sub vs
-    <=> cover_vars_upto a sub vs
-        # cover_vars_upto b sub vs.
-Proof.
-  intros; unfold cover_vars_upto; simpl.
-  allrw remove_nvars_nil_l; allrw app_nil_r.
-  allrw subvars_app_l; sp.
-Qed.
 
 Lemma cover_vars_upto_var :
   forall vs v sub,
@@ -7533,7 +6579,7 @@ Proof.
   induction sub; allsimpl; sp.
   generalize (X a0 a); sp.
   rw IHsub; allsimpl; sp.
-  allunfold isprogram; allunfold closed; sp; allrw; sp.
+  unfold isprogram, closed in *; sp; allrw; sp.
   generalize (X v t); sp.
 Qed.
 
@@ -7855,18 +6901,18 @@ Proof.
 
   repeat (rw simple_lsubst_lsubst; simpl);
     try (complete (intros; allapply in_csub2sub; sp;
-                   allunfold isprogram; repnd; allrw; sp));
+                   unfold isprogram in *; repnd; allrw; sp));
     try (complete (intros; sp; cpx; sp; apply isprogram_csubst; sp; rw nt_wf_eq; sp)).
 
   rw lsubst_sub_trivial_closed1; simpl;
     try (complete (intros; allapply in_csub2sub; sp;
-                   allunfold isprogram; repnd; allrw; sp));
+                   unfold isprogram in *; repnd; allrw; sp));
     try (complete (intros; sp; cpx; sp; apply isprogram_csubst; sp; rw nt_wf_eq; sp)).
 
   rw <- snoc_as_append.
   rw <- lsubst_swap; simpl;
     try (complete (intros; allapply in_csub2sub; sp;
-                   allunfold isprogram; repnd; allrw; sp));
+                   unfold isprogram in *; repnd; allrw; sp));
     try (complete (intros; sp; cpx; sp; apply isprogram_csubst; sp; rw nt_wf_eq; sp));
     try (complete (intro; allrw dom_csub_eq; allrw dom_csub_csub_filter;
                    allrw in_remove_nvars; allsimpl; sp)).
@@ -7992,30 +7038,6 @@ Proof.
   introv i; allrw in_snoc; sp; cpx; discover; sp.
 Qed.
 
-Lemma covered_apply :
-  forall a b vs,
-    covered (mk_apply a b) vs
-    <=> covered a vs
-        # covered b vs.
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma covered_apply2 :
-  forall a b c vs,
-    covered (mk_apply2 a b c) vs
-    <=> covered a vs
-        # covered b vs
-        # covered c vs.
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  repeat (rewrite app_nil_r).
-  repeat (rw subvars_app_l); sp; split; sp.
-Qed.
 
 Lemma cover_vars_change_sub2 :
   forall t sub1 sub2,
@@ -8028,25 +7050,6 @@ Proof.
   apply subvars_trans with (vs2 := dom_csub sub1); sp.
 Qed.
 
-Lemma cover_vars_upto_w :
-  forall A v B sub vs,
-    cover_vars_upto (mk_w A v B) sub vs
-    <=> cover_vars_upto A sub vs
-        # cover_vars_upto B (csub_filter sub [v]) (v :: vs).
-Proof.
-  introv; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  allrw remove_nvars_nil_l; allrw app_nil_r.
-  allrw subvars_app_l.
-  allrw subvars_remove_nvars; simpl.
-  allrw dom_csub_csub_filter.
-
-  split; sp; allrw subvars_prop; sp; discover; sp;
-  allsimpl; allrw in_app_iff; allrw in_remove_nvars;
-  allrw in_single_iff; sp.
-  destruct (eq_var_dec v x); sp.
-  right; right; sp.
-Qed.
-
 Lemma csubst_as_lsubst_aux :
   forall t sub, csubst t sub = lsubst_aux t (csub2sub sub).
 Proof.
@@ -8055,15 +7058,6 @@ Proof.
   change_to_lsubst_aux4; sp.
 Qed.
 
-Lemma lsubst_aux_lam_csub2sub :
-  forall v b s,
-    lsubst_aux (mk_lam v b) (csub2sub s)
-    = mk_lam v (lsubst_aux b (csub2sub (csub_filter s [v]))).
-Proof.
-  sp; simpl.
-  rw fold_lam.
-  rw sub_filter_csub2sub; sp.
-Qed.
 
 Lemma csub_filter_nil :
   forall s, csub_filter s [] = s.
@@ -8072,63 +7066,6 @@ Proof.
   rw IHs; sp.
 Qed.
 
-Lemma lsubst_aux_isect_csub2sub :
-  forall a v b s,
-    lsubst_aux (mk_isect a v b) (csub2sub s)
-    = mk_isect (lsubst_aux a (csub2sub s)) v (lsubst_aux b (csub2sub (csub_filter s [v]))).
-Proof.
-  sp; simpl.
-  rw fold_isect.
-  allrw sub_filter_csub2sub.
-  allrw csub_filter_nil; sp.
-Qed.
-
-Lemma lsubst_aux_equality_csub2sub :
-  forall a b T s,
-    lsubst_aux (mk_equality a b T) (csub2sub s)
-    = mk_equality
-        (lsubst_aux a (csub2sub s))
-        (lsubst_aux b (csub2sub s))
-        (lsubst_aux T (csub2sub s)).
-Proof.
-  sp; simpl.
-  rw fold_equality.
-  allrw sub_filter_csub2sub.
-  allrw csub_filter_nil; sp.
-Qed.
-
-Lemma lsubst_aux_tequality_csub2sub :
-  forall a b s,
-    lsubst_aux (mk_tequality a b) (csub2sub s)
-    = mk_tequality
-        (lsubst_aux a (csub2sub s))
-        (lsubst_aux b (csub2sub s)).
-Proof.
-  sp; simpl.
-  rw fold_tequality.
-  allrw sub_filter_csub2sub.
-  allrw csub_filter_nil; sp.
-Qed.
-
-Lemma lsubst_aux_apply_csub2sub :
-  forall a b s,
-    lsubst_aux (mk_apply a b) (csub2sub s)
-    = mk_apply
-        (lsubst_aux a (csub2sub s))
-        (lsubst_aux b (csub2sub s)).
-Proof.
-  sp; simpl.
-  rw fold_apply.
-  allrw sub_filter_csub2sub.
-  allrw csub_filter_nil; sp.
-Qed.
-
-Lemma lsubst_aux_base_csub2sub :
-  forall s,
-    lsubst_aux mk_base (csub2sub s) = mk_base.
-Proof.
-  sp.
-Qed.
 
 Lemma lsubst_aux_var_csub2sub_out :
   forall v s,
@@ -8139,177 +7076,6 @@ Proof.
   rw <- dom_csub_eq in ni.
   apply sub_find_none_iff in ni.
   rw ni; sp.
-Qed.
-
-Lemma cover_vars_fun :
-  forall a b sub,
-    cover_vars (mk_fun a b) sub
-    <=> cover_vars a sub
-        # cover_vars b sub.
-Proof.
-  introv.
-  rw cover_vars_function.
-  generalize (cover_vars_upto_csub_filter_disjoint b sub [newvar b] [newvar b]).
-  intro e.
-  repeat (dest_imp e hyp).
-  rw disjoint_singleton_r.
-  apply newvar_prop.
-  rw e; sp.
-Qed.
-
-Lemma cover_vars_ufun :
-  forall a b sub,
-    cover_vars (mk_ufun a b) sub
-    <=> cover_vars a sub
-        # cover_vars b sub.
-Proof.
-  introv.
-  rw cover_vars_isect.
-  generalize (cover_vars_upto_csub_filter_disjoint b sub [newvar b] [newvar b]).
-  intro e.
-  repeat (dest_imp e hyp).
-  rw disjoint_singleton_r.
-  apply newvar_prop.
-  rw e; sp.
-Qed.
-
-Lemma cover_vars_eufun :
-  forall a b sub,
-    cover_vars (mk_eufun a b) sub
-    <=> cover_vars a sub
-        # cover_vars b sub.
-Proof.
-  introv.
-  rw cover_vars_eisect.
-  generalize (cover_vars_upto_csub_filter_disjoint b sub [newvar b] [newvar b]).
-  intro e.
-  repeat (dest_imp e hyp).
-  rw disjoint_singleton_r.
-  apply newvar_prop.
-  rw e; sp.
-Qed.
-
-Lemma cover_vars_prod :
-  forall a b sub,
-    cover_vars (mk_prod a b) sub
-    <=> cover_vars a sub
-        # cover_vars b sub.
-Proof.
-  introv.
-  rw cover_vars_product.
-  generalize (cover_vars_upto_csub_filter_disjoint b sub [newvar b] [newvar b]).
-  intro e.
-  repeat (dest_imp e hyp).
-  rw disjoint_singleton_r.
-  apply newvar_prop.
-  rw e; sp.
-Qed.
-
-Lemma cover_vars_void :
-  forall sub, cover_vars mk_void sub.
-Proof.
-  introv.
-  rw cover_vars_eq; simpl; sp.
-Qed.
-Hint Immediate cover_vars_void.
-
-Lemma cover_vars_not :
-  forall a sub, cover_vars (mk_not a) sub <=> cover_vars a sub.
-Proof.
-  introv.
-  rw cover_vars_fun; split; sp.
-Qed.
-
-Lemma covered_function :
-  forall a v b vs,
-    covered (mk_function a v b) vs
-    <=> covered a vs # covered b (v :: vs).
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma covered_product :
-  forall a v b vs,
-    covered (mk_product a v b) vs
-    <=> covered a vs # covered b (v :: vs).
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma covered_fun :
-  forall a b vs,
-    covered (mk_fun a b) vs
-    <=> covered a vs # covered b vs.
-Proof.
-  introv; rw covered_function; split; intro k; repnd; dands; auto.
-
-  allunfold covered.
-  apply subvars_cons_r_weak_if_not_in in k; auto.
-  apply newvar_prop.
-
-  allunfold covered.
-  apply subvars_cons_r; auto.
-Qed.
-
-Lemma covered_ufun :
-  forall a b vs,
-    covered (mk_ufun a b) vs
-    <=> covered a vs # covered b vs.
-Proof.
-  introv; rw covered_isect; split; intro k; repnd; dands; auto.
-
-  allunfold covered.
-  apply subvars_cons_r_weak_if_not_in in k; auto.
-  apply newvar_prop.
-
-  allunfold covered.
-  apply subvars_cons_r; auto.
-Qed.
-
-Lemma covered_eufun :
-  forall a b vs,
-    covered (mk_eufun a b) vs
-    <=> covered a vs # covered b vs.
-Proof.
-  introv; rw covered_eisect; split; intro k; repnd; dands; auto.
-
-  allunfold covered.
-  apply subvars_cons_r_weak_if_not_in in k; auto.
-  apply newvar_prop.
-
-  allunfold covered.
-  apply subvars_cons_r; auto.
-Qed.
-
-Lemma covered_prod :
-  forall a b vs,
-    covered (mk_prod a b) vs
-    <=> covered a vs # covered b vs.
-Proof.
-  introv; rw covered_product; split; intro k; repnd; dands; auto.
-
-  allunfold covered.
-  apply subvars_cons_r_weak_if_not_in in k; auto.
-  apply newvar_prop.
-
-  allunfold covered.
-  apply subvars_cons_r; auto.
-Qed.
-
-Lemma covered_iff :
-  forall a b vs,
-    covered (mk_iff a b) vs
-    <=> covered a vs # covered b vs.
-Proof.
-  introv.
-  rw covered_prod.
-  allrw covered_fun; split; sp.
 Qed.
 
 Lemma isprog_vars_lsubst :
@@ -8342,50 +7108,6 @@ Proof.
   apply isprog_vars_lsubst; sp;
   allapply in_csub2sub; sp.
   rw dom_csub_eq; sp.
-Qed.
-
-Lemma cover_vars_pertype :
-  forall a sub,
-    cover_vars (mk_pertype a) sub
-    <=> cover_vars a sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); simpl.
-  repeat (rw remove_nvars_nil_l).
-  rw app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma cover_vars_ipertype :
-  forall a sub,
-    cover_vars (mk_ipertype a) sub
-    <=> cover_vars a sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); simpl.
-  repeat (rw remove_nvars_nil_l).
-  rw app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma cover_vars_spertype :
-  forall a sub,
-    cover_vars (mk_spertype a) sub
-    <=> cover_vars a sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); simpl.
-  repeat (rw remove_nvars_nil_l).
-  rw app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma cover_vars_tuni :
-  forall a sub,
-    cover_vars (mk_tuni a) sub
-    <=> cover_vars a sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); simpl.
-  repeat (rw remove_nvars_nil_l).
-  rw app_nil_r.
-  repeat (rw subvars_app_l); sp.
 Qed.
 
 Lemma sub_find_some_app2 :
@@ -8532,254 +7254,8 @@ Proof.
   unfold covered; split; intro k; provesv; allsimpl; repdors; subst; sp.
 Qed.
 
-Lemma cover_vars_upto_pertype :
-  forall a sub vs,
-    cover_vars_upto (mk_pertype a) sub vs
-    <=> cover_vars_upto a sub vs.
-Proof.
-  sp; unfold cover_vars_upto; split; intro k;
-  allrw subvars_prop; introv i; apply k;
-  allsimpl; allrw remove_nvars_nil_l; allrw app_nil_r; sp.
-Qed.
-
-Lemma covered_pertype :
-  forall a vs,
-    covered (mk_pertype a) vs
-    <=> covered a vs.
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma cover_vars_upto_ipertype :
-  forall a sub vs,
-    cover_vars_upto (mk_ipertype a) sub vs
-    <=> cover_vars_upto a sub vs.
-Proof.
-  sp; unfold cover_vars_upto; split; intro k;
-  allrw subvars_prop; introv i; apply k;
-  allsimpl; allrw remove_nvars_nil_l; allrw app_nil_r; sp.
-Qed.
-
-Lemma covered_ipertype :
-  forall a vs,
-    covered (mk_ipertype a) vs
-    <=> covered a vs.
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma cover_vars_upto_spertype :
-  forall a sub vs,
-    cover_vars_upto (mk_spertype a) sub vs
-    <=> cover_vars_upto a sub vs.
-Proof.
-  sp; unfold cover_vars_upto; split; intro k;
-  allrw subvars_prop; introv i; apply k;
-  allsimpl; allrw remove_nvars_nil_l; allrw app_nil_r; sp.
-Qed.
-
-Lemma covered_spertype :
-  forall a vs,
-    covered (mk_spertype a) vs
-    <=> covered a vs.
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma cover_vars_upto_tuni :
-  forall a sub vs,
-    cover_vars_upto (mk_tuni a) sub vs
-    <=> cover_vars_upto a sub vs.
-Proof.
-  sp; unfold cover_vars_upto; split; intro k;
-  allrw subvars_prop; introv i; apply k;
-  allsimpl; allrw remove_nvars_nil_l; allrw app_nil_r; sp.
-Qed.
-
-Lemma covered_tuni :
-  forall a vs,
-    covered (mk_tuni a) vs
-    <=> covered a vs.
-Proof.
-  unfold covered; sp; simpl.
-  repeat (rw remove_nvars_nil_l).
-  rewrite app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma covered_base :
-  forall vs, covered mk_base vs.
-Proof.
-  unfold covered; sp; simpl.
-Qed.
-Hint Immediate covered_base.
-
-Lemma covered_base_iff :
-  forall vs, covered mk_base vs <=> True.
-Proof.
-  sp.
-Qed.
-
-Lemma covered_iff_cover_vars :
-  forall vs t s, dom_csub s = vs -> (covered t vs <=> cover_vars t s).
-Proof.
-  introv e.
-  rw cover_vars_eq.
-  unfold covered; subst; sp.
-Qed.
-
-Lemma cover_vars_spread :
-  forall a v1 v2 b sub,
-    cover_vars (mk_spread a v1 v2 b) sub
-    <=> cover_vars a sub
-        # cover_vars_upto b (csub_filter sub [v1,v2]) [v1,v2].
-Proof.
-  sp; repeat (rw cover_vars_eq); unfold cover_vars_upto; simpl.
-  rw remove_nvars_nil_l; rw app_nil_r.
-  rw subvars_app_l.
-  rw subvars_remove_nvars; simpl.
-  rw dom_csub_csub_filter.
-  assert (v1 :: v2 :: remove_nvars [v1,v2] (dom_csub sub)
-          = [v1,v2] ++ remove_nvars [v1,v2] (dom_csub sub)) as eq by auto.
-  rw eq.
-  rw subvars_app_remove_nvars_r.
-  rw subvars_swap_r; sp.
-Qed.
-
-Lemma cover_vars_pair :
-  forall a b sub,
-    cover_vars (mk_pair a b) sub
-    <=> cover_vars a sub
-        # cover_vars b sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); simpl.
-  repeat (rw remove_nvars_nil_l).
-  rw app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma cover_vars_ispair :
-  forall a b T sub,
-    cover_vars (mk_ispair a b T) sub
-    <=> cover_vars a sub
-        # cover_vars b sub
-        # cover_vars T sub.
-Proof.
-  sp; repeat (rw cover_vars_eq); simpl.
-  repeat (rw remove_nvars_nil_l).
-  rw app_nil_r.
-  repeat (rw subvars_app_l); sp.
-Qed.
-
-Lemma cover_vars_upto_ispair :
-  forall vs a b T sub,
-    cover_vars_upto (mk_ispair a b T) sub vs
-    <=> cover_vars_upto a sub vs
-        # cover_vars_upto b sub vs
-        # cover_vars_upto T sub vs.
-Proof.
-  intros; unfold cover_vars_upto; simpl.
-  allrw remove_nvars_nil_l; allrw app_nil_r.
-  allrw subvars_app_l; sp.
-Qed.
-
-Lemma subst_ispair :
-  forall t a b x u,
-    isprogram u
-    -> subst (mk_ispair t a b) x u
-       = mk_ispair (subst t x u) (subst a x u) (subst b x u).
-Proof.
-  introv ipu.
-  destruct ipu as [cl wf].
-  unfold subst.
-  change_to_lsubst_aux4; simpl; allrw app_nil_r; allrw; sp.
-Qed.
-
-Lemma cover_vars_eta_pair :
-  forall t s, cover_vars (mk_eta_pair t) s <=> cover_vars t s.
-Proof.
-  introv.
-  rw cover_vars_pair.
-  allrw cover_vars_spread.
-  allrw cover_vars_upto_var.
-  allrw in_app_iff; simpl; split; sp.
-Qed.
-
-Lemma cover_vars_upto_approx :
-  forall a b sub vs,
-    cover_vars_upto (mk_approx a b) sub vs
-    <=> cover_vars_upto a sub vs
-        # cover_vars_upto b sub vs.
-Proof.
-  unfold cover_vars_upto; introv; simpl.
-  rw app_nil_r.
-  allrw remove_nvars_nil_l.
-  rw subvars_app_l; sp.
-Qed.
-
-Lemma cover_vars_upto_fix :
-  forall a sub vs,
-    cover_vars_upto (mk_fix a) sub vs
-    <=> cover_vars_upto a sub vs.
-Proof.
-  unfold cover_vars_upto; introv; simpl.
-  rw app_nil_r.
-  rw remove_nvars_nil_l; sp.
-Qed.
-
-Lemma cover_vars_upto_id :
-  forall sub vs, cover_vars_upto mk_id sub vs.
-Proof.
-  unfold cover_vars_upto; introv; simpl; sp.
-Qed.
-Hint Immediate cover_vars_upto_id.
-
-Lemma cover_vars_upto_bot :
-  forall sub vs, cover_vars_upto mk_bot sub vs.
-Proof.
-  unfold mk_bot, mk_bottom.
-  introv.
-  apply cover_vars_upto_fix; sp.
-Qed.
-Hint Immediate cover_vars_upto_bot.
-
-Lemma cover_vars_upto_false :
-  forall sub vs, cover_vars_upto mk_false sub vs.
-Proof.
-  introv.
-  unfold mk_false.
-  rw cover_vars_upto_approx; sp.
-Qed.
-Hint Immediate cover_vars_upto_false.
-
-Lemma cover_vars_upto_top :
-  forall sub vs, cover_vars_upto mk_top sub vs.
-Proof.
-  introv.
-  unfold mk_top.
-  rw cover_vars_upto_isect; sp.
-Qed.
-Hint Immediate cover_vars_upto_top.
-
-Lemma cover_vars_top :
-  forall sub, cover_vars mk_top sub.
-Proof.
-  introv.
-  generalize (cover_vars_upto_csub_filter_disjoint mk_top sub [] []);
-    intro k; repeat (autodimp k hyp).
-  rw <- k; sp.
-Qed.
-Hint Immediate cover_vars_top.
 
 (* The line below should be at the end of the file. Do NOT
   write anything below that is not supposed to be included in the Tech Report*)
 (* end hide*)
+End SubstGeneric.

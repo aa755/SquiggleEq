@@ -1475,8 +1475,6 @@ Proof.
   repnd; apply disjoint_sym. trivial.
 Qed.
 
-Tactic Notation "disjoint_reasoningv" :=
-  (allunfold all_vars); repeat( progress disjoint_reasoning).
 
 
 Definition selectnt (n:nat) (lnt : list NTerm): NTerm :=
@@ -1732,6 +1730,64 @@ Proof.
   allrw; simpl; try (complete sp).
 Qed.
 
+(** newvar on closed terms *)
+Definition cnewvar (t : CTerm) := newvar (proj1_sig t).
+
+Lemma cnewvar_eq :
+  forall t, cnewvar t = nvarx.
+Proof.
+  destruct t; unfold cnewvar, newvar; simpl.
+  rw isprog_eq in i.
+  inversion i.
+  unfold closed in H.
+  rewrite H.
+  unfold fresh_var; sp.
+Qed.
+
+Lemma isprog_vars_cvterm_var :
+  forall v : NVar,
+  forall t : CTerm,
+    isprog_vars [v] (proj1_sig t).
+Proof.
+  destruct t; unfold cnewvar.
+  rw isprog_vars_eq; simpl.
+  rw isprog_eq in i.
+  inversion i; sp.
+  unfold closed in H.
+  rewrite H; sp.
+Qed.
+
+Lemma isprog_vars_cvterm_newvar :
+  forall t : CTerm,
+    isprog_vars [cnewvar t] (proj1_sig t).
+Proof.
+  sp; apply isprog_vars_cvterm_var.
+Qed.
+
+(** Builds, from a closed term t, a term that has at most one free variable,
+ * namely v, which we know not to be in t.
+ * The term is the same.  Only the proof of closeness changes. *)
+Definition cvterm_var (v : NVar) (t : CTerm) : CVTerm [v] :=
+  exist (isprog_vars [v])
+        (proj1_sig t)
+        (isprog_vars_cvterm_var v t).
+
+Definition cvterm_newvar (t : CTerm) : CVTerm [cnewvar t] :=
+  cvterm_var (cnewvar t) t.
+
+Lemma mk_cv_as_cvterm_var :
+  forall v t, mk_cv [v] t = cvterm_var v t.
+Proof.
+  intros.
+  destruct_cterms.
+  unfold mk_cv, cvterm_var, get_cterm; simpl.
+  rewrite dep_pair_eq
+    with (eq0 := eq_refl)
+           (pb := isprog_vars_cvterm_var v (exist (fun t : NTerm => isprog t) x i)); auto.
+  apply UIP_dec.
+  apply bool_dec.
+Qed.
+
 End terms4Generic.
 
 
@@ -1747,3 +1803,5 @@ Hint Resolve deq_bterm.
 Hint Immediate deq_nterm.
 Hint Immediate isprogram_get_cterm.
 Hint Resolve isprog_ntwf_eauto : slow.
+Tactic Notation "disjoint_reasoningv" :=
+  (allunfold all_vars); repeat( progress disjoint_reasoning).
