@@ -1805,3 +1805,10 @@ Hint Immediate isprogram_get_cterm.
 Hint Resolve isprog_ntwf_eauto : slow.
 Tactic Notation "disjoint_reasoningv" :=
   (allunfold all_vars); repeat( progress disjoint_reasoning).
+Ltac destruct_bterms:=
+repeat match goal with
+[bt : BTerm |- _] =>
+  let btlv := fresh bt "lv" in
+  let btnt := fresh bt "nt" in
+  destruct bt as [btlv btnt]
+end.

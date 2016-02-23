@@ -25,6 +25,10 @@
 
 
 Require Export substitution.
+
+Section AlphaGeneric.
+Context {gts : GenericTermSig}.
+
 (** printing #  $\times$ #×# *)
 (** printing <=>  $\Leftrightarrow$ #&hArr;# *)
 (** printing <  $<$ #<# *)
@@ -719,13 +723,6 @@ Proof.
   trivial.
 Qed. 
 
-Theorem alphaeqbad : alpha_eq (mk_lam nvarx (vterm nvarx)) 
-                                          (mk_lam nvary (vterm nvarx)). 
-Proof. constructor; auto. simpl. introv Hlt. 
-  assert(n=0) by omega. subst. 
-  apply al_bterm with (lv:=[nvarz]); auto. 
-  Focus 3. simpl. 
-Abort. (**Hopefully, this proof will never succed*)
 
 Lemma alpha_eq3_preserves_size: forall nt1 nt2,
   alpha_eq3 [] nt1 nt2 -> size nt1 = size nt2.
@@ -1115,14 +1112,15 @@ Proof.
       rewrite nth_indep with (d' := vterm nvarx ) in HeqH1sn0; try(congruence).
       rewrite nth_indep with (d' := vterm nvarx ) in HeqH1sn4; try(congruence). 
     + provefalse. symmetry in  HeqH1sn. eapply sub_find_some_none_contra in HeqH1sn ; eauto.
-    + provefalse. symmetry in  HeqH2sn. eapply sub_find_some_none_contra with(lnt2:=lnt1) in HeqH2sn; eauto.
+    + provefalse. symmetry in  HeqH2sn. 
+      eapply sub_find_some_none_contra with(lnt4:=lnt1) in HeqH2sn; eauto.
 
   - Case "oterm". simpl. constructor;
     repeat(rewrite map_length); auto.
     introv Hlt. rewrite selectbt_map; auto.
     duplicate Hlt. rewrite Hlen in Hlt0.
     rewrite selectbt_map; auto.
-    fold lsubst_bterm_aux.
+    fold (@lsubst_bterm_aux gts).
     applydup Hal in Hlt.
     clear Hal.
     pose proof (selectbt_in2 n lbt1 Hlt) as [bt99 pp].
@@ -1131,6 +1129,7 @@ Proof.
     pose proof (selectbt_in2 n lbt2 Hlt0) as [bt99 p2p].
     exrepnd. destruct bt99 as [blv2 bnt2].
     rewrite p2p. rewrite p2p in Hlt1.
+    simpl in H1dis, H2dis.
     eapply disjoint_lbt_bt2 in H1dis; eauto. repnd.
     eapply disjoint_lbt_bt2 in H2dis; eauto. repnd.
     apply lsubst_alphabt3_congr_auxp; allsimpl; spc; disjoint_reasoningv;[].
@@ -2372,7 +2371,7 @@ Proof.
   alpha_hyps H0.
 
   apply lsubst_aux_trivial4.
-  allunfold isprogram; repnd.
+  unfold isprogram in *; repnd.
   allrw; sp.
 
   disjoint_flat; sp.
@@ -2761,7 +2760,7 @@ Lemma subst_aux_change_prog : forall t ts td v,
   -> isprogram (subst_aux t v ts)
   -> isprogram (subst t v td).
 Proof.
-  introns XX. allunfold subst_aux.
+  introns XX. unfold subst_aux in *.
   rewrite <- lsubst_lsubst_aux_prog_sub in XX1 ;[| prove_sub_range_sat; fail].
   apply subst_change_prog with (ts:=ts); auto.
 Qed.
@@ -2853,18 +2852,6 @@ Proof.
       allunfold num_bvars; auto.
 Qed.
 
-Lemma alpha_lsubst_fix: forall c lbt sub e ,
-    alpha_eq (oterm (Can c) lbt)
-         (lsubst_aux e
-            (map (fun p : NVar # NTerm => (fst p, mk_fix (snd p))) sub))
-    ->{ecalbt : list BTerm $ e = oterm (Can c) ecalbt}.
-Proof.
-  introv Hal1. destruct e as [| ecao ecalbt]; simpl in Hal1.
-  - revert Hal1. dsub_find2 sfs; intro Hal1;[| invertsn Hal1].
-    apply in_map_iff in Heqsfsl. exrepnd. inverts Heqsfsl0 as X1 X2.
-    invertsn Hal1.
-  - destruct ecao; invertsn Hal1. eexists; eauto.
-Qed.
 
 Lemma prog_sub_change : forall sub1 sub2 t,
   isprogram (lsubst t sub1)
@@ -2902,6 +2889,7 @@ Lemma alpha_eq_bterm_lenbvars: forall lv1 lv2 nt1 nt2,
 Proof.
   introv Hal. inverts Hal; sp.
 Qed.
+
 
 Lemma alpha_eq_bterm_unify : forall a b,
   alpha_eq_bterm a b
@@ -3174,37 +3162,6 @@ Proof.
   prove_sub_range_sat.
 Qed.
 
-Lemma alphaeq_function_fun :
-  forall A v B,
-    disjoint [v] (free_vars B)
-    -> alpha_eq (mk_function A v B)
-             (mk_fun A B).
-Proof.
-  introv Hdis.
-
-  destruct_cterms.
-  unfold alphaeqc; simpl.
-  unfold mk_fun, mk_function, nobnd.
-  prove_alpha_eq3.
-  pose proof (newvar_prop B).
-  simpl. apply alpha_eq_bterm_congr2; disjoint_reasoningv.
-Qed.
-
-Lemma alphaeqc_function_fun :
-  forall A v B,
-    alphaeqc (mkc_function A v (mk_cv [v] B))
-             (mkc_fun A B).
-Proof.
-  introv.
-
-  destruct_cterms.
-  unfold alphaeqc; simpl.
-  apply alphaeq_function_fun.
-  allrw isprog_eq.
-  repnud i.
-  rw i1.
-  disjoint_reasoningv. introv Hin. cpx.
-Qed.
 
 (* !! MOVE  to list.v and add to disjoint_reasoning *)
 Lemma disjoint_app_r_same : forall {T} (lvi lvo : list T ),
@@ -3215,10 +3172,6 @@ Proof.
   apply disjoint_app_r; auto.
 Qed.
 
-
-
-
-Hint Immediate alphaeqc_function_fun.
 
 Lemma alphaeqc_sym:
   forall t1 t2, alphaeqc t1 t2 -> alphaeqc t2 t1.
@@ -3237,31 +3190,4 @@ Proof.
   apply alpha_eq_trans with (nt2 := x0); auto.
 Qed.
 
-Lemma implies_isprogram_bt_lam :
-  forall v t,
-    isprogram (mk_lam v t)
-    -> isprogram_bt (bterm [v] t).
-Proof.
-  unfold isprogram_bt, closed_bt, isprogram, closed; simpl; introv h;
-  allrw app_nil_r; sp.
-  inversion h as [ | a b c d ]; subst.
-  generalize (c (bterm [v] t)); simpl; sp.
-Qed.
-
-Lemma alpha_eq_lam :
-  forall v1 v2 b1 b2,
-    isprogram (mk_lam v1 b1)
-    -> alpha_eq b2 (lsubst b1 (var_ren [v1] [v2]))
-    -> alpha_eq (mk_lam v1 b1) (mk_lam v2 b2).
-Proof.
-  introv isp aeq.
-  apply alpha_eq_trans with (nt2 := mk_lam v2 (lsubst b1 (var_ren [v1] [v2]))).
-  unfold mk_lam.
-  prove_alpha_eq3.
-  apply alpha_eq_bterm_single_change2.
-  apply implies_isprogram_bt_lam; auto.
-  unfold mk_lam.
-  prove_alpha_eq3.
-  apply alpha_eq_bterm_congr.
-  apply alpha_eq_sym; auto.
-Qed.
+End AlphaGeneric.
