@@ -1597,6 +1597,14 @@ Proof.
   apply Hps in Hin1. cpx.
 Qed.
 
+Lemma closed_sub_flatmap_range : forall sub, sub_range_sat sub closed
+    -> flat_map free_vars (range sub) =[].
+Proof.
+  unfold prog_sub, isprogram,closed . introv Hps. apply flat_map_empty. cpx.
+  introv Hin. rw in_map_iff in Hin. exrepnd. subst.
+  simpl.
+  apply Hps in Hin1. cpx.
+Qed.
 
 Theorem dom_range_is_split_snd :
   forall sub, range sub = snd (split sub).
@@ -1764,6 +1772,8 @@ Ltac change_to_lsubst_aux4 :=
   (repeat match goal with
             | [ H:(forall _ _, LIn (_, _) _ -> isprogram _) |- _ ] =>
               progress(rw (prog_sub_flatmap_range _ H))
+            | [ H:(forall _ _, LIn (_, _) _ -> closed _) |- _ ] =>
+              progress(rw (closed_sub_flatmap_range _ H))
             | [ H:( forall _ _, LIn (_, _) _
                                 -> disjoint (free_vars _) (bound_vars _)) |- _ ] =>
               apply disjoint_sub_as_flat_map in H;apply disjoint_sym in H
@@ -2065,6 +2075,53 @@ Proof.
   rw IHsub; auto.
 Qed.
 
+
+Lemma fvars_lsubst_aux1 :
+  forall t : NTerm,
+  forall sub : Substitution,
+    (forall v u, LIn (v, u) sub -> closed u)
+    -> free_vars (lsubst_aux t sub) = remove_nvars (dom_sub sub) (free_vars t).
+Proof.
+  nterm_ind t as [| o lbt ind] Case; simpl; introv k.
+
+  - Case "vterm".
+    remember (sub_find sub n); destruct o; symmetry in Heqo; simpl.
+    + apply sub_find_some in Heqo.
+      apply_in_hyp p.
+      unfold isprogram, closed in p; sp.
+      allrw.
+      symmetry; rw <- null_iff_nil.
+      rw null_remove_nvars; simpl; sp; subst.
+      apply in_dom_sub in Heqo; sp.
+    + sp.
+      apply sub_find_none2 in Heqo.
+      symmetry.
+      rw <- remove_nvars_unchanged.
+      unfold disjoint; simpl; sp; subst; auto.
+
+  - Case "oterm".
+
+      rw flat_map_map; unfold compose.
+      rw remove_nvars_flat_map; unfold compose.
+      apply eq_flat_maps; introv i.
+      destruct x; simpl.
+      simpl in i.
+      apply ind with (sub := sub_filter sub l) in i; sp.
+
+      rewrite i.
+      rw remove_nvars_app_l.
+      rw remove_nvars_comm.
+      rw remove_nvars_app_l.
+      rw remove_nvars_comb; auto.
+
+      apply k with (v := v).
+      assert (subset (sub_filter sub l) sub) as s by apply sub_filter_subset.
+      unfold subset in s.
+      discover; sp.
+Qed.
+
+
+(* TODO : reuse the above lemma *)
 Lemma isprogram_lsubst_aux1 :
   forall t : NTerm,
   forall sub : Substitution,
@@ -2127,6 +2184,18 @@ Proof.
       assert (subset (sub_filter sub l) sub) as s by apply sub_filter_subset.
       unfold subset in s.
       discover; sp.
+Qed.
+
+
+Lemma fvars_lsubst1 :
+  forall t : NTerm,
+  forall sub : Substitution,
+    (forall v u, LIn (v, u) sub -> closed u)
+    ->    free_vars (lsubst t sub) = remove_nvars (dom_sub sub) (free_vars t).
+Proof.
+  intros. change_to_lsubst_aux4.
+  apply fvars_lsubst_aux1;sp.
+  SearchAbout flat_map free_vars.
 Qed.
 
 Lemma isprogram_lsubst1 :

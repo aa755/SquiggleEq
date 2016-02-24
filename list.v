@@ -1941,6 +1941,15 @@ Proof.
   f_equal. auto.
 Qed.
 
+Theorem snd_split_as_map: forall {A B :Type} (sub : list (A * B)),
+    snd (split sub) = map (fun p=> snd p) sub.
+Proof.
+  intros. induction sub as [| vt sub Hind]; auto.
+  simpl. destruct vt as [v t].
+  simpl. destruct (split sub). allsimpl.
+  f_equal. auto.
+Qed.
+
 Lemma combine_in_right : forall T1 T2 (l2: list T2) (l1: list T1),
  (length l2 <= length l1) 
   -> forall u2, ( LIn u2 l2) 
