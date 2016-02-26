@@ -39,7 +39,7 @@ Context {gts : GenericTermSig}.
     helps us express this property. We define it as follows:
  *)
 
-Inductive alpha_eq : NTerm -> NTerm -> Type :=
+Inductive alpha_eq : NTerm -> NTerm -> [univ] :=
   | al_vterm : forall v,  alpha_eq (vterm v) (vterm v)
   | al_oterm : forall (op: Opid) (lbt1 lbt2 : list BTerm),
          length lbt1 = length lbt2
@@ -47,7 +47,7 @@ Inductive alpha_eq : NTerm -> NTerm -> Type :=
                       -> alpha_eq_bterm (selectbt lbt1 n)
                                         (selectbt lbt2 n))
         -> alpha_eq (oterm op lbt1) (oterm op lbt2)
-with alpha_eq_bterm : BTerm -> BTerm -> Type :=
+with alpha_eq_bterm : BTerm -> BTerm -> [univ] :=
   | al_bterm :
       forall (lv1 lv2 lv: list  NVar) (nt1 nt2 : NTerm) ,
         disjoint lv (all_vars nt1 ++ all_vars nt2)
@@ -71,7 +71,7 @@ with alpha_eq_bterm : BTerm -> BTerm -> Type :=
 (* begin hide *)
 Definition alphaeqc t1 t2 := alpha_eq (get_cterm t1) (get_cterm t2).
 
-Inductive alpha_eq3 (lva: list NVar): NTerm -> NTerm -> Type :=
+Inductive alpha_eq3 (lva: list NVar): NTerm -> NTerm -> [univ] :=
   | al_vterm3 : forall v,  alpha_eq3 lva (vterm v) (vterm v)
   | al_oterm3 :
       forall op lbt1 lbt2,
@@ -80,7 +80,7 @@ Inductive alpha_eq3 (lva: list NVar): NTerm -> NTerm -> Type :=
                       -> alpha_eq_bterm3 lva (selectbt lbt1 n)
                                         (selectbt lbt2 n))
         -> alpha_eq3 lva (oterm op lbt1) (oterm op lbt2)
-with alpha_eq_bterm3 (lva: list NVar) : BTerm -> BTerm -> Type :=
+with alpha_eq_bterm3 (lva: list NVar) : BTerm -> BTerm -> [univ] :=
   | al_bterm3 :
       forall (lv1 lv2 lv: list  NVar) (nt1 nt2 : NTerm) ,
         disjoint lv (all_vars nt1 ++ all_vars nt2 ++ lva)
@@ -1234,7 +1234,7 @@ Qed.
 
 Lemma alphaeqbt_nilv: forall nt1 bt2,
   alpha_eq_bterm (bterm [] nt1) bt2 
-  -> {nt2 : NTerm & bt2 = (bterm [] nt2) # alpha_eq nt1 nt2}.
+  -> {nt2 : NTerm $ bt2 = (bterm [] nt2) # alpha_eq nt1 nt2}.
 Proof.
   introv Hal.
   invertsna Hal Hal.
@@ -1263,7 +1263,7 @@ Qed.
 Lemma alphaeqbt_1v: forall v1 nt1 bt2,
   alpha_eq_bterm (bterm [v1] nt1) bt2
   -> {v2, vn : NVar $
-         {nt2: NTerm & bt2 = bterm [v2] nt2
+         {nt2: NTerm $ bt2 = bterm [v2] nt2
           # disjoint [vn] (all_vars nt1 ++ all_vars nt2)
           # alpha_eq (lsubst nt1 (var_ren [v1] [vn]))
                     (lsubst nt2 (var_ren [v2] [vn])) } }.
@@ -1281,7 +1281,7 @@ Qed.
 Lemma alphaeqbt_2v: forall b1v1 b1v2 nt1 bt2,
   alpha_eq_bterm (bterm [b1v1,b1v2] nt1) bt2
   -> {b2v1 ,b2v2, vn1, vn2 : NVar $
-         {nt2: NTerm & bt2 = bterm [b2v1, b2v2] nt2
+         {nt2: NTerm $ bt2 = bterm [b2v1, b2v2] nt2
           # no_repeats [vn1,vn2]
           # disjoint [vn1,vn2] (all_vars nt1 ++ all_vars nt2)
           # alpha_eq (lsubst nt1 (var_ren [b1v1, b1v2] [vn1, vn2]))
@@ -1664,7 +1664,7 @@ Proof.
   induction sub1 as [|(v,t) sub Hind]; introv H1wf H2wf; allsimpl;sp;[].
   rw cons_as_app. apply sub_app_sat;rw cons_as_app in H1wf; apply sub_app_sat_if in H1wf;sp.
   - allunfold sub_range_sat. introv Hin. apply in_single in Hin. inverts Hin.
-    apply lsubst_wf_iff;sp. pose proof (H1wf0 _ _ (inl _ (eq_refl _))). sp.
+    apply lsubst_wf_iff;sp. pose proof (H1wf0 _ _ (or_introl _ (eq_refl _))). sp.
   - apply Hind;sp.
 Qed.
 
@@ -1681,8 +1681,8 @@ Theorem free_vars_lsubst2:
          LIn v (free_vars (lsubst nt sub))
          -> LIn v (free_vars nt)
                 [+] {v' : NVar
-                     & {t : NTerm
-                     & LIn (v',t) sub # LIn v' (free_vars nt) # LIn v (free_vars t)}}.
+                     $ {t : NTerm
+                     $ LIn (v',t) sub # LIn v' (free_vars nt) # LIn v (free_vars t)}}.
 Proof.
   introns XX. revert XX. unfold lsubst. cases_ifn Hd.
   + intro XX.
@@ -1758,7 +1758,7 @@ Lemma combine_1var_sub_wspec:
   forall sub1 sub2,
   allvars_sub sub1
   -> wf_sub sub2
-  -> {sub3 : Substitution & wf_sub sub3 # 
+  -> {sub3 : Substitution $ wf_sub sub3 # 
         forall t,alpha_eq (lsubst (lsubst t sub1) sub2) (lsubst t sub3)}.
 Proof.
   introv Hv Hw.
@@ -1842,7 +1842,7 @@ Lemma prog_lsubst_app2 : forall nt sub sub2,
 Proof.
   introv H1dis Hpr.
   apply prog_lsubst_app;sp.
-  rw (fst H1dis). disjoint_reasoning.
+  rw (proj1 H1dis). disjoint_reasoning.
 Qed.
 
 
@@ -1902,7 +1902,7 @@ Qed.
 
 Lemma change_bvars_alpha_wspec_ot:
   forall lv (o : Opid) (lbt : list BTerm) , 
-    {lbtcv : (list BTerm) & disjoint lv (bound_vars (oterm o lbtcv)) # alpha_eq (oterm o lbt) (oterm o lbtcv)}.
+    {lbtcv : (list BTerm) $ disjoint lv (bound_vars (oterm o lbtcv)) # alpha_eq (oterm o lbt) (oterm o lbtcv)}.
 Proof.
   introv. pose proof (change_bvars_alpha_wspec lv (oterm o lbt)) as Hcv.
   exrepnd. duplicate Hcv0. destruct ntcv; inverts Hcv0.
@@ -2214,7 +2214,7 @@ Lemma sub_range_rel_as_list : forall R subl subr, sub_range_rel R subl subr
 Proof.
   induction subl as [ |(vl,tl) subl Hind]; introv Hsr; allsimpl;
   destruct subr as [ |(vr,tr) subr]; try invertsn Hsr.
-  - repeat (apply existT with ( x:=nil)); dands; spc. apply binrel_list_nil.
+  - repeat (apply ex_intro with ( x:=nil)); dands; spc. apply binrel_list_nil.
   - repnd. apply Hind in Hsr. exrepnd.
     exists (vr::lv) (tl::lntl) (tr::lntr).
     allsimpl. dands; f_equal; spc.

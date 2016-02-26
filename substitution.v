@@ -4649,15 +4649,15 @@ Proof.
       dest_imp Hg hyp.
       intros ? ? Hin.
       apply in_sub_filter in Hin; sp.
-      apply H0 in H4.
-      rw disjoint_flat_map_r in H4.
-      apply H4 in H1; allsimpl.
+      apply H0 in Hin0.
+      rw disjoint_flat_map_r in Hin0.
+      apply Hin0 in H1; allsimpl.
       rw disjoint_app_r in H1; sp.
 
       rw eqvars_prop in Hg.
-      rw Hg in H2.
+      rw Hg in H3.
       allrw in_app_iff; sp.
-      rw <- dom_sub_sub_filter in H2.
+      rw <- dom_sub_sub_filter in H3.
       allrw in_remove_nvars; sp.
 
       left.
@@ -4665,7 +4665,7 @@ Proof.
       allrw in_remove_nvars; sp.
 
       allrw in_sub_free_vars_iff; sp.
-      rewrite sub_keep_first_sub_filter in H2.
+      rewrite sub_keep_first_sub_filter in H4.
       allrw in_sub_filter; sp.
       allrw in_sub_keep_first; sp.
       right.
@@ -4688,9 +4688,9 @@ Proof.
       generalize (H n l H1 (sub_filter sub l)) as Hg; sp.
       dest_imp Hg hyp; sp.
       allrw in_sub_filter; sp.
-      apply H0 in H5.
+      apply H0 in H6.
       allrw disjoint_flat_map_r.
-      apply H5 in H1; allsimpl.
+      apply H6 in H1; allsimpl.
       allrw disjoint_app_r; sp.
 
       rw eqvars_prop in Hg.
@@ -4709,12 +4709,12 @@ Proof.
       destruct x1; allsimpl.
       allrw in_remove_nvars; sp.
 
-      generalize (H n l H3 (sub_filter sub l)) as Hg; sp.
+      generalize (H n l H4 (sub_filter sub l)) as Hg; sp.
       dest_imp Hg hyp; sp.
       allrw in_sub_filter; sp.
-      apply H0 in H6.
+      apply H0 in H7.
       allrw disjoint_flat_map_r.
-      apply H6 in H3; allsimpl.
+      apply H7 in H4; allsimpl.
       allrw disjoint_app_r; sp.
 
       allrw eqvars_prop.
@@ -4724,13 +4724,13 @@ Proof.
       exists x0 t; sp.
       rw in_sub_keep_first; sp.
       rw sub_find_sub_filter_some; sp.
-      applydup sub_find_some in H1.
+      applydup sub_find_some in H3.
       apply H0 in H7.
       allrw disjoint_flat_map_r.
-      apply H7 in H3; allsimpl.
+      apply H7 in H4; allsimpl.
       allrw disjoint_app_r; sp.
       unfold disjoint in *.
-      apply H3 in H2; sp.
+      apply H8 in H2; sp.
 Qed.
 
 
@@ -5244,7 +5244,7 @@ Proof.
     remember (sub_find sub n); destruct o; symmetry in Heqo; auto.
     apply sub_find_some in Heqo.
     apply_in_hyp p; sp.
-    apply not_over_or in H1; sp.
+    apply not_over_or in p; sp.
 
   - Case "oterm". f_equal.
     induction lbt; simpl; auto.
@@ -5261,7 +5261,7 @@ Proof.
         left. apply in_remove_nvars; sp.
     + rewrite H with (lv := lv); sp.
     + apply_in_hyp p; sp. allsimpl. 
-        rw disjoint_app_r in H2. sp.
+        rw disjoint_app_r in p0. sp.
     + apply_in_hyp p; sp; allsimpl.
       allrw in_app_iff.
       allrw not_over_or; sp.
@@ -5779,7 +5779,7 @@ Proof.
       simpl. rw Xsub2eta. rewrite <- HeqHdeq2. simpl. rw  HeqHdeq.
         rewrite lsubst_aux_trivial4; auto.
       * rewrite dom_sub_combine; sp. disjoint_reasoningv.
-        GC. allsimpl. clear H H0.
+        GC. allsimpl. clear Hdist Hdist0.
         apply disjoint_sym in H2dis. rw disjoint_flat_map_l in H2dis.
         apply H2dis in HeqHdeq0. allsimpl. disjoint_reasoningv.
       * rw disjoint_sub_as_flat_map.

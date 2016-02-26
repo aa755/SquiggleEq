@@ -200,7 +200,7 @@ Ltac sp_step :=
     (* some simple reasoning on the hypotheses *)
     | [ H1 : context[not _], H2 : _ |- _ ] => apply H1 in H2; iffalse
     | [ H1 : context[notT _], H2 : _ |- _ ] => apply H1 in H2; iffalse
-    | [ H : _ /\ _ |- _ ] => destruct H
+    | [ H : _ /\ _ |- _ ] => let name := fresh H in destruct H as [name H]
     | [ H : exists (v : _),_  |- _ ] => let name := fresh v in destruct H as [name]
     | [ H1 : ?P -> ?Q, H2 : ?P |- _ ] => specialize (H1 H2)
     | [ H1 : ~ ?P, H2 : ?P |- _ ] => specialize (H1 H2)
