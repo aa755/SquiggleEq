@@ -445,7 +445,7 @@ Proof.
 
   - Case "vterm".
     split; sp. allunfold closed; allsimpl; sp.
-    compute in X0. sp.
+    compute in *. sp.
 
   - Case "oterm".
     split_iff SCase.
@@ -669,7 +669,7 @@ Qed.
 
 
 (** A value is a program with a canonical operator *)
-Inductive isvalue : NTerm -> Type :=
+Inductive isvalue : NTerm -> [univ] :=
   | isvl : forall (c : CanonicalOp) (bts : list BTerm ),
            isprogram (oterm (Can c) bts)
            -> isvalue (oterm (Can c) bts).
@@ -685,7 +685,7 @@ Lemma isvalue_closed :
 Proof.
   introv isv; inversion isv.
   allunfold isprogram; sp.
-  unfold isprogram in X.
+  unfold isprogram in *.
   tauto.
 Qed.
 
@@ -1559,8 +1559,11 @@ Lemma isprogram_bt_nobnd :
     isprogram_bt (bterm [] t)
     -> isprogram (t).
 Proof.
-  unfold isprogram_bt, closed_bt, isprogram, closed; introns Hxx;  spc; allsimpl.
-  inverts Hxx;sp.
+  unfold isprogram_bt, closed_bt, isprogram, closed; intros ?  Hxx;  spc; allsimpl.
+  match goal with
+  [H: (bt_wf _) |- _ ] => inverts H
+  end.
+  assumption.
 Qed.
 
 

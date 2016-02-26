@@ -455,7 +455,7 @@ Proof. sp; split; sp. Qed.
 Lemma not_false_is_true : !False <=> True.
 Proof. sp; split; sp. Qed.
 
-Lemma forall_num_lt_d : forall m P,
+Lemma forall_num_lt_d : forall m (P : nat -> [univ]),
   (forall n, n < S m -> P n)
   -> P 0 # (forall n, n <  m -> P (S n) ).
 Proof.

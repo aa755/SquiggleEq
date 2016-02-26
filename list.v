@@ -27,14 +27,21 @@
 Require Export UsefulTypes.
 Require Export bin_rels.
 
+Notation LIn := (List.In).
+(**
+uncomment this and remove the line above if [univ]:=Type
+
 Fixpoint LIn {A : Type} (a:A) (l:list A) : [univ] :=
   match l with
     | nil => False
     | b :: m => (b = a) [+] LIn a m
   end.
 
-(**to catch uses of Prop*)
 Definition In := 9.
+
+*)
+
+
 
 Fixpoint ball (l : list bool) : bool :=
   match l with

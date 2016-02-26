@@ -1274,8 +1274,9 @@ Lemma not_over_not_lin_nvar :
     !(LIn v l # t) <=> (!LIn v l [+] !t).
 Proof.
   introv; split; intro k; repnd; sp.
-  generalize (in_deq NVar deq_nvar v l); intro o; sp.
-  right; intro j.
+  generalize (in_deq NVar deq_nvar v l); intro o; sp;
+  (* part below not needed for univ := prop *)
+  right; intro j;
   apply k; sp.
 Qed.
 
