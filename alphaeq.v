@@ -3190,4 +3190,69 @@ Proof.
   apply alpha_eq_trans with (nt2 := x0); auto.
 Qed.
 
+Section RWInstances.
+(** contents of this section will work only when [univ] := Prop. Coq does (yet) not support rewriting
+with relations in Type *)
+Global Instance equivAlphaEq : Equivalence alpha_eq.
+  constructor; eauto with core slow.
+Qed.
+
+Require Import Morphisms.
+
+
+Global Instance properAlphaFvars : Proper (alpha_eq ==> eq) free_vars.
+  exact alphaeq_preserves_free_vars.
+Qed.
+
+Lemma symmetricSubRangeRel R : Symmetric R -> Symmetric (sub_range_rel R).
+Proof.
+  intro Hsm. intro a.
+  induction a; intros b Hs;destruct b; try inverts Hs; sp.
+  simpl in Hs. repnd. subst.
+  constructor; eauto.
+Qed.
+
+Lemma transisitiveSubRangeRel R : Transitive R -> Transitive (sub_range_rel R).
+Proof.
+  intro Hsm. intro a.
+  induction a; intros b c H1s H2s ;destruct b; destruct c; try inverts Hs; cpx.
+  simpl in *. repnd. subst.
+  constructor; eauto.
+Qed.
+
+Global Instance equivAlphaEqSub : Equivalence (sub_range_rel alpha_eq).
+Proof.
+  constructor.
+  - apply sub_range_refl. eauto with slow.
+  - apply symmetricSubRangeRel. eauto with slow.
+  - apply transisitiveSubRangeRel. eauto with slow.
+Qed.
+
+Global Instance properAlphaLSubst : 
+  Proper (alpha_eq ==> (sub_range_rel alpha_eq) ==> alpha_eq) lsubst.
+Proof.
+  intros ? ? Heq s1 s2 Hs.
+  unfold subst.
+  apply sub_rel_alpha_prop with (t:= x) in Hs.
+  apply lsubst_alpha_congr2  with (sub:=s2)  in Heq.
+  eauto with slow.
+Qed.
+
+Global Instance properAlphaSubst : 
+  Proper (alpha_eq ==> eq ==>  alpha_eq ==> alpha_eq) subst.
+Proof.
+  intros ? ? ? ? ? ? ? ? ?.
+  apply properAlphaLSubst; cpx.
+Qed.
+
+(** substitution of substitutions *)
+Global Instance properAlphaLSubstSub : 
+  Proper ((sub_range_rel alpha_eq) ==> (eq (* can be generalized *)) ==> (sub_range_rel alpha_eq)) lsubst_sub.
+Proof.
+  intros ? ? Heq s1 s2 Hs.
+  subst. apply sub_rel_lsubst_sub_alpha. trivial.
+Qed.
+
+End RWInstances.
+
 End AlphaGeneric.
