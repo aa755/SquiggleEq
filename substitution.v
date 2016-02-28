@@ -2787,6 +2787,23 @@ Proof.
   intros ? Hprog ?  Hprognt Hlen. apply isprogram_bt_implies2; auto. omega.
 Qed.
 
+Lemma closed_bt_implies :
+  forall (bt:BTerm),
+    closed_bt bt
+    -> forall lnt : list NTerm,
+         (forall nt : NTerm, LIn nt lnt -> closed nt)
+         -> num_bvars bt <= length lnt
+         -> closed (apply_bterm bt lnt).
+Proof.
+ intros ? Hprog ?  Hprognt Hlen.
+ unfold num_bvars in Hlen. simpl in Hlen.
+ unfold apply_bterm. simpl. destruct bt as [lv nt]. simpl.
+ unfold closed.
+ rewrite fvars_lsubst1; auto.
+ rw dom_sub_combine_le; sp.
+ intros ? ? Hin. apply in_combine_r in Hin. cpx.
+Qed.
+
 (*
 Lemma isprogram_lsubst_implies :
   forall t sub,

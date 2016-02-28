@@ -2514,3 +2514,16 @@ end.
 
 Hint Resolve in_combine_left_eauto : slow.
 Hint Resolve in_combine_right_eauto : slow.
+
+Ltac destFind := match goal with
+   [  |- context[find ?s ?v]] => 
+  let sns := fresh v "s" in
+  remember (find s v) as sn;
+  let H := get_last_hyp tt in
+  let H' := fresh H "l" in
+  (destruct sn as [sns |];
+  symmetry in H;
+  try (pose proof (@find_some _ _ _ _  H) as H');
+  try (pose proof (@find_none _ _ _  H) as H'))
+  end.
+
