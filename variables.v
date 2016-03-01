@@ -1281,3 +1281,33 @@ Proof.
 Qed.
 
 (* end hide *)
+
+Lemma iff_t_iff : forall A B : Prop, A <-> B <-> (A <=> B).
+Proof.
+  firstorder.
+Qed.
+  
+Section RWInstances.
+(** contents of this section will work only when [univ] := Prop. Coq does (yet) not support rewriting
+with relations in Type *)
+Global Instance equivEqvars : Equivalence eqvars.
+Proof.
+  constructor; eauto using eqvars_trans, eq_vars_sym.
+Qed.
+
+Require Import Morphisms.
+
+Global Instance properEqvarsLin : Proper (eq ==> eqvars ==> iff ) (@LIn NVar).
+Proof.
+  intros ? ? ? ? ? ?. apply iff_t_iff. subst. apply eqvars_prop; assumption.
+Qed.
+
+Global Instance properEqvarsSubvars : Proper (eq ==> eqvars ==> iff ) (subvars).
+Proof.
+  intros ? ? ? ? ? Heq.  subst. apply iff_t_iff. do 2 rw subvars_prop.
+  apply iff_t_iff.
+  repeat setoid_rewrite Heq. reflexivity.
+Qed.
+
+
+End RWInstances.
