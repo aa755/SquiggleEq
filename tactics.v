@@ -675,6 +675,7 @@ Ltac no_duplicate h :=
   let T := type of h in
   match goal with
     | [ H1 : T, H2 : T |- _ ] => fail 1
+    | [ H1 : ?B, H2 : ?A |- _ ] => (unify B A;fail 1) (** sometimes rewrite creates evars*)
     | _ => idtac
   end.
 

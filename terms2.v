@@ -300,7 +300,7 @@ Proof.
       trw ball_true; sp.
       alltrewrite in_map_iff; sp; subst.
       apply_in_hyp wf; destruct wf; allsimpl.
-      discover; sp.
+      discover; sp. firstorder.
 
     + SCase "<-"; sp.
       remember (beq_list eq_nat_dec (map num_bvars lbt) (OpBindings o)).

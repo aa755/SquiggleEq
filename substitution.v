@@ -852,8 +852,7 @@ Lemma in_sub_free_vars :
 Proof.
   induction sub; simpl; sp; allsimpl.
   allrw in_app_iff; sp.
-  exists a0 a; sp.
-  discover; sp.
+  exists a0 a; sp. apply IHsub in H. sp.
   exists x t; sp.
 Qed.
 
@@ -989,7 +988,8 @@ Proof.
   destruct (memvar a fvars); allsimpl; sp; inj.
   exists (fresh_var (fst (sub_mk_renames bvars fvars) ++ fvars)); auto.
   discover; sp.
-  discover; sp.
+  apply IHbvars in H. sp.
+  apply IHbvars in k. sp.
 Qed.
 
 Lemma sub_mk_renames2_snd_vterm :
@@ -1001,8 +1001,8 @@ Proof.
   rw sub_mk_renames2_eta in k; allsimpl.
   destruct (memvar a fvars); allsimpl; sp; inj.
   eexists; eauto.
-  discover; sp.
-  discover; sp.
+  apply IHbvars in H. sp.
+  apply IHbvars in k. sp.
 Qed.
 
 Lemma sub_mk_renames2_nil :
@@ -2619,7 +2619,7 @@ Proof.
     + apply Hwf in Hin1.
       invertsn Hin1;sp.
     + introv Hin. apply in_sub_filter in Hin. sp.
-      discover; sp.
+      discover; sp. eauto.
 Qed.
 
 (**This is a trivial consequence of the fact that
@@ -3085,7 +3085,7 @@ Proof.
     rewrite H with (lv := l0); sp.
 
     allrw in_sub_filter; sp.
-    discover; sp.
+    discover; sp. eauto.
 Qed.
 
 Lemma lsubst_sub_filter :
@@ -3696,7 +3696,7 @@ Proof.
           allrw in_sub_filter; sp;
           apply_in_hyp q;
           unfold disjoint in q;
-          discover; sp).
+          discover; sp; eauto; firstorder).
 
   rw sub_mk_renames2_disjoint; sp.
   apply disjoint_sym; sp.
@@ -6958,10 +6958,9 @@ Lemma in_range_iff :
   forall (t : NTerm) (sub : Substitution),
     LIn t (range sub) <=> {v : NVar $ LIn (v, t) sub}.
 Proof.
-  induction sub; simpl; split; intro k; sp; allsimpl; subst; discover; sp; cpx.
-  exists a0; sp.
-  exists v; sp.
-  right; allrw; exists v; sp.
+  induction sub; simpl; split; intro k; sp; allsimpl; subst; discover; sp; cpx;
+     eauto.
+  apply IHsub in H. sp. exists v; sp. firstorder.
 Qed.
 
 Lemma prog_sub_cons :
@@ -6969,10 +6968,8 @@ Lemma prog_sub_cons :
     prog_sub ((v,t) :: sub) <=> (isprogram t # prog_sub sub).
 Proof.
   introv.
-  unfold prog_sub, sub_range_sat; simpl; split; intro k; sp; cpx; discover; sp.
-
-  apply k with (v0 := v); sp.
-  apply k with (v0 := v0); sp.
+  unfold prog_sub, sub_range_sat; simpl; split; intro k; sp; cpx; discover; sp; cpx;
+     eauto.
 Qed.
 
 Lemma prog_sub_eq :
@@ -6986,7 +6983,7 @@ Proof.
 
   allrw prog_sub_cons; sp.
 
-  allrw prog_sub_cons; sp; discover; sp.
+  allrw prog_sub_cons; sp; discover; sp; eauto; firstorder.
 Qed.
 
 Lemma simple_lsubst_snoc :
@@ -7148,7 +7145,7 @@ Proof.
   generalize (k v t); intro j; allrw in_snoc; sp.
 
   repnd.
-  introv i; allrw in_snoc; sp; cpx; discover; sp.
+  introv i; allrw in_snoc; sp; cpx; discover; sp; firstorder.
 Qed.
 
 
@@ -7321,7 +7318,7 @@ Proof.
   provesv.
   allrw in_app_iff; sp.
   unfold disjoint in disj.
-  discover; sp.
+  discover; sp; firstorder.
 Qed.
 
 Lemma cover_vars_cons_disjoint :

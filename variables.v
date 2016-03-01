@@ -452,10 +452,10 @@ Proof.
   split; sp; subst; sp.
   destruct (eq_var_dec v x); subst; sp.
   gen_some x; allrw in_remove_nvar.
-  discover; sp.
+  discover; sp. firstorder.
   destruct (eq_var_dec v x); subst; sp.
   gen_some x; allrw in_remove_nvar.
-  discover; sp.
+  discover; sp; firstorder.
 Qed.
 
 Lemma eqvars_remove_nvar :

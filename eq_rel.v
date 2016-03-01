@@ -37,7 +37,7 @@ Inductive void : [univ] := .
 Inductive t_iff (A B : [univ]) : [univ] :=
  | t_iff_cons : (A -> B) -> (B -> A) -> t_iff A B.
 
-Notation "x <=> y" := (t_iff x y) (at level 95, no associativity).
+Notation "x <=> y" := (iff x y) (at level 95, no associativity).
 
 Lemma tiff_trans :
   forall a b c, (a <=> b) -> (b <=> c) -> (a <=> c).
