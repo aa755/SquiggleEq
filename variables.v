@@ -1302,11 +1302,10 @@ Proof.
   intros ? ? ? ? ? ?. apply iff_t_iff. subst. apply eqvars_prop; assumption.
 Qed.
 
-Global Instance properEqvarsSubvars : Proper (eq ==> eqvars ==> iff ) (subvars).
+Global Instance properEqvarsSubvars : Proper (eqvars ==> eqvars ==> iff ) (subvars).
 Proof.
   intros ? ? ? ? ? Heq.  subst. apply iff_t_iff. do 2 rw subvars_prop.
-  apply iff_t_iff.
-  repeat setoid_rewrite Heq. reflexivity.
+  repeat setoid_rewrite Heq. setoid_rewrite H. reflexivity.
 Qed.
 
 
