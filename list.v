@@ -2527,3 +2527,14 @@ Ltac destFind := match goal with
   try (pose proof (@find_none _ _ _  H) as H'))
   end.
 
+Lemma no_repeats_as_disjoint : forall {A} (h:A) t,
+  no_repeats (h::t)
+  -> disjoint [h] t /\ no_repeats t.
+Proof.
+  intros ? ? ? Hnr.
+  inverts Hnr.
+  split; auto.
+  intros ?. rewrite in_single_iff. intro H.
+  subst. assumption.
+Qed.
+

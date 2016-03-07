@@ -1815,3 +1815,15 @@ repeat match goal with
   let btnt := fresh bt "nt" in
   destruct bt as [btlv btnt]
 end.
+
+Ltac noRepDis :=
+(repeat match goal with
+[H: no_repeats [] |- _] => clear H
+|[H: no_repeats (_::_) |- _] =>
+  let Hnrd := fresh "Hnrd" in
+  apply no_repeats_as_disjoint in H;
+  destruct H as [Hnrd H]
+end); disjoint_reasoningv; 
+rewrite in_single_iff in *; subst; tauto; try tauto.
+
+

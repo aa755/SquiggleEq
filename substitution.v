@@ -7364,7 +7364,14 @@ Proof.
   unfold covered; split; intro k; provesv; allsimpl; repdors; subst; sp.
 Qed.
 
-
+Lemma lsubst_vterm : forall v sub, 
+  lsubst (vterm v) sub = lsubst_aux (vterm v) sub.
+Proof.
+  intros.
+  change_to_lsubst_aux4.
+  reflexivity.
+Qed.
+  
 (* The line below should be at the end of the file. Do NOT
   write anything below that is not supposed to be included in the Tech Report*)
 (* end hide*)
@@ -7553,6 +7560,9 @@ end).
 Tactic Notation  "spcl" := spc;simpl_list.
 Tactic Notation  "spcls" := repeat(simpl_list);sp;repeat(simpl_sub).
 
+
+Hint Rewrite (fun gs => @sub_filter_nil_r gs) : SquiggleLazyEq.
+
 Ltac change_to_lsubst_aux4 :=
   unfold lsubst;
   allunfold disjoint_bv_sub;
@@ -7568,6 +7578,8 @@ Ltac change_to_lsubst_aux4 :=
   (repeat match goal with
             | [ H:(forall _ _, LIn (_, _) _ -> isprogram _) |- _ ] =>
               progress(rw (prog_sub_flatmap_range _ H))
+            | [ H:(forall _ _, LIn (_, _) _ -> closed _) |- _ ] =>
+              progress(rw (closed_sub_flatmap_range _ H))
             | [ H:( forall _ _, LIn (_, _) _
                                 -> disjoint (free_vars _) (bound_vars _)) |- _ ] =>
               apply disjoint_sub_as_flat_map in H;apply disjoint_sym in H
@@ -7659,4 +7671,5 @@ match goal with
 | [ |- context [ [(?v1 ,lsubst ?t1 ?sub), (?v2 ,lsubst ?t2 ?sub)] ] ] => fold (lsubst_sub [(v1,t1),(v2,t2)] sub)
 | [ |- context [ [(?v1 ,lsubst ?t1 ?sub)] ] ] => fold (lsubst_sub [(v1,t1)] sub)
 end.
+
 

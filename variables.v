@@ -1302,11 +1302,34 @@ Proof.
   intros ? ? ? ? ? ?. apply iff_t_iff. subst. apply eqvars_prop; assumption.
 Qed.
 
+Global Instance properEqvarsNull : Proper (eqvars ==> iff ) (@null NVar).
+Proof.
+  intros ? ? H. unfold null. split; intros; [rewrite <- H| rewrite H]; eauto.
+Qed.
+
+(*generalize to arbitrary types*)
+Global Instance properEqvarsApp : Proper (eqvars ==> eqvars ==> eqvars ) (@app NVar).
+Proof.
+  intros ? ? H1 ? ? H2. apply eqvars_prop. setoid_rewrite in_app_iff.
+  setoid_rewrite H1. setoid_rewrite H2. tauto.
+Qed.
+
+(*generalize to arbitrary types with decidable equality*)
+Global Instance properEqvarsRemove : Proper (eqvars ==> eqvars ==> eqvars ) remove_nvars.
+Proof.
+  intros ? ? H1 ? ? H2. apply eqvars_prop. setoid_rewrite in_remove_nvars.
+  setoid_rewrite H1. setoid_rewrite H2. tauto.
+Qed.
+
 Global Instance properEqvarsSubvars : Proper (eqvars ==> eqvars ==> iff ) (subvars).
 Proof.
   intros ? ? ? ? ? Heq.  subst. apply iff_t_iff. do 2 rw subvars_prop.
   repeat setoid_rewrite Heq. setoid_rewrite H. reflexivity.
 Qed.
 
+Global Instance transSubvars : Transitive subvars.
+Proof.
+  intros ? ? ?. apply subvars_trans.
+Qed.
 
 End RWInstances.
