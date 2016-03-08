@@ -1551,9 +1551,10 @@ Qed.
 
 Hint Rewrite csubst_nil.
 
-Lemma lsubst_aux_trivial :
+
+Lemma lsubst_aux_trivial_cl :
   forall t sub,
-    (forall v u, LIn (v, u) sub -> isprogram u # ! LIn v (free_vars t))
+    (forall v u, LIn (v, u) sub -> closed u # ! LIn v (free_vars t))
     -> lsubst_aux t sub = t.
 Proof.
   unfold lsubst.
@@ -1586,6 +1587,17 @@ Proof.
     + apply_in_hyp p; sp; allsimpl.
       allrw in_app_iff.
       allrw not_over_or; sp.
+Qed.
+
+Lemma lsubst_aux_trivial :
+  forall t sub,
+    (forall v u, LIn (v, u) sub -> isprogram u # ! LIn v (free_vars t))
+    -> lsubst_aux t sub = t.
+Proof.
+  intros.
+  apply lsubst_aux_trivial_cl.
+  unfold isprogram in *. 
+  firstorder.
 Qed.
 
 Lemma prog_sub_flatmap_range : forall sub, prog_sub sub
@@ -1839,18 +1851,37 @@ Proof.
 Qed.
 *)
 
+Lemma lsubst_aux_trivial2_cl :
+  forall t sub,
+    (forall v u, LIn (v, u) sub -> closed u)
+    -> closed t
+    -> lsubst_aux t sub = t.
+Proof.
+  introv k isp; apply lsubst_aux_trivial_cl; introv ins.
+  apply_in_hyp p.
+  dands; try (complete sp).
+  intro ivt.
+  rw isp in ivt; sp.
+Qed.
+
 Lemma lsubst_aux_trivial2 :
   forall t sub,
     (forall v u, LIn (v, u) sub -> isprogram u)
     -> isprogram t
     -> lsubst_aux t sub = t.
 Proof.
-  introv k isp; apply lsubst_aux_trivial; introv ins.
-  apply_in_hyp p.
-  inversion isp as [c w].
-  dands; try (complete sp).
-  intro ivt.
-  rw c in ivt; sp.
+  intros. apply lsubst_aux_trivial2_cl;  unfold isprogram in *;
+  firstorder.
+Qed.
+
+Lemma lsubst_trivial2_cl :
+  forall t sub,
+    (forall v u, LIn (v, u) sub -> closed u)
+    -> closed t
+    -> lsubst t sub = t.
+Proof.
+  intros. change_to_lsubst_aux4.
+  apply lsubst_aux_trivial2_cl;sp.
 Qed.
 
 Lemma lsubst_trivial2 :
@@ -1859,8 +1890,8 @@ Lemma lsubst_trivial2 :
     -> isprogram t
     -> lsubst t sub = t.
 Proof.
-  intros. change_to_lsubst_aux4.
-  apply lsubst_aux_trivial2;sp.
+  intros. apply lsubst_trivial2_cl;  unfold isprogram in *;
+  firstorder.
 Qed.
 
 
