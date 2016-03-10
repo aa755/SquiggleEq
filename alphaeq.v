@@ -1792,16 +1792,16 @@ end.
 
 (* end hide *)
 (** The following lemma characterizes the free variables of the result of
-    a substitution as a set. [eqvars] is a binary relation on
+    a substitution as a set. [eqsetv] is a binary relation on
     [list NVar] that asserts that the 2 lists are equal as sets.
     [sub_keep_first sub lv] filters the [Substitution] [sub] so as to keep only
     the first occurence of pairs whose domain is in [lv].
 
  *)
-Lemma eqvars_free_vars_disjoint :
+Lemma eqsetv_free_vars_disjoint :
   forall t : NTerm,
   forall sub : Substitution,
-    eqvars (free_vars (lsubst t sub))
+    eqsetv (free_vars (lsubst t sub))
               (remove_nvars (dom_sub sub) (free_vars t)
                ++ sub_free_vars (sub_keep_first sub (free_vars t))).
 Proof.
@@ -1810,7 +1810,7 @@ Proof.
       (flat_map free_vars (range sub)) t) as Hfr.
   exrepnd. alpharw Hfr0. alpharw Hfr0.
   change_to_lsubst_aux4.
-  apply eqvars_free_vars_disjoint_aux;try(sp;fail);
+  apply eqsetv_free_vars_disjoint_aux;try(sp;fail);
   try(apply disjoint_sub_as_flat_map;disjoint_reasoning).
 Qed.
 (* begin hide *)
@@ -1871,10 +1871,10 @@ Proof.
   inverts Hapr as Hacl X99. clear X99.
   inverts Hbpr as Hbcl X99. clear X99.
   allunfold closed.
-  pose proof (eqvars_free_vars_disjoint a sub) as Xaeq.
+  pose proof (eqsetv_free_vars_disjoint a sub) as Xaeq.
   rw Hacl in Xaeq. apply eq_vars_nil in Xaeq.
   simpl_vlist.
-  pose proof (eqvars_free_vars_disjoint b sub) as Xbeq.
+  pose proof (eqsetv_free_vars_disjoint b sub) as Xbeq.
   rw Hbcl in Xbeq. apply eq_vars_nil in Xbeq.
   simpl_vlist.
   clear Xbeq0 Xaeq0 Hbcl Hacl.
@@ -2399,8 +2399,8 @@ Proof.
   apply in_remove_nvars in Hin.
   repnd.
   assert (LIn v (free_vars (lsubst nt1 (var_ren lv1 lv)))) as XX.
-  - pose proof (eqvars_free_vars_disjoint nt1 (var_ren lv1 lv)) as XX.
-    apply eqvars_prop with (x:=v) in XX.
+  - pose proof (eqsetv_free_vars_disjoint nt1 (var_ren lv1 lv)) as XX.
+    apply eqsetv_prop with (x:=v) in XX.
     apply XX. apply in_app_iff.
     left. unfold var_ren. rw dom_sub_combine; try( simpl_list;spc);[].
     apply in_remove_nvars;sp.
@@ -2416,14 +2416,14 @@ Qed.
 
 Lemma alphaeqbt_preserves_fvars: forall (bt1 bt2 : BTerm),
   alpha_eq_bterm bt1 bt2
-  -> eqvars (free_vars_bterm bt1) (free_vars_bterm bt2).
+  -> eqsetv (free_vars_bterm bt1) (free_vars_bterm bt2).
 Proof.
   introv Hal.
   pose proof (alphaeqbt_preserves_fvars_aux _ _ Hal).
   apply alpha_eq_bterm_sym in Hal.
   pose proof (alphaeqbt_preserves_fvars_aux _ _ Hal).
   Hint Unfold subset.
-  apply eqvars_prop.
+  apply eqsetv_prop.
   split; eauto.
 Qed.
 
@@ -2438,7 +2438,7 @@ Proof.
   introv Hal Hin.
   apply alphaeqbt_preserves_fvars in Hal.
   allsimpl. destruct (in_nvar_list_dec v lv); spc;[].
-  apply eqvars_prop with (x:=v) in Hal.
+  apply eqsetv_prop with (x:=v) in Hal.
   left. apply Hal.
   apply in_remove_nvars;sp.
 Qed.
@@ -2631,10 +2631,10 @@ Qed.
 Lemma eq_vars_progsub :
   forall (t : NTerm) (sub : Substitution),
   prog_sub sub
-  -> eqvars (free_vars (lsubst t sub)) (remove_nvars (dom_sub sub) (free_vars t)).
+  -> eqsetv (free_vars (lsubst t sub)) (remove_nvars (dom_sub sub) (free_vars t)).
 Proof.
   introv Hpr.
-  pose proof (eqvars_free_vars_disjoint t sub) as XX.
+  pose proof (eqsetv_free_vars_disjoint t sub) as XX.
   assert ( (sub_free_vars (sub_keep_first sub (free_vars t))) = [] ) as Hn;
   [ | rw Hn in XX; simpl_vlist; sp; fail].
   apply null_iff_nil.
@@ -2656,7 +2656,7 @@ Lemma lsubst_program_implies : forall t sub,
 Proof.
   introv Hpr.
   repnud Hpr.
-  pose proof (eqvars_free_vars_disjoint t sub) as XX.
+  pose proof (eqsetv_free_vars_disjoint t sub) as XX.
   rw Hpr0 in XX.
   apply eq_vars_nil in XX.
   apply app_eq_nil in XX.
@@ -2669,39 +2669,39 @@ Lemma eq_vars_prog_sub_same_dom: forall ta tb suba subb,
   prog_sub suba
   -> prog_sub subb
   -> (dom_sub suba = dom_sub subb)
-  -> eqvars (free_vars ta) (free_vars tb)
-  -> eqvars (free_vars (lsubst ta suba)) (free_vars (lsubst tb subb)).
+  -> eqsetv (free_vars ta) (free_vars tb)
+  -> eqsetv (free_vars (lsubst ta suba)) (free_vars (lsubst tb subb)).
 Proof.
   introv Hap Hbp Hds Heq.
   pose proof (eq_vars_progsub ta _ Hap).
   pose proof (eq_vars_progsub tb _ Hbp).
   match goal with
-  [ H1: eqvars ?a ?la , H2 : eqvars ?v ?lb |- eqvars ?a ?b ] =>
-  assert (eqvars la lb);
-    [| eauto with eqvars]
+  [ H1: eqsetv ?a ?la , H2 : eqsetv ?v ?lb |- eqsetv ?a ?b ] =>
+  assert (eqsetv la lb);
+    [| eauto with eqsetv]
   end.
   rw Hds.
-  apply eqvars_remove_nvars; eauto with eqvars.
+  apply eqsetv_remove_nvars; eauto with eqsetv.
 Qed.
 
 Lemma eq_vars_same_sub: forall ta tb sub,
-  eqvars (free_vars ta) (free_vars tb)
-  -> eqvars (free_vars (lsubst ta sub)) (free_vars (lsubst tb sub)).
+  eqsetv (free_vars ta) (free_vars tb)
+  -> eqsetv (free_vars (lsubst ta sub)) (free_vars (lsubst tb sub)).
 Proof.
   introv Heq.
-  pose proof (eqvars_free_vars_disjoint ta sub).
-  pose proof (eqvars_free_vars_disjoint tb sub).
+  pose proof (eqsetv_free_vars_disjoint ta sub).
+  pose proof (eqsetv_free_vars_disjoint tb sub).
   match goal with
-  [ H1: eqvars ?a ?la , H2 : eqvars ?v ?lb |- eqvars ?a ?b ] =>
-  assert (eqvars la lb);
-    [| eauto with eqvars]
+  [ H1: eqsetv ?a ?la , H2 : eqsetv ?v ?lb |- eqsetv ?a ?b ] =>
+  assert (eqsetv la lb);
+    [| eauto with eqsetv]
   end.
-  apply eqvars_app; [eauto with eqvars;fail |].
+  apply eqsetv_app; [eauto with eqsetv;fail |].
   match goal with
-  [|- eqvars ?a ?b ] => assert (a=b) as XX;[| rw XX; eauto 1 with eqvars; fail]
+  [|- eqsetv ?a ?b ] => assert (a=b) as XX;[| rw XX; eauto 1 with eqsetv; fail]
   end.
   f_equal.
-  apply eqvars_sub_keep_first; auto.
+  apply eqsetv_sub_keep_first; auto.
 Qed.
 
 Hint Resolve lsubst_nt_wf lsubst_wf_if_eauto : slow.

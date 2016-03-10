@@ -523,7 +523,7 @@ Qed.
 
 Lemma isprog_vars_eq :
   forall t vs,
-    isprog_vars vs t <=> subvars (free_vars t) vs # nt_wf t.
+    isprog_vars vs t <=> subsetv (free_vars t) vs # nt_wf t.
 Proof.
   unfold isprog_vars; sp.
   rw andb_eq_true.
@@ -546,7 +546,7 @@ Lemma isprog_vars_app_l :
     -> isprog_vars (vs1 ++ vs2) t.
 Proof.
   sp; alltrewrite isprog_vars_eq; sp.
-  alltrewrite subvars_eq.
+  alltrewrite subsetv_eq.
   apply subset_app_l; sp.
 Qed.
 

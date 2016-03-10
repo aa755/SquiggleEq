@@ -395,7 +395,7 @@ Qed.
 (** equals variable sets *)
 Definition eq_vars := eqsetb eq_var_dec.
 
-Definition eqvars (vs1 vs2 : list NVar) :=
+Definition eqsetv (vs1 vs2 : list NVar) :=
   assert (eq_vars vs1 vs2).
 
 Lemma assert_eq_vars :
@@ -406,26 +406,26 @@ Proof.
   trw assert_eqsetb; sp.
 Qed.
 
-Lemma eqvars_prop :
+Lemma eqsetv_prop :
   forall vs1 vs2,
-    eqvars vs1 vs2 <=> forall x, LIn x vs1 <=> LIn x vs2.
+    eqsetv vs1 vs2 <=> forall x, LIn x vs1 <=> LIn x vs2.
 Proof.
-  sp; unfold eqvars, eq_vars.
+  sp; unfold eqsetv, eq_vars.
   trw assert_eqsetb; sp.
 Qed.
 
-Lemma eqvars_sym :
-  forall s1 s2, eqvars s1 s2 <=> eqvars s2 s1.
+Lemma eqsetv_sym :
+  forall s1 s2, eqsetv s1 s2 <=> eqsetv s2 s1.
 Proof.
   introv.
-  repeat (rw eqvars_prop); split; intro k; introv.
+  repeat (rw eqsetv_prop); split; intro k; introv.
   rw k; sp.
   rw <- k; sp.
 Qed.
 
-Lemma eqvars_disjoint :
+Lemma eqsetv_disjoint :
   forall s1 s2 s3,
-    eqvars s1 s2
+    eqsetv s1 s2
     -> disjoint s1 s3
     -> disjoint s2 s3.
 Proof.
@@ -433,17 +433,17 @@ Proof.
   unfold disjoint.
   unfold disjoint in disj.
   introv i.
-  rw eqvars_prop in eqv.
+  rw eqsetv_prop in eqv.
   apply eqv in i.
   apply disj in i; sp.
 Qed.
 
-Lemma eqvars_cons_l_iff :
+Lemma eqsetv_cons_l_iff :
   forall v vs1 vs2,
-    eqvars (v :: vs1) vs2
-    <=> (LIn v vs2 # eqvars (remove_nvar vs1 v) (remove_nvar vs2 v)).
+    eqsetv (v :: vs1) vs2
+    <=> (LIn v vs2 # eqsetv (remove_nvar vs1 v) (remove_nvar vs2 v)).
 Proof.
-  sp; repeat (rw eqvars_prop).
+  sp; repeat (rw eqsetv_prop).
   split; intro i; sp; allrw in_remove_nvar; allsimpl.
   rw <- i; sp.
   split; sp.
@@ -458,14 +458,14 @@ Proof.
   discover; sp; firstorder.
 Qed.
 
-Lemma eqvars_remove_nvar :
+Lemma eqsetv_remove_nvar :
   forall vars1 vars2 v,
-    eqvars vars1 vars2
-    -> eqvars (remove_nvar vars1 v) (remove_nvar vars2 v).
+    eqsetv vars1 vars2
+    -> eqsetv (remove_nvar vars1 v) (remove_nvar vars2 v).
 Proof.
   introv.
-  trw eqvars_prop.
-  allrw eqvars_prop; sp.
+  trw eqsetv_prop.
+  allrw eqsetv_prop; sp.
   allrw in_remove_nvar.
   allrw; sp.
 Qed.
@@ -553,16 +553,16 @@ Inductive issorted : list NVar -> Type :=
 
 Hint Constructors issorted.
 
-Lemma sort_eqvars :
+Lemma sort_eqsetv :
   forall vars,
-    eqvars vars (sort vars).
+    eqsetv vars (sort vars).
 Proof.
   induction vars; simpl; sp.
   destruct a.
-  trw eqvars_cons_l_iff; sp.
+  trw eqsetv_cons_l_iff; sp.
   apply insert_in.
   rewrite remove_nvar_insert.
-  apply eqvars_remove_nvar; sp.
+  apply eqsetv_remove_nvar; sp.
 Qed.
 
 Lemma sort_issorted :
@@ -640,8 +640,8 @@ Lemma fresh_var_not_in :
     ! LIn (fresh_var vars) vars.
 Proof.
   unfold fresh_var; introv X.
-  generalize (sort_eqvars vars); introv H.
-  trw_h eqvars_prop  H.
+  generalize (sort_eqsetv vars); introv H.
+  trw_h eqsetv_prop  H.
   trw_h H  X.
   apply fresh_var_aux_sorted_not_in in X. sp.
   apply sort_issorted.
@@ -676,8 +676,8 @@ Lemma fresh_var_nvarx :
 Proof.
   unfold fresh_var; sp.
   rewrite fresh_var_aux_0; sp.
-  generalize (sort_eqvars vars); sp.
-  alltrewrite eqvars_prop.
+  generalize (sort_eqsetv vars); sp.
+  alltrewrite eqsetv_prop.
   apply_in_hyp p; sp.
   apply sort_issorted.
 Qed.
@@ -802,7 +802,7 @@ Qed.
 
 Definition sub_vars := subsetb eq_var_dec.
 
-Definition subvars (vs1 vs2 : list NVar) :=
+Definition subsetv (vs1 vs2 : list NVar) :=
   assert (sub_vars vs1 vs2).
 
 Lemma assert_sub_vars :
@@ -813,90 +813,90 @@ Proof.
   trw assert_subsetb; sp.
 Qed.
 
-Lemma subvars_eq :
+Lemma subsetv_eq :
   forall vs1 vs2,
-    subvars vs1 vs2 <=> subset vs1 vs2.
+    subsetv vs1 vs2 <=> subset vs1 vs2.
 Proof.
-  sp; unfold subvars, sub_vars.
+  sp; unfold subsetv, sub_vars.
   trw assert_subsetb; sp.
 Qed.
 
-Lemma subvars_refl :
+Lemma subsetv_refl :
   forall vs,
-    subvars vs vs.
+    subsetv vs vs.
 Proof.
   sp.
-  trw subvars_eq.
+  trw subsetv_eq.
   apply subset_refl.
 Qed.
 
-Hint Immediate subvars_refl.
+Hint Immediate subsetv_refl.
 
-Lemma subvars_prop :
+Lemma subsetv_prop :
   forall vs1 vs2,
-    subvars vs1 vs2 <=> forall x, LIn x vs1 -> LIn x vs2.
+    subsetv vs1 vs2 <=> forall x, LIn x vs1 -> LIn x vs2.
 Proof.
-  sp; trw subvars_eq; unfold subset; split; sp.
+  sp; trw subsetv_eq; unfold subset; split; sp.
 Qed.
 
-Tactic Notation "prove_subvars" ident(h) :=
+Tactic Notation "prove_subsetv" ident(h) :=
   let v := fresh "v" in
   let x := fresh "x" in
-    trw_h subvars_prop h;
-  trw subvars_prop;
+    trw_h subsetv_prop h;
+  trw subsetv_prop;
   intros v x;
   apply h in x.
 
 Ltac provesv :=
   match goal with
-    | [ H : subvars ?v ?vs1 |- subvars ?v ?vs2 ] =>
+    | [ H : subsetv ?v ?vs1 |- subsetv ?v ?vs2 ] =>
         let v := fresh "v" in
         let x := fresh "x" in
         let y := fresh "y" in
-          trw_h subvars_prop H;
-        trw subvars_prop;
+          trw_h subsetv_prop H;
+        trw subsetv_prop;
         intros v x;
         applydup H in x as y
   end.
 
-Lemma subvars_app_weak_l :
-  forall vs1 vs2 vs3, subvars vs1 vs2 -> subvars vs1 (vs2 ++ vs3).
+Lemma subsetv_app_weak_l :
+  forall vs1 vs2 vs3, subsetv vs1 vs2 -> subsetv vs1 (vs2 ++ vs3).
 Proof.
   intros.
-  allrw subvars_prop; sp; discover; allrw in_app_iff; sp.
+  allrw subsetv_prop; sp; discover; allrw in_app_iff; sp.
 Qed.
 
-Lemma subvars_singleton_l :
+Lemma subsetv_singleton_l :
   forall v vs,
-    subvars [v] vs <=> LIn v vs.
+    subsetv [v] vs <=> LIn v vs.
 Proof.
-  intros; rw subvars_prop; simpl; split; sp; subst; sp.
+  intros; rw subsetv_prop; simpl; split; sp; subst; sp.
 Qed.
 
-Lemma subvars_singleton_r :
-  forall v vs, subvars vs [v] <=> (forall x, LIn x vs -> x = v).
+Lemma subsetv_singleton_r :
+  forall v vs, subsetv vs [v] <=> (forall x, LIn x vs -> x = v).
 Proof.
-  intros; rw subvars_prop; simpl; split; sp; apply_in_hyp p; sp.
+  intros; rw subsetv_prop; simpl; split; sp; apply_in_hyp p; sp.
 Qed.
 
-Lemma subvars_comm_r :
+Lemma subsetv_comm_r :
   forall vs vs1 vs2,
-    subvars vs (vs1 ++ vs2) <=> subvars vs (vs2 ++ vs1).
+    subsetv vs (vs1 ++ vs2) <=> subsetv vs (vs2 ++ vs1).
 Proof.
-  introv. trw subvars_prop.  alltrewrite subvars_prop; split; introv Hyp Hin;
+  introv. trw subsetv_prop.  alltrewrite subsetv_prop; split; introv Hyp Hin;
   apply Hyp in Hin; alltrewrite in_app_iff; sp; auto.
 Qed.
 
-Lemma subvars_flat_map :
+Lemma subsetv_flat_map :
   forall A,
   forall f : A -> list NVar,
   forall l k,
-    subvars (flat_map f l) k
+    subsetv (flat_map f l) k
     <=>
-    forall x, LIn x l -> subvars (f x) k.
+    forall x, LIn x l -> subsetv (f x) k.
 Proof.
   intros.
-  unfold subvars, sub_vars.
+  unfold subsetv, sub_vars.
   repeat (trw subsetb_subset).
   trw subset_flat_map; split; sp.
   repeat (trw subsetb_subset).
@@ -905,82 +905,82 @@ Proof.
   repeat (allrw subsetb_subset); auto.
 Qed.
 
-Lemma subvars_remove_nvars :
+Lemma subsetv_remove_nvars :
   forall vs1 vs2 vs3,
-    subvars (remove_nvars vs1 vs2) vs3
+    subsetv (remove_nvars vs1 vs2) vs3
     <=>
-    subvars vs2 (vs3 ++ vs1).
+    subsetv vs2 (vs3 ++ vs1).
 Proof.
-  sp; repeat (trw subvars_eq); unfold remove_nvars.
+  sp; repeat (trw subsetv_eq); unfold remove_nvars.
   trw subset_diff; sp.
 Qed.
 
-Lemma null_remove_nvars_subvars :
+Lemma null_remove_nvars_subsetv :
   forall vs1 vs2,
-    null (remove_nvars vs1 vs2) <=> subvars vs2 vs1.
+    null (remove_nvars vs1 vs2) <=> subsetv vs2 vs1.
 Proof.
   unfold remove_nvars; sp.
-  trw subvars_eq.
+  trw subsetv_eq.
   trw null_diff_subset; split; sp.
 Qed.
 
-Lemma subvars_cons_l :
+Lemma subsetv_cons_l :
   forall v vs1 vs2,
-    subvars (v :: vs1) vs2 <=> LIn v vs2 # subvars vs1 vs2.
+    subsetv (v :: vs1) vs2 <=> LIn v vs2 # subsetv vs1 vs2.
 Proof.
-  sp; alltrewrite subvars_eq.
+  sp; alltrewrite subsetv_eq.
   apply subset_cons_l.
 Qed.
 
-Lemma subvars_cons_r :
+Lemma subsetv_cons_r :
   forall v vs1 vs2,
-    subvars vs1 vs2
-    -> subvars vs1 (v :: vs2).
+    subsetv vs1 vs2
+    -> subsetv vs1 (v :: vs2).
 Proof.
-  sp; alltrewrite subvars_eq.
+  sp; alltrewrite subsetv_eq.
   apply subset_cons1; sp.
 Qed.
 
-Lemma subvars_nil_l :
-  forall s, subvars [] s.
+Lemma subsetv_nil_l :
+  forall s, subsetv [] s.
 Proof.
-  sp; trw subvars_eq.
+  sp; trw subsetv_eq.
   apply subset_nil_l.
 Qed.
 
-Hint Immediate subvars_nil_l.
+Hint Immediate subsetv_nil_l.
 
-Lemma subvars_nil_l_iff :
-  forall s, subvars [] s <=> True.
+Lemma subsetv_nil_l_iff :
+  forall s, subsetv [] s <=> True.
 Proof.
-  sp; rewrite subvars_eq; split; sp; auto.
+  sp; rewrite subsetv_eq; split; sp; auto.
 Qed.
 
-Hint Rewrite subvars_nil_l_iff.
+Hint Rewrite subsetv_nil_l_iff.
 
-Lemma subvars_snoc_weak :
+Lemma subsetv_snoc_weak :
   forall vs1 vs2 v,
-    subvars vs1 vs2
-    -> subvars vs1 (snoc vs2 v).
+    subsetv vs1 vs2
+    -> subsetv vs1 (snoc vs2 v).
 Proof.
   intros.
-  alltrewrite subvars_eq.
+  alltrewrite subsetv_eq.
   apply subset_snoc_r; auto.
 Qed.
 
-Lemma subvars_app_l :
+Lemma subsetv_app_l :
   forall vs1 vs2 vs,
-    subvars (vs1 ++ vs2) vs <=> subvars vs1 vs # subvars vs2 vs.
+    subsetv (vs1 ++ vs2) vs <=> subsetv vs1 vs # subsetv vs2 vs.
 Proof.
-  sp; alltrewrite subvars_eq.
+  sp; alltrewrite subsetv_eq.
   trw subset_app; sp.
 Qed.
 
-Lemma subvars_app_remove_nvars_r :
+Lemma subsetv_app_remove_nvars_r :
   forall vs1 vs2 vs,
-    subvars vs (vs1 ++ remove_nvars vs1 vs2) <=> subvars vs (vs1 ++ vs2).
+    subsetv vs (vs1 ++ remove_nvars vs1 vs2) <=> subsetv vs (vs1 ++ vs2).
 Proof.
-  sp; alltrewrite subvars_eq; unfold subset; split; sp.
+  sp; alltrewrite subsetv_eq; unfold subset; split; sp.
   apply_in_hyp p; alltrewrite in_app_iff; sp.
   alltrewrite in_remove_nvars; sp.
   apply_in_hyp p; alltrewrite in_app_iff; sp.
@@ -988,35 +988,35 @@ Proof.
   destruct (in_nvar_list_dec x vs1); sp.
 Qed.
 
-Lemma subvars_swap_r :
+Lemma subsetv_swap_r :
   forall vs1 vs2 vs,
-    subvars vs (vs1 ++ vs2) <=> subvars vs (vs2 ++ vs1).
+    subsetv vs (vs1 ++ vs2) <=> subsetv vs (vs2 ++ vs1).
 Proof.
-  sp; alltrewrite subvars_eq; unfold subset; split; sp; alltrewrite in_app_iff;
+  sp; alltrewrite subsetv_eq; unfold subset; split; sp; alltrewrite in_app_iff;
   apply_in_hyp p; allrw in_app_iff; sp.
 Qed.
 
-Lemma subvars_trans :
+Lemma subsetv_trans :
   forall vs1 vs2 vs3,
-    subvars vs1 vs2
-    -> subvars vs2 vs3
-    -> subvars vs1 vs3.
+    subsetv vs1 vs2
+    -> subsetv vs2 vs3
+    -> subsetv vs1 vs3.
 Proof.
-  sp; alltrewrite subvars_eq.
+  sp; alltrewrite subsetv_eq.
   apply subset_trans with (l2 := vs2); sp.
 Qed.
 
-Theorem subvars_app_trivial_l :
-  forall vs1 vs2, subvars vs1 (vs1++vs2).
+Theorem subsetv_app_trivial_l :
+  forall vs1 vs2, subsetv vs1 (vs1++vs2).
 Proof.
-  intros. apply subvars_prop. intros.
+  intros. apply subsetv_prop. intros.
   apply in_app_iff; sp.
 Qed.
 
-Theorem subvars_app_trivial_r :
-  forall vs1 vs2, subvars vs2 (vs1++vs2).
+Theorem subsetv_app_trivial_r :
+  forall vs1 vs2, subsetv vs2 (vs1++vs2).
 Proof.
-  intros. apply subvars_prop. intros.
+  intros. apply subsetv_prop. intros.
   apply in_app_iff; sp.
 Qed.
 
@@ -1028,14 +1028,14 @@ Proof.
   rw assert_memvar; simpl; sp.
 Qed.
 
-Lemma eqvars_refl :
-  forall vs, eqvars vs vs.
+Lemma eqsetv_refl :
+  forall vs, eqsetv vs vs.
 Proof.
   sp.
-  rw eqvars_prop; sp.
+  rw eqsetv_prop; sp.
 Qed.
 
-Hint Immediate eqvars_refl.
+Hint Immediate eqsetv_refl.
 
 Lemma remove_nvar_comm :
   forall vs a b,
@@ -1079,37 +1079,37 @@ Lemma memvar_dmemvar : forall T v lv (ct cf:T) ,
   sp; try contradiction.
 Qed.
 
-Lemma eq_vars_nil: forall lv, eqvars [] lv -> lv=[].
+Lemma eq_vars_nil: forall lv, eqsetv [] lv -> lv=[].
 Proof.
-  introv Heq. rw eqvars_prop in Heq.
+  introv Heq. rw eqsetv_prop in Heq.
   destruct lv;sp;[].
   pose proof (Heq n).
   allsimpl.
   discover; sp.
 Qed.
 
-Lemma eqvars_nil : forall lva lvb,
-  lva=[] -> eqvars lva lvb -> lvb=[].
+Lemma eqsetv_nil : forall lva lvb,
+  lva=[] -> eqsetv lva lvb -> lvb=[].
 Proof.
   introv  Ha Heq.
   rw Ha in Heq.
   apply eq_vars_nil in Heq. auto.
 Qed.
-Lemma eqvars_trans : forall lva lvb lvc,
-  eqvars lva lvb
-  -> eqvars lvb lvc
-  -> eqvars lva lvc.
+Lemma eqsetv_trans : forall lva lvb lvc,
+  eqsetv lva lvb
+  -> eqsetv lvb lvc
+  -> eqsetv lva lvc.
 Proof.
   introv He1 He2.
-  allrw (eqvars_prop).
+  allrw (eqsetv_prop).
   split; intro Hin;
   repeat (try(apply He1 in Hin); try(apply He2 in Hin); auto).
 Qed.
 
 Lemma eq_vars_sym: forall lv1 lv2,
-  eqvars lv1 lv2 -> eqvars lv2 lv1.
+  eqsetv lv1 lv2 -> eqsetv lv2 lv1.
 Proof.
-  introv. rw eqvars_prop. rw eqvars_prop.
+  introv. rw eqsetv_prop. rw eqsetv_prop.
   intros X x. rw X.
   dtiffs2. split; auto.
 Qed.
@@ -1170,31 +1170,31 @@ Ltac cpx :=
   inj;
   try (complete (allsimpl; sp)).
 
-Lemma eqvars_remove_nvars :
+Lemma eqsetv_remove_nvars :
   forall la lb ra rb,
-    eqvars la lb
-    -> eqvars ra rb
-    -> eqvars (remove_nvars la ra) (remove_nvars lb rb).
+    eqsetv la lb
+    -> eqsetv ra rb
+    -> eqsetv (remove_nvars la ra) (remove_nvars lb rb).
 Proof.
-  introv Ha Hb. allrw eqvars_prop.
+  introv Ha Hb. allrw eqsetv_prop.
   dtiffs2.
   split; introv Hin; apply in_remove_nvars in Hin; repnd;
   apply in_remove_nvars; split; cpx; eauto.
 Qed.
 
-Lemma eqvars_app :
+Lemma eqsetv_app :
   forall la lb ra rb,
-    eqvars la lb
-    -> eqvars ra rb
-    -> eqvars (app la ra) (app lb rb).
+    eqsetv la lb
+    -> eqsetv ra rb
+    -> eqsetv (app la ra) (app lb rb).
 Proof.
-  introv Ha Hb. allrw eqvars_prop.
+  introv Ha Hb. allrw eqsetv_prop.
   dtiffs2.
   split; introv Hin; apply in_app_iff; apply in_app_iff in Hin;
   dorn Hin; try (left;eauto;fail) ; try (right;eauto;fail).
 Qed.
 
-Hint Resolve eqvars_trans eq_vars_sym eqvars_refl eqvars_remove_nvar eqvars_remove_nvars eqvars_app: eqvars.
+Hint Resolve eqsetv_trans eq_vars_sym eqsetv_refl eqsetv_remove_nvar eqsetv_remove_nvars eqsetv_app: eqsetv.
 
 Definition dec_disjointv := dec_disjoint deq_nvar.
 
@@ -1221,25 +1221,25 @@ Ltac sp3 :=
   | [ H: _ <=> _ |- _ ] => destruct H end); spc.
 
 
-Lemma subvars_cons_r_weak_if_not_in :
+Lemma subsetv_cons_r_weak_if_not_in :
   forall vs1 v vs2,
-    subvars vs1 (v :: vs2)
+    subsetv vs1 (v :: vs2)
     -> !LIn v vs1
-    -> subvars vs1 vs2.
+    -> subsetv vs1 vs2.
 Proof.
   introv sv ni.
-  allrw subvars_prop.
+  allrw subsetv_prop.
   introv i.
   applydup sv in i as j.
   allsimpl; sp; subst; sp.
 Qed.
 
-Lemma subvars_nil_r :
+Lemma subsetv_nil_r :
   forall vs,
-    subvars vs [] <=> vs = [].
+    subsetv vs [] <=> vs = [].
 Proof.
   introv; split; intro k; allrw; sp.
-  allrw subvars_prop.
+  allrw subsetv_prop.
   apply null_iff_nil.
   unfold null; introv i.
   discover; sp.
@@ -1249,23 +1249,23 @@ Lemma eq_var_iff :
   forall v : NVar, v = v <=> True.
 Proof. sp. Qed.
 
-Lemma subvars_eqvars :
+Lemma subsetv_eqsetv :
   forall s1 s2 s3,
-    subvars s1 s2 -> eqvars s1 s3 -> subvars s3 s2.
+    subsetv s1 s2 -> eqsetv s1 s3 -> subsetv s3 s2.
 Proof.
   introv s e.
-  allrw subvars_prop.
-  allrw eqvars_prop.
+  allrw subsetv_prop.
+  allrw eqsetv_prop.
   introv i.
   apply e in i.
   apply s in i; auto.
 Qed.
 
-Lemma subvars_not_in :
-  forall vs1 vs2 v, subvars vs2 vs1 -> !LIn v vs1 -> !LIn v vs2.
+Lemma subsetv_not_in :
+  forall vs1 vs2 v, subsetv vs2 vs1 -> !LIn v vs1 -> !LIn v vs2.
 Proof.
   introv sv ni1 ni2.
-  rw subvars_prop in sv.
+  rw subsetv_prop in sv.
   discover; sp.
 Qed.
 
@@ -1290,46 +1290,56 @@ Qed.
 Section RWInstances.
 (** contents of this section will work only when [univ] := Prop. Coq does (yet) not support rewriting
 with relations in Type *)
-Global Instance equivEqvars : Equivalence eqvars.
+Global Instance equivEqsetv : Equivalence eqsetv.
 Proof.
-  constructor; eauto using eqvars_trans, eq_vars_sym.
+  constructor; eauto using eqsetv_trans, eq_vars_sym.
 Qed.
 
 Require Import Morphisms.
 
-Global Instance properEqvarsLin : Proper (eq ==> eqvars ==> iff ) (@LIn NVar).
+Global Instance properEqsetvLin : Proper (eq ==> eqsetv ==> iff ) (@LIn NVar).
 Proof.
-  intros ? ? ? ? ? ?. apply iff_t_iff. subst. apply eqvars_prop; assumption.
+  intros ? ? ? ? ? ?. apply iff_t_iff. subst. apply eqsetv_prop; assumption.
 Qed.
 
-Global Instance properEqvarsNull : Proper (eqvars ==> iff ) (@null NVar).
+Global Instance properEqsetvNull : Proper (eqsetv ==> iff ) (@null NVar).
 Proof.
   intros ? ? H. unfold null. split; intros; [rewrite <- H| rewrite H]; eauto.
 Qed.
 
 (*generalize to arbitrary types*)
-Global Instance properEqvarsApp : Proper (eqvars ==> eqvars ==> eqvars ) (@app NVar).
+Global Instance properEqsetvApp : Proper (eqsetv ==> eqsetv ==> eqsetv ) (@app NVar).
 Proof.
-  intros ? ? H1 ? ? H2. apply eqvars_prop. setoid_rewrite in_app_iff.
+  intros ? ? H1 ? ? H2. apply eqsetv_prop. setoid_rewrite in_app_iff.
   setoid_rewrite H1. setoid_rewrite H2. tauto.
 Qed.
 
 (*generalize to arbitrary types with decidable equality*)
-Global Instance properEqvarsRemove : Proper (eqvars ==> eqvars ==> eqvars ) remove_nvars.
+Global Instance properEqsetvRemove : Proper (eqsetv ==> eqsetv ==> eqsetv ) remove_nvars.
 Proof.
-  intros ? ? H1 ? ? H2. apply eqvars_prop. setoid_rewrite in_remove_nvars.
+  intros ? ? H1 ? ? H2. apply eqsetv_prop. setoid_rewrite in_remove_nvars.
   setoid_rewrite H1. setoid_rewrite H2. tauto.
 Qed.
 
-Global Instance properEqvarsSubvars : Proper (eqvars ==> eqvars ==> iff ) (subvars).
+Global Instance properEqsetvSubsetv : Proper (eqsetv ==> eqsetv ==> iff ) (subsetv).
 Proof.
-  intros ? ? ? ? ? Heq.  subst. apply iff_t_iff. do 2 rw subvars_prop.
+  intros ? ? ? ? ? Heq.  subst. apply iff_t_iff. do 2 rw subsetv_prop.
   repeat setoid_rewrite Heq. setoid_rewrite H. reflexivity.
 Qed.
 
-Global Instance transSubvars : Transitive subvars.
+Global Instance transSubsetv : Transitive subsetv.
 Proof.
-  intros ? ? ?. apply subvars_trans.
+  intros ? ? ?. apply subsetv_trans.
+Qed.
+
+Lemma subsetvAppLR : forall a b c d,
+  subsetv a c
+  -> subsetv b d
+  -> subsetv (a++b) (c++d).
+Proof.
+  intros ? ? ? ? H1s H2s.
+  apply subsetv_app_l.
+  split;[|apply subsetv_swap_r];apply subsetv_app_weak_l; assumption.
 Qed.
 
 End RWInstances.
