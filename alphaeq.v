@@ -3190,6 +3190,14 @@ Proof.
   apply alpha_eq_trans with (nt2 := x0); auto.
 Qed.
 
+Lemma lsubst_oterm : forall (lbt : list BTerm) (o : Opid) (sub: Substitution),
+  {lbts : list BTerm | lsubst (oterm o lbt) sub = oterm o lbts}.
+Proof.
+  intros ? ? ?.
+  unfold lsubst.
+  cases_if;simpl; eexists; reflexivity.
+Qed.
+  
 Section RWInstances.
 (** contents of this section will work only when [univ] := Prop. Coq does (yet) not support rewriting
 with relations in Type *)
