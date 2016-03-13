@@ -157,7 +157,31 @@ Proof.
  apply size_subterm2 with (o:=o) in X. auto.
 Qed.
 
-
+Lemma NTerm_better_ind3 :
+  forall P : NTerm -> Type,
+    (forall n : NVar, P (vterm n))
+    -> (forall (o : Opid) (lbt : list BTerm),
+          (forall (nt: NTerm),
+              size nt < size (oterm o lbt)
+              -> P nt
+          )
+          -> P (oterm o lbt)
+       )
+    -> forall t : NTerm, P t.
+Proof.
+ intros P Hvar Hbt.
+ assert (forall n t, size t = n -> P t) as Hass.
+ Focus 2. intros. apply Hass with (n := size t) ; eauto; fail.
+ 
+ induction n as [n Hind] using comp_ind_type.
+ intros t Hsz.
+ destruct t.
+ apply Hvar.
+ apply Hbt. introv Hs.
+ apply Hind with (m := size nt) ; auto.
+ subst.
+ assert(size nt < size (oterm o l)); auto.
+Qed.
 
 Lemma NTerm_better_ind2 :
   forall P : NTerm -> Type,
@@ -173,20 +197,14 @@ Lemma NTerm_better_ind2 :
     -> forall t : NTerm, P t.
 Proof.
  intros P Hvar Hbt.
- assert (forall n t, size t = n -> P t) as Hass.
- Focus 2. intros. apply Hass with (n := size t) ; eauto; fail.
- 
- induction n as [n Hind] using comp_ind_type.
- intros t Hsz.
- destruct t.
- apply Hvar.
- apply Hbt. introv Hin Hs.
- apply Hind with (m := size nt') ; auto.
- subst.
- assert(size nt < size (oterm o l)) by
-   (apply size_subterm3 with lv ; auto).
- omega.
+ apply  NTerm_better_ind3; eauto.
+ intros ? ? H.
+ apply Hbt.
+ intros ? ? ? Hin Hs. apply H.
+ eapply le_lt_trans;[apply Hs|].
+ eapply size_subterm3; eauto.
 Qed.
+
 
 Lemma NTerm_better_ind :
   forall P : NTerm -> Type,
