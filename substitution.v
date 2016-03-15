@@ -313,10 +313,10 @@ Qed.
 *)
 
 Definition covered (t : NTerm) (vs : list NVar) :=
-  subsetv (free_vars t) vs.
+  assert (sub_vars (free_vars t) vs).
 
 Definition over_vars (vs : list NVar) (sub : CSubstitution) :=
-  subsetv vs (dom_csub sub).
+  assert (sub_vars vs (dom_csub sub)).
 
 (**
 
@@ -339,7 +339,7 @@ Definition cover_vars (t : NTerm) (sub : CSubstitution) :=
 *)
 
 Definition cover_vars_upto (t : NTerm) (sub : CSub) (vs : list NVar) :=
-  subsetv (free_vars t) (vs ++ dom_csub sub).
+  assert (sub_vars (free_vars t) (vs ++ dom_csub sub)).
 
 
 
@@ -565,7 +565,8 @@ Lemma cover_vars_upto_csub_filter_snoc_weak :
 Proof.
   introv cv.
   allunfold cover_vars_upto.
-  prove_subsetv cv.
+  rewrite assert_sub_vars in *.
+  intros. discover.
   allrw in_app_iff; sp.
   allrw dom_csub_csub_filter.
   allrw in_remove_nvars; sp.
@@ -580,7 +581,8 @@ Lemma cover_vars_upto_snoc_weak :
 Proof.
   introv cv.
   allunfold cover_vars_upto.
-  prove_subsetv cv.
+  rewrite assert_sub_vars in *.
+  intros. discover.
   allrw in_app_iff; sp.
   allrw dom_csub_snoc; allsimpl.
   allrw in_snoc; sp.
@@ -608,6 +610,8 @@ Lemma over_vars_eq :
     over_vars vs sub <=> subsetv vs (dom_csub sub).
 Proof.
   unfold over_vars; sp.
+  rewrite assert_sub_vars in *.
+  sp.
 Qed.
 
 Lemma cover_vars_eq :
@@ -615,7 +619,8 @@ Lemma cover_vars_eq :
   forall sub : CSubstitution,
     cover_vars t sub <=> subsetv (free_vars t) (dom_csub sub).
 Proof.
-  unfold cover_vars; sp.
+  unfold cover_vars, over_vars, subset; sp.
+  rewrite assert_sub_vars in *.  cpx.
 Qed.
 
 Lemma cover_vars_cterm :
@@ -634,7 +639,7 @@ Lemma cover_vars_app_weak :
 Proof.
   intros.
   allrw cover_vars_eq.
-  allrw subsetv_eq.
+  unfold subset in *.
   rw dom_csub_app.
   apply subset_app_r; auto.
 Qed.
@@ -646,7 +651,7 @@ Lemma cover_vars_snoc_weak :
 Proof.
   intros.
   allrw cover_vars_eq.
-  allrw subsetv_eq.
+  unfold subset in *.
   rw dom_csub_snoc.
   apply subset_snoc_r; auto.
 Qed.
@@ -658,7 +663,7 @@ Lemma cover_vars_snoc_weak_r :
 Proof.
   intros.
   rw cover_vars_eq.
-  rw subsetv_eq.
+  unfold subset in *.
   rw dom_csub_snoc; simpl.
   apply subset_snoc_l; auto.
 Qed.
@@ -2413,7 +2418,7 @@ Proof.
   apply isprogram_lsubst; sp.
   allapply in_csub2sub; sp.
   allrw cover_vars_eq.
-  allrw subsetv_prop.
+  unfold subset in *.
   apply_in_hyp p.
   allapply in_dom_csub_exists; sp.
   allapply sub_find_some.
@@ -2498,7 +2503,7 @@ Proof.
   sp; allrewrite free_vars_csubst.
   allrw subsetv_remove_nvars.
   allrewrite dom_csub_eq.
-  rw subsetv_comm_r; sp.
+  rewrite subsetv_comm_r; sp.
 Qed.
 
 Lemma free_vars_csubst_sub_iff :
@@ -2510,7 +2515,7 @@ Proof.
   rw free_vars_csubst.
   rw subsetv_remove_nvars.
   rw dom_csub_eq.
-  rw subsetv_comm_r; sp.
+  rewrite subsetv_comm_r; sp.
 Qed.
 
 Lemma cover_vars_csubst :
@@ -2533,9 +2538,10 @@ Lemma cover_vars_csubst2 :
 Proof.
   intros.
   rw <- cover_vars_csubst.
-  repeat (rw cover_vars_eq).
+  repeat (rewrite cover_vars_eq).
   unfold cover_vars_upto.
-  rw dom_csub_app; sp.
+  rewrite assert_sub_vars.
+  rewrite dom_csub_app; sp. 
 Qed.
 
 Lemma cover_vars_csubst3 :
@@ -2548,7 +2554,9 @@ Proof.
   rw cover_vars_csubst2.
   unfold cover_vars_upto.
   rewrite dom_csub_csub_filter.
-  rw subsetv_app_remove_nvars_r; sp.
+  repeat rewrite assert_sub_vars.
+  repeat rewrite fold_subset.
+  rewrite subsetv_app_remove_nvars_r; sp.
 Qed.
 
 Lemma subst_preserves_program :
@@ -3388,7 +3396,6 @@ Lemma cover_vars_var :
 Proof.
   sp.
   rw cover_vars_eq; simpl.
-  rw subsetv_eq.
   unfold subset; simpl; sp; subst; auto.
 Qed.
 
@@ -3463,7 +3470,7 @@ Lemma cover_vars_shift :
     cover_vars t (sub1 ++ sub2 ++ sub3)
     -> cover_vars t (sub2 ++ sub1 ++ sub3).
 Proof.
-  sp; allrw cover_vars_eq; sp; allrw subsetv_eq.
+  sp; allrw cover_vars_eq; sp;
   unfold subset; unfold subset in H; sp.
   apply_in_hyp p.
   allrw dom_csub_app; allrw in_app_iff; sp.
@@ -4100,7 +4107,7 @@ Proof.
   rw simple_lsubst_trim; auto.
   symmetry. rw simple_lsubst_trim; auto.
   rw sub_keep_nest; try reflexivity.
-  intros; left. rw subsetv_prop in Hsub. auto.
+  intros; left. unfold subset in Hsub. auto.
   introv Hin. rw in_sub_keep in Hin. repnd.
   apply Hdis in Hin0; auto.
 Qed.
@@ -4156,6 +4163,9 @@ Lemma cover_vars_cvterm1 :
 Proof.
   destruct t; sp; simpl.
   rw isprog_vars_eq in i; sp.
+  unfold cover_vars, over_vars.
+  rewrite assert_sub_vars.
+  unfold subset in *. firstorder.
 Qed.
 
 Lemma substc_eq_lsubstc :
@@ -4283,7 +4293,8 @@ Lemma cover_vars_upto_eq_dom_csub :
     -> cover_vars_upto t (csub_filter s2 vs) vs.
 Proof.
   unfold cover_vars_upto; sp.
-  allrw subsetv_prop; sp.
+  repeat rewrite assert_sub_vars in *.
+  sp.
   apply_in_hyp p.
   allrw in_app_iff; sp.
   allrw dom_csub_csub_filter.
@@ -4488,7 +4499,7 @@ Lemma covered_app_weak_l :
     -> covered t (vs1 ++ vs2).
 Proof.
   unfold covered; intros.
-  allrw subsetv_prop; sp.
+  allrw assert_sub_vars; sp.
   apply_in_hyp p.
   allrw in_app_iff; sp.
 Qed.
@@ -4499,7 +4510,7 @@ Lemma covered_app_weak_r :
     -> covered t (vs1 ++ vs2).
 Proof.
   unfold covered; intros.
-  allrw subsetv_prop; sp.
+  allrw assert_sub_vars; sp.
   apply_in_hyp p.
   allrw in_app_iff; sp.
 Qed.
@@ -4682,7 +4693,7 @@ Proof.
     rewrite remove_nvars_flat_map.
     rewrite flat_map_map; unfold compose.
 
-    rw eqsetv_prop; sp.
+    rewrite eqsetv_prop; sp.
     sp_iff SCase; intro.
 
     + SCase "->".
@@ -4702,7 +4713,7 @@ Proof.
       apply Hin0 in H1; allsimpl.
       rw disjoint_app_r in H1; sp.
 
-      rw eqsetv_prop in Hg.
+      rewrite eqsetv_prop in Hg.
       rw Hg in H3.
       allrw in_app_iff; sp.
       rw <- dom_sub_sub_filter in H3.
@@ -4741,7 +4752,7 @@ Proof.
       apply H6 in H1; allsimpl.
       allrw disjoint_app_r; sp.
 
-      rw eqsetv_prop in Hg.
+      rewrite eqsetv_prop in Hg.
       rw Hg.
       rw in_app_iff.
       rw in_remove_nvars.
@@ -4765,7 +4776,7 @@ Proof.
       apply H7 in H4; allsimpl.
       allrw disjoint_app_r; sp.
 
-      allrw eqsetv_prop.
+      rewrite eqsetv_prop in Hg.
       rw Hg.
       rw in_app_iff.
       rw in_sub_free_vars_iff; right.
@@ -5181,16 +5192,6 @@ Proof.
 Qed.
 
 
-
-Theorem no_repeats_subsetv : forall lvi lvo,
-  no_repeats lvi 
-  -> subsetv  lvo lvi
-  -> no_repeats lvo.
-Proof.
-  induction lvi; introv Hnr Hsub; auto; destruct lvo; cpx.
-  - rw subsetv_cons_l in Hsub. repnd. cpx.
-  - constructor.
-Abort. (**not true*)
 
 
 (* Print Assumptions freevars_lsubst_allvars. *)
@@ -6511,7 +6512,8 @@ Lemma cover_vars_upto_var :
     <=> LIn v (vs ++ dom_csub sub).
 Proof.
   intros; unfold cover_vars_upto; simpl.
-  rw subsetv_singleton_l; sp.
+  rewrite assert_sub_vars, fold_subset.
+  rewrite subsetv_singleton_l; sp.
 Qed.
 
 Lemma cover_vars_upto_csub_filter_disjoint :
@@ -6524,11 +6526,11 @@ Proof.
   introv eqv disj.
   unfold cover_vars_upto.
   rw cover_vars_eq.
-  allrw subsetv_prop; split; intros Hyp ? Hypp; sp; allrw in_app_iff;
+  allrw assert_sub_vars; split; intros Hyp ? Hypp; sp; allrw in_app_iff;
   allrw dom_csub_csub_filter; allrw in_remove_nvars.
   applydup Hyp in Hypp; allrw in_app_iff; sp.
   apply disj in Hypp.
-  allrw eqsetv_prop.
+  allrw (@eqsetv_prop NVar).
   apply eqv in H; sp.
   allrw in_remove_nvars; sp.
   applydup Hyp in Hypp.
@@ -6760,32 +6762,11 @@ Lemma cover_vars_cvterm2 :
 Proof.
   destruct t; sp; simpl.
   rw isprog_vars_eq in i; sp.
+  unfold cover_vars, over_vars.
+  rewrite assert_sub_vars. cpx.
 Qed.
 
-Lemma cover_vars_cvterm3 :
-  forall v1 v2 v3 t u1 u2 u3,
-    cover_vars (get_cvterm [v1,v2,v3] t) [(v1, u1), (v2, u2), (v3, u3)].
-Proof.
-  destruct t; sp; simpl.
-  rw isprog_vars_eq in i; sp.
-Qed.
 
-Definition lsubstc2 (v1 : NVar) (u1 : CTerm)
-                    (v2 : NVar) (u2 : CTerm)
-                    (t : CVTerm [v1;v2]) :=
-  lsubstc (get_cvterm [v1;v2] t)
-          (wf_cvterm [v1;v2] t)
-          [(v1,u1),(v2,u2)]
-          (cover_vars_cvterm2 v1 v2 t u1 u2).
-
-Definition lsubstc3 (v1 : NVar) (u1 : CTerm)
-                    (v2 : NVar) (u2 : CTerm)
-                    (v3 : NVar) (u3 : CTerm)
-                    (t : CVTerm [v1;v2;v3]) :=
-  lsubstc (get_cvterm [v1;v2;v3] t)
-          (wf_cvterm [v1;v2;v3] t)
-          [(v1,u1),(v2,u2),(v3,u3)]
-          (cover_vars_cvterm3 v1 v2 v3 t u1 u2 u3).
 
 Lemma substc_cnewvar :
   forall a t,
@@ -6799,36 +6780,8 @@ Proof.
   allapply newvar_prop; sp.
 Qed.
 
-Lemma cover_vars_weak :
-  forall u s1 s2 v t,
-    cover_vars u (s1 ++ s2)
-    -> cover_vars u (snoc s1 (v, t) ++ s2).
-Proof.
-  introv cv.
-  allrw cover_vars_eq.
-  allrw dom_csub_app.
-  allrw dom_csub_snoc; allsimpl.
-  allrw subsetv_prop; introv nih.
-  generalize (cv x); intro nia.
-  dest_imp nia hyp.
-  allrw in_app_iff; allrw in_snoc; sp.
-Qed.
 
-Lemma cover_vars_add :
-  forall u s1 s2 v t,
-    !LIn v (free_vars u)
-    -> cover_vars u (snoc s1 (v, t) ++ s2)
-    -> cover_vars u (s1 ++ s2).
-Proof.
-  introv nivh cv.
-  allrw cover_vars_eq.
-  allrw dom_csub_app.
-  allrw dom_csub_snoc; allsimpl.
-  allrw subsetv_prop; introv nih.
-  generalize (cv x); intro nia.
-  dest_imp nia hyp.
-  allrw in_app_iff; allrw in_snoc; sp; subst; sp.
-Qed.
+
 
 Lemma csubst_swap_app :
   forall t sub1 sub2,
@@ -6946,21 +6899,6 @@ Proof.
   rw <- simple_lsubst_app; simpl; auto.
 Qed.
 
-Lemma cover_vars_disjoint :
-  forall u sub vs,
-    cover_vars u sub
-    -> disjoint (dom_csub sub) vs
-    -> disjoint (free_vars u) vs.
-Proof.
-  introv cv disj.
-  rw cover_vars_eq in cv.
-  unfold disjoint in disj.
-  unfold disjoint.
-  introv i.
-  rw subsetv_prop in cv.
-  apply cv in i.
-  apply disj in i; sp.
-Qed.
 
 Lemma csub_filter_trivial :
   forall s vs,
@@ -6978,7 +6916,7 @@ Lemma eqsetv_sub_keep_first :
     -> (sub_keep_first sub la) = (sub_keep_first sub lb).
 Proof.
   induction sub as [| (v,t) sub Hind]; introv Heq;auto.
-  simpl. duplicate Heq. rw eqsetv_prop in Heq.
+  simpl. duplicate Heq. rw (@eqsetv_prop NVar) in Heq.
   rw memvar_dmemvar.
   rw memvar_dmemvar.
   dtiffs2.
@@ -7180,17 +7118,6 @@ Proof.
 Qed.
 
 
-Lemma cover_vars_change_sub2 :
-  forall t sub1 sub2,
-    subsetv (dom_csub sub1) (dom_csub sub2)
-    -> cover_vars t sub1
-    -> cover_vars t sub2.
-Proof.
-  introv eq cv.
-  allrw cover_vars_eq.
-  apply subsetv_trans with (vs2 := dom_csub sub1); sp.
-Qed.
-
 Lemma csubst_as_lsubst_aux :
   forall t sub, csubst t sub = lsubst_aux t (csub2sub sub).
 Proof.
@@ -7219,37 +7146,8 @@ Proof.
   rw ni; sp.
 Qed.
 
-Lemma isprog_vars_lsubst :
-  forall t : NTerm,
-  forall vs : list NVar,
-  forall sub : Substitution,
-    nt_wf t
-    -> (forall v u, LIn (v, u) sub -> isprogram u)
-    -> (forall v, LIn v (free_vars t) -> LIn v (vs ++ dom_sub sub))
-    -> isprog_vars vs (lsubst t sub).
-Proof.
-  introv w k1 k2.
-  rw isprog_vars_eq.
-  apply isprogram_lsubst1 with (sub := sub) in w; sp.
-  allrw.
-  rw subsetv_remove_nvars.
-  rw subsetv_prop; auto.
-Qed.
 
-Lemma isprog_vars_csubst :
-  forall t : NTerm,
-  forall vs : list NVar,
-  forall sub : CSub,
-    nt_wf t
-    -> (forall v, LIn v (free_vars t) -> LIn v (vs ++ dom_csub sub))
-    -> isprog_vars vs (csubst t sub).
-Proof.
-  introv w k.
-  unfold csubst.
-  apply isprog_vars_lsubst; sp;
-  allapply in_csub2sub; sp.
-  rw dom_csub_eq; sp.
-Qed.
+
 
 Lemma sub_find_some_app2 :
   forall v t sub1 sub2,
@@ -7364,36 +7262,6 @@ Proof.
   simpl; unfold disjoint; simpl; sp; subst; sp.
 Qed.
 
-Lemma cover_vars_upto_csub_filter_app :
-  forall t s vs1 vs2 vs,
-    eqsetv vs1 vs2
-    -> disjoint (free_vars t) vs1
-    -> (cover_vars_upto t (csub_filter s vs1) (vs2 ++ vs)
-        <=> cover_vars_upto t s vs).
-Proof.
-  introv eqv disj.
-  unfold cover_vars_upto.
-  allrw subsetv_prop; split; intro k; introv i; allrw in_app_iff;
-  allrw dom_csub_csub_filter; allrw in_remove_nvars.
-
-  applydup disj in i.
-  apply k in i.
-  allrw in_app_iff; allrw in_remove_nvars; repdors; try (complete sp).
-  rw eqsetv_prop in eqv.
-  apply eqv in i2; sp.
-
-  applydup disj in i.
-  apply k in i.
-  allrw in_app_iff; repdors; try (complete sp).
-Qed.
-
-Lemma covered_cons_weak_iff :
-  forall t v (ni : !LIn v (free_vars t)) vs,
-    covered t (v :: vs) <=> covered t vs.
-Proof.
-  introv.
-  unfold covered; split; intro k; provesv; allsimpl; repdors; subst; sp.
-Qed.
 
 Lemma lsubst_vterm : forall v sub, 
   lsubst (vterm v) sub = lsubst_aux (vterm v) sub.

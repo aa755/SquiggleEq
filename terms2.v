@@ -545,6 +545,8 @@ Lemma isprog_vars_eq :
 Proof.
   unfold isprog_vars; sp.
   rw andb_eq_true.
+  rewrite fold_assert.
+  rewrite assert_sub_vars.
   rw nt_wf_eq; sp.
 Qed.
 
@@ -564,7 +566,7 @@ Lemma isprog_vars_app_l :
     -> isprog_vars (vs1 ++ vs2) t.
 Proof.
   sp; alltrewrite isprog_vars_eq; sp.
-  alltrewrite subsetv_eq.
+  unfold subset in *.
   apply subset_app_l; sp.
 Qed.
 
