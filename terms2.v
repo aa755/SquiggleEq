@@ -28,7 +28,7 @@ Definition nobnd (f:NTerm) := bterm [] f.
 
 Lemma fold_nobnd :
   forall t, bterm [] t = nobnd t.
-Proof.
+Proof using.
   unfold nobnd; auto.
 Qed.
 
@@ -143,7 +143,7 @@ Lemma size_subterm2 :
   forall (o:Opid) (lb : list BTerm) (b : BTerm) ,
     LIn b lb
     ->  size_bterm b <  size (oterm o lb).
-Proof.
+Proof using.
   simpl. induction lb; intros ? Hin; inverts Hin as; simpl; try omega.
   intros Hin. apply IHlb in Hin; omega.
 Qed.
@@ -152,7 +152,7 @@ Lemma size_subterm3 :
   forall (o:Opid) (lb : list BTerm) (nt : NTerm) (lv : list NVar) ,
     LIn (bterm lv nt) lb
     ->  size nt <  size (oterm o lb).
-Proof.
+Proof using.
  introv X.
  apply size_subterm2 with (o:=o) in X. auto.
 Qed.
@@ -168,7 +168,7 @@ Lemma NTerm_better_ind3 :
           -> P (oterm o lbt)
        )
     -> forall t : NTerm, P t.
-Proof.
+Proof using.
  intros P Hvar Hbt.
  assert (forall n t, size t = n -> P t) as Hass.
  Focus 2. intros. apply Hass with (n := size t) ; eauto; fail.
@@ -195,7 +195,7 @@ Lemma NTerm_better_ind2 :
           -> P (oterm o lbt)
        )
     -> forall t : NTerm, P t.
-Proof.
+Proof using.
  intros P Hvar Hbt.
  apply  NTerm_better_ind3; eauto.
  intros ? ? H.
@@ -216,7 +216,7 @@ Lemma NTerm_better_ind :
           -> P (oterm o lbt)
        )
     -> forall t : NTerm, P t.
-Proof.
+Proof using.
  introv Hv Hind. apply  NTerm_better_ind2; auto. 
  introv Hx. apply Hind. introv Hin. eapply Hx in Hin; eauto. 
 Qed.
@@ -250,7 +250,7 @@ Tactic Notation "nterm_ind1s" ident(h) "as" simple_intropattern(I)  ident(c) :=
 Lemma num_bvars_on_bterm :
   forall l n,
     num_bvars (bterm l n) = length l.
-Proof.
+Proof using.
   unfold num_bvars; simpl; sp.
 Qed.
 
@@ -264,7 +264,7 @@ Lemma wf_term_proof_irrelevance :
   forall t,
   forall x y : wf_term t,
     x = y.
-Proof.
+Proof using.
   intros.
   apply UIP_dec.
   apply bool_dec.
@@ -301,7 +301,7 @@ Lemma xxx : forall t (x : wft t = true), x = eq_refl (wft t).*)
 Lemma nt_wf_eq :
   forall t,
     nt_wf t <=> wf_term t.
-Proof.
+Proof using.
   unfold wf_term.
   nterm_ind t as [|o lbt ind] Case; simpl; intros.
 
@@ -347,20 +347,20 @@ Qed.
 
 Lemma nt_wf_implies :
   forall t, nt_wf t -> wf_term t.
-Proof.
+Proof using.
   sp; apply nt_wf_eq; sp.
 Qed.
 
 Lemma wf_term_eq :
   forall t, wf_term t <=> nt_wf t.
-Proof.
+Proof using.
   intro; generalize (nt_wf_eq t); sp.
   symm; auto.
 Qed.
 
 Lemma bt_wf_eq :
   forall bt, bt_wf bt <=> wf_bterm bt.
-Proof.
+Proof using.
   sp; split; intro w.
   inversion w; subst; unfold wf_bterm; simpl.
   fold (wf_term nt).
@@ -414,12 +414,12 @@ Lemma closed_nt :
     closed (oterm op bts)
     <=>
     forall bt, LIn bt bts -> closed_bt bt.
-Proof.
+Proof using.
   sp; unfold closed, closed_bt; simpl; trw flat_map_empty; split; sp.
 Qed.
 
 Lemma closed_nt0 : forall o nt, closed (oterm o [bterm [] nt]) -> closed nt.
-Proof.
+Proof using.
   intros. unfold closed in H. simpl in H. apply app_eq_nil in H. repnd.
   clears_last. rewrite remove_var_nil in H0. auto.
 Qed.
@@ -427,7 +427,7 @@ Qed.
 Lemma closed_null_free_vars :
   forall t,
     closed t <=> null (free_vars t).
-Proof.
+Proof using.
   unfold closed; sp.
   trw null_iff_nil; sp.
 Qed.
@@ -436,7 +436,7 @@ Lemma isprog_proof_irrelevance :
   forall t,
   forall x y : isprog t,
     x = y.
-Proof.
+Proof using.
   intros.
   apply UIP_dec.
   apply bool_dec.
@@ -446,7 +446,7 @@ Lemma isprog_vars_proof_irrelevance :
   forall t vs,
   forall x y : isprog_vars vs t,
     x = y.
-Proof.
+Proof using.
   intros.
   apply UIP_dec.
   apply bool_dec.
@@ -457,7 +457,7 @@ Require Export tactics.
 Lemma isprogram_eq :
   forall t,
     isprogram t <=> isprog t.
-Proof.
+Proof using.
   unfold isprog, isprogram.
   nterm_ind t Case; simpl; intros.
 
@@ -503,20 +503,20 @@ Qed.
 
 Lemma isprogram_implies :
   forall t, isprogram t -> isprog t.
-Proof.
+Proof using.
   sp; apply isprogram_eq; sp.
 Qed.
 
 Lemma isprog_implies :
   forall t : NTerm, isprog t -> isprogram t.
-Proof.
+Proof using.
   sp; apply isprogram_eq; sp.
 Qed.
 
 (* end hide *)
 Lemma isprog_eq :
   forall t, isprog t <=> isprogram t.
-Proof.
+Proof using.
   intro; symm; apply isprogram_eq; auto.
 Qed.
 (* begin hide *)
@@ -524,7 +524,7 @@ Qed.
 Lemma isprogram_bt_eq :
   forall bt,
     isprogram_bt bt <=> isprog_bt bt.
-Proof.
+Proof using.
   intro; unfold isprogram_bt, isprog_bt, closed_bt; split; sp.
   allrw; simpl.
   fold (wf_bterm bt).
@@ -542,7 +542,7 @@ Qed.
 Lemma isprog_vars_eq :
   forall t vs,
     isprog_vars vs t <=> subsetv (free_vars t) vs # nt_wf t.
-Proof.
+Proof using.
   unfold isprog_vars; sp.
   rw andb_eq_true.
   rewrite fold_assert.
@@ -552,7 +552,7 @@ Qed.
 
 Lemma isprog_vars_if_isprog :
   forall vs t, isprog t -> isprog_vars vs t.
-Proof.
+Proof using.
   introv ip.
   rw isprog_vars_eq.
   rw isprog_eq in ip.
@@ -564,7 +564,7 @@ Lemma isprog_vars_app_l :
   forall t vs1 vs2,
     isprog_vars vs2 t
     -> isprog_vars (vs1 ++ vs2) t.
-Proof.
+Proof using.
   sp; alltrewrite isprog_vars_eq; sp.
   unfold subset in *.
   apply subset_app_l; sp.
@@ -573,28 +573,28 @@ Qed.
 Definition areprograms ts := forall t, LIn t ts -> isprogram t.
 
 Lemma areprograms_nil : areprograms [].
-Proof.
+Proof using.
   unfold areprograms; simpl; sp.
 Qed.
 
 Lemma areprograms_snoc :
   forall t ts,
     areprograms (snoc ts t) <=> areprograms ts # isprogram t.
-Proof.
+Proof using.
   unfold areprograms; sp; split; sp; try (apply_hyp; rw in_snoc; sp).
   alltrewrite in_snoc; sp; subst; sp.
 Qed.
 
 Lemma areprograms_cons :
   forall t ts, areprograms (t :: ts) <=> isprogram t # areprograms ts.
-Proof.
+Proof using.
   unfold areprograms; sp; simpl; split; sp; subst; sp.
 Qed.
 
 Lemma areprograms_app :
   forall ts1 ts2,
     areprograms (ts1 ++ ts2) <=> areprograms ts1 # areprograms ts2.
-Proof.
+Proof using.
   unfold areprograms; sp; split; sp.
   apply_hyp; rw in_app_iff; sp.
   apply_hyp; rw in_app_iff; sp.
@@ -603,7 +603,7 @@ Qed.
 
 Lemma isprogram_vterm :
   forall v, isprogram (vterm v) <=> False.
-Proof.
+Proof using.
   unfold isprogram, closed; simpl; sp; split; sp.
 Qed.
 
@@ -623,7 +623,7 @@ Theorem isprogram_ot_iff :
     <=>
     (map num_bvars bts = OpBindings o
      # forall bt, LIn bt bts -> isprogram_bt bt).
-Proof.
+Proof using.
   intros. sp_iff Case.
 
   - Case "->".
@@ -650,7 +650,7 @@ Theorem nt_wf_ot_implies :
     nt_wf (oterm o  bts)
     -> LIn (bterm lv nt1) bts
     -> nt_wf nt1.
-Proof. intros ? ? ? ? Hwf Hin. inverts Hwf as Hwf Hmap.
+Proof using. intros ? ? ? ? Hwf Hin. inverts Hwf as Hwf Hmap.
   assert (bt_wf (bterm lv nt1)) as Hbf by (apply Hwf; auto).
   inverts Hbf. auto.
 Qed.
@@ -658,7 +658,7 @@ Qed.
 
 Lemma newvar_prop :
   forall t, ! LIn (newvar t) (free_vars t).
-Proof.
+Proof using.
   unfold newvar; sp.
   allapply fresh_var_not_in; sp.
 Qed.
@@ -667,7 +667,7 @@ Lemma newvar_not_in_free_vars :
   forall t,
     ! LIn nvarx (free_vars t)
     -> newvar t = nvarx.
-Proof.
+Proof using.
   sp.
   unfold newvar.
   apply fresh_var_nvarx; sp.
@@ -677,7 +677,7 @@ Lemma newvar_prog :
   forall t,
     isprog t
     -> newvar t = nvarx.
-Proof.
+Proof using.
   sp.
   unfold newvar.
   apply isprog_eq in H.
@@ -702,7 +702,7 @@ Inductive isovalue : NTerm -> Prop :=
 
 Lemma isvalue_closed :
   forall t, isvalue t -> closed t.
-Proof.
+Proof using.
   introv isv; inversion isv.
   allunfold isprogram; sp.
   unfold isprogram in *.
@@ -711,7 +711,7 @@ Qed.
 
 Lemma isvalue_program :
   forall t, isvalue t -> isprogram t.
-Proof.
+Proof using.
   introv isv; inversion isv; sp.
 Qed.
 
@@ -794,7 +794,7 @@ match t with
 end.
 Lemma wf_cterm :
   forall t, wf_term (get_cterm t).
-Proof.
+Proof using.
   introv; (  repeat match goal with
            | [ H : CTerm |- _ ] => destruct H
            | [ H : CVTerm _ |- _ ] => destruct H
@@ -960,7 +960,7 @@ Lemma cterm_eq :
   forall t u,
     get_cterm t = get_cterm u
     -> t = u.
-Proof.
+Proof using.
   introv; destruct_cterms; simpl; sp; subst.
   rewrite dep_pair_eq
     with (eq0 := eq_refl)
@@ -973,7 +973,7 @@ Lemma cvterm_eq :
   forall vs t u,
     get_cvterm vs t = get_cvterm vs u
     -> t = u.
-Proof.
+Proof using.
   introv; destruct_cterms; simpl; sp; subst.
   rewrite dep_pair_eq
     with (eq0 := eq_refl)
@@ -986,7 +986,7 @@ Qed.
 
 Lemma free_vars_cterm :
   forall t, free_vars (get_cterm t) = [].
-Proof.
+Proof using.
   introv; destruct_cterms; simpl.
   allrw isprog_eq; unfold isprogram in *; repnd; allrw; sp.
 Qed.
@@ -1007,7 +1007,7 @@ Definition iscvalue (t : CTerm) : Type :=
 Lemma mk_cv_pf :
   forall vs t,
     isprog_vars vs (get_cterm t).
-Proof.
+Proof using.
   destruct t; simpl.
   rw isprog_eq in i; destruct i.
   rw isprog_vars_eq; simpl; sp.
@@ -1026,7 +1026,7 @@ Lemma programs_bt_to_program :
   forall op,
     map (fun bt => num_bvars (get_bcterm bt)) bts = OpBindings op
     -> isprogram (oterm op (map get_bcterm bts)).
-Proof.
+Proof using.
   sp; unfold isprogram; sp.
   allrw closed_nt; sp.
   allrw in_map_iff; sp; subst.
@@ -1074,7 +1074,7 @@ Definition not_vbtermb (t : NTerm) : bool :=
   end.
 
 Theorem closed_notvb : forall t: NTerm , (closed t) -> (not_vbterm t).
-Proof.
+Proof using.
   intros ? Hclose. destruct t.
   unfold closed in Hclose. simpl in Hclose.
   inversion Hclose. constructor.
@@ -1083,7 +1083,7 @@ Qed.
 Theorem selectbt_in :
   forall n bts,
     n < length bts -> LIn (selectbt bts n) bts.
-Proof.
+Proof using.
   intros. unfold selectbt.
   apply nth_in; auto.
 Qed.
@@ -1091,7 +1091,7 @@ Qed.
 Lemma selectbt_cons :
   forall bt bts n,
     selectbt (bt :: bts) n = if beq_nat n 0 then bt else selectbt bts (n - 1).
-Proof.
+Proof using.
   unfold selectbt; simpl; sp.
   destruct n; simpl; sp.
   destruct n; simpl; sp.
@@ -1101,7 +1101,7 @@ Lemma isvalue_wf :
   forall c bts,
     isvalue (oterm (Can c) bts)
     -> map num_bvars bts = OpBindings (Can c).
-Proof. intros ? ?  Hval.
+Proof using. intros ? ?  Hval.
  inverts Hval as Hpr. inverts Hpr as Hclose Hwf.
  inverts Hwf; auto.
 Qed.
@@ -1110,7 +1110,7 @@ Qed.
 Lemma isvalue_wf2: forall c bts,
   (isvalue (oterm (Can c) bts))
   -> length bts= length(OpBindings (Can c)).
-Proof. intros ? ?  Hval. apply isvalue_wf in Hval.
+Proof using. intros ? ?  Hval. apply isvalue_wf in Hval.
  (* fequalhyp H length.  why does this fail*)
 
  assert (length (map num_bvars bts) = length (OpBindings (Can c)))
@@ -1122,7 +1122,7 @@ Qed.
 Lemma isprogram_wf3: forall o bts,
   (isprogram (oterm o bts))
   -> forall n, (n<length bts) -> (num_bvars (selectbt bts n))= nth n (OpBindings o) 0.
-Proof. intros ? ?  Hprog. apply isprogram_ot_iff  in Hprog. repnd.
+Proof using. intros ? ?  Hprog. apply isprogram_ot_iff  in Hprog. repnd.
  intros ? Hlt.
 assert(nth n (map num_bvars bts) 0= nth n (OpBindings o) 0)
   as Hnth by (rewrite Hprog0; reflexivity).
@@ -1136,12 +1136,12 @@ Qed.
 Lemma isvalue_wf3: forall o bts,
   (isvalue (oterm o bts))
   -> forall n, (n<length bts) -> (num_bvars (selectbt bts n))= nth n (OpBindings o) 0.
-Proof. intros ? ?  Hval ? Hlt.
+Proof using. intros ? ?  Hval ? Hlt.
  inverts Hval as Hprog. apply isprogram_wf3 with (n:=n) in Hprog ; auto.
 Qed.
 
 Theorem var_not_prog : forall v,  (isprogram (vterm v)) -> void.
-Proof.
+Proof using.
   unfold not. intros v Hpr.
   inversion Hpr as [Hclose ?].
   unfold closed in Hclose. simpl in Hclose. inversion Hclose.
@@ -1152,7 +1152,7 @@ Lemma implies_isprogram_bt :
     (forall l : BTerm, LIn l bts -> bt_wf l)
     -> flat_map free_vars_bterm bts = []
     -> forall bt : BTerm, LIn bt bts -> isprogram_bt bt.
-Proof.
+Proof using.
   intros bts Hbf Hflat ? Hin.
   unfold isprogram_bt, closed_bt; split; auto.
   rw flat_map_empty in Hflat. apply Hflat; auto.
@@ -1160,7 +1160,7 @@ Qed.
 
 Theorem ntbf_wf :
   forall nt, (bt_wf (bterm [] nt)) -> nt_wf nt.
-Proof.
+Proof using.
   introv Hin. inverts Hin. auto.
 Qed.
 
@@ -1168,7 +1168,7 @@ Lemma implies_isprogram_bt0 :
   forall t ,
     isprogram (t)
     -> isprogram_bt (bterm [] t).
-Proof.
+Proof using.
   unfold isprogram_bt, closed_bt, isprogram, closed; simpl; sp.
 Qed.
 
@@ -1177,7 +1177,7 @@ Theorem is_program_ot_bts0 :
     isprogram nt
     -> OpBindings o = [0]
     -> isprogram (oterm o [bterm [] nt]).
-Proof.
+Proof using.
   introv Hpr Hop. unfold isprogram in *. repnd.
   split;auto. unfold closed. simpl.
   rewrite app_nil_r. rewrite remove_var_nil. sp.
@@ -1189,7 +1189,7 @@ Theorem is_program_ot_nth_nobnd :
     isprogram (oterm o  bts)
     -> LIn (bterm [] nt1) bts
     -> isprogram nt1.
-Proof. intros ? ? ? Hisp Hin. apply isprogram_ot_iff in Hisp. repnd.
+Proof using. intros ? ? ? Hisp Hin. apply isprogram_ot_iff in Hisp. repnd.
   apply Hisp in Hin. inverts Hin as Hclose Hbf. inverts Hbf.
   unfold closed_bt in Hclose. simpl in Hclose.
   rewrite remove_var_nil in Hclose. split; auto.
@@ -1199,7 +1199,7 @@ Theorem is_program_ot_fst_nobnd :
   forall o nt1 bts,
     isprogram (oterm o ((bterm [] nt1):: bts))
     -> isprogram nt1.
-Proof.
+Proof using.
   intros ? ? ? Hisp.
   apply is_program_ot_nth_nobnd with (nt1:=nt1) in Hisp; sp.
 Qed.
@@ -1207,7 +1207,7 @@ Qed.
 Theorem is_program_ot_snd_nobnd :
   forall o bt1 nt2 bts, isprogram (oterm o ((bt1)::(bterm [] nt2):: bts))
    -> isprogram nt2.
-Proof. intros ? ? ? ? Hisp.
+Proof using. intros ? ? ? ? Hisp.
   apply is_program_ot_nth_nobnd with (nt1:=nt2) in Hisp; simpl; sp.
 Qed.
 
@@ -1217,7 +1217,7 @@ Theorem is_program_ot_subst1 :
     isprogram (oterm o ((bterm [] nt1):: bts))
     -> isprogram nt1r
     -> isprogram (oterm o ((bterm [] nt1r):: bts)).
-Proof. intros ? ? ?  ? Hisp Hispst. unfold isprogram.
+Proof using. intros ? ? ?  ? Hisp Hispst. unfold isprogram.
     unfold closed. simpl.
     inverts Hisp as Hclos Hisp. unfold closed in Hclos. simpl in Hclos.
     apply app_eq_nil in Hclos. repnd.  rewrite remove_var_nil in Hclos0.
@@ -1233,7 +1233,7 @@ Theorem is_program_ot_subst2 :
     isprogram (oterm o (bt1::(bterm [] nt2):: bts))
     -> isprogram nt2r
     -> isprogram (oterm o (bt1::(bterm [] nt2r):: bts)).
-Proof. intros ? ? ? ?  ? Hisp Hispst. unfold isprogram.
+Proof using. intros ? ? ? ?  ? Hisp Hispst. unfold isprogram.
     unfold closed. simpl.
     inverts Hisp as Hclos Hisp. inverts Hispst as Hclosst Hwfst.
     allunfold closed. simpl.
@@ -1253,7 +1253,7 @@ Theorem is_program_ot_nth_wf :
     isprogram (oterm o  bts)
     -> LIn (bterm lv nt1) bts
     -> nt_wf nt1.
-Proof. intros ? ? ? ? Hisp Hin. apply isprogram_ot_iff in Hisp. repnd.
+Proof using. intros ? ? ? ? Hisp Hin. apply isprogram_ot_iff in Hisp. repnd.
   assert (isprogram_bt (bterm lv nt1)) as Hass by (apply Hisp; auto).
   inverts Hass as Hass Hbt. inversion Hbt; auto.
 Qed.
@@ -1261,7 +1261,7 @@ Qed.
 Lemma combine_vars_map_sp :
   forall vars,
     combine vars (map vterm vars) = map (fun v => (v, vterm v)) vars.
-Proof.
+Proof using.
   induction vars; simpl; sp.
   rewrite IHvars; sp.
 Qed.
@@ -1271,7 +1271,7 @@ Lemma combine_vars_map :
   forall f : NVar -> A,
   forall vars,
     combine vars (map f vars) = map (fun v => (v, f v)) vars.
-Proof.
+Proof using.
   induction vars; simpl; sp.
   rewrite IHvars; sp.
 Qed.
@@ -1279,7 +1279,7 @@ Qed.
 
 Theorem in_selectbt: forall bt bts,  LIn bt bts ->
     {n : nat $ n < length bts # selectbt bts n = bt}.
-Proof.
+Proof using.
   intros ? ? Hin. induction bts. inverts Hin.
   invertsn Hin.
   - exists 0. split; simpl; auto. omega.
@@ -1291,7 +1291,7 @@ Qed.
 Theorem ntot_wf_iff: forall o bts, nt_wf (oterm o bts)
     <=> map num_bvars bts = OpBindings o # forall n : nat,
      n < length bts -> bt_wf (selectbt bts n).
-Proof. introv. sp_iff Case; introv H.
+Proof using. introv. sp_iff Case; introv H.
   Case "->". inverts H as Hbf Hmap. split; auto.
     introv Hlt. apply Hbf. apply selectbt_in; auto.
   Case "<-". repnd. constructor; auto.
@@ -1302,7 +1302,7 @@ Qed.
 (**useful for rewriting in complicated formulae*)
 Theorem bt_wf_iff: forall lv nt, bt_wf (bterm lv nt)
     <=> nt_wf nt.
-Proof. sp_iff Case; introv H.
+Proof using. sp_iff Case; introv H.
   Case "->". inverts H as Hwf;  auto.
   Case "<-".  constructor; auto.
 Qed.
@@ -1314,7 +1314,7 @@ Lemma wf_cvterm :
   forall vs : list NVar,
   forall t : CVTerm vs,
     wf_term (get_cvterm vs t).
-Proof.
+Proof using.
   destruct t; simpl.
   rw isprog_vars_eq in i; sp.
   rw wf_term_eq; sp.
@@ -1322,7 +1322,7 @@ Qed.
 
 Lemma isprogram_get_cterm :
   forall a, isprogram (get_cterm a).
-Proof.
+Proof using.
   destruct a; sp; simpl.
   rw isprogram_eq; sp.
 Qed.
@@ -1333,7 +1333,7 @@ Lemma oterm_eq :
     o1 = o2
     -> l1 = l2
     -> oterm o1 l1 = oterm o2 l2.
-Proof.
+Proof using.
   sp; allrw; sp.
 Qed.
 
@@ -1342,14 +1342,14 @@ Lemma bterm_eq :
     l1 = l2
     -> n1 = n2
     -> bterm l1 n1 = bterm l2 n2.
-Proof.
+Proof using.
   sp; allrw; sp.
 Qed.
 
 Theorem selectbt_map : forall lbt n (f: BTerm -> BTerm) ,
   n<length lbt
   -> selectbt (map f lbt) n = f (selectbt lbt n).
-Proof.
+Proof using.
   induction lbt; introv Hlt. inverts Hlt.
   simpl. destruct n; subst. reflexivity.
   unfold selectbt in *. allsimpl.
@@ -1364,24 +1364,24 @@ Theorem eq_maps_bt: forall (B : Type) (f : BTerm -> B)
   -> (forall n : nat, n < length la 
        -> f (selectbt la n) = g (selectbt lc n)) 
   -> map f la = map g lc.
-Proof. unfold selectbt. introv H2 H3. apply eq_maps2 in H3; auto. 
+Proof using. unfold selectbt. introv H2 H3. apply eq_maps2 in H3; auto. 
 Qed.
 
 Lemma vterm_inj: injective_fun vterm.
-Proof.
+Proof using.
     introv Hf. inverts Hf. auto.
 Qed.
 
 Lemma map_eq_lift_vterm:  forall lvi lvo, 
   map vterm lvi = map vterm lvo -> lvi = lvo.
-Proof.
+Proof using.
  intros.
   apply map_eq_injective with (f:=vterm); auto.
   exact vterm_inj.
 Qed.
 
 Lemma deq_nterm : Deq NTerm.
-Proof.
+Proof using.
   intros ?.
   nterm_ind1 x as [v1 | o1 lbt1 Hind] Case; intros.
 
@@ -1416,7 +1416,7 @@ Defined.
 Lemma lin_lift_vterm :
   forall v lv,
     LIn v lv <=> LIn (vterm v) (map vterm lv).
-Proof.
+Proof using.
   induction lv; [sp | ]. simpl.
   rw <- IHlv; split; intros hp; try (dorn hp); sp; subst; sp.
   inverts hp. sp.
@@ -1427,7 +1427,7 @@ Lemma map_removevars:
 forall lvi lvr,
   map vterm (remove_nvars lvi lvr)
   = diff deq_nterm (map vterm lvi) (map vterm lvr).
-Proof.
+Proof using.
   intros. apply map_diff_commute.
   introv Hc. inverts Hc. auto.
 Qed.
@@ -1436,20 +1436,20 @@ Definition all_vars_bt bt := free_vars_bterm bt ++ bound_vars_bterm bt.
 
 Lemma all_vars_ot : forall o lbt, all_vars (oterm o lbt) =
   flat_map all_vars_bt lbt.
-Proof.
+Proof using.
   intros. unfold all_vars. simpl. unfold all_vars_bt.
 Abort. (** they are only equal as bags*)
 
 
 Theorem nil_remove_nvars_iff: forall l1 l2 : list NVar,
    (remove_nvars l1 l2) = [] <=> (forall x : NVar, LIn x l2 -> LIn x l1).
-Proof.
+Proof using.
   intros. rw <- null_iff_nil. apply null_remove_nvars.
 Qed.
 
 Theorem nil_rv_single_iff: forall lv v ,
    (remove_nvars lv [v]) = [] <=> (LIn v lv).
-Proof.
+Proof using.
   intros. rw <- null_iff_nil. rw null_remove_nvars.
   split; intro Hyp.
   apply Hyp. left. auto.
@@ -1460,7 +1460,7 @@ Theorem selectbt_eq_in:  forall lv nt lbt n,
   bterm lv nt = selectbt lbt n
   -> n < length lbt
   -> LIn (bterm lv nt) lbt.
-Proof.
+Proof using.
   introv Heq Hlt. rw Heq.
   apply selectbt_in; trivial.
 Qed.
@@ -1468,7 +1468,7 @@ Qed.
 Lemma flat_map_closed_terms:
   forall lnt, lforall closed lnt
     -> flat_map free_vars lnt = [].
-Proof.
+Proof using.
   unfold lforall, closed. introv Hfr.
   apply flat_map_empty. trivial.
 Qed.
@@ -1476,7 +1476,7 @@ Qed.
 Lemma flat_map_progs:
   forall lnt, lforall isprogram lnt
     -> flat_map free_vars lnt = [].
-Proof.
+Proof using.
   unfold lforall, closed. introv Hfr.
   apply flat_map_empty. introv Hin.
   apply Hfr in Hin. inverts Hin. auto.
@@ -1487,7 +1487,7 @@ Theorem disjoint_lbt_bt :
     disjoint vs (flat_map bound_vars_bterm lbt)
     -> LIn (bterm lv nt) lbt
     -> disjoint vs lv.
-Proof.
+Proof using.
   introv Hink1 Hin.
   apply disjoint_sym in Hink1; rw disjoint_flat_map_l in Hink1.
   apply Hink1 in Hin.
@@ -1501,7 +1501,7 @@ Definition selectnt (n:nat) (lnt : list NTerm): NTerm :=
   nth n lnt (vterm nvarx).
 
 Lemma deq_bterm : Deq BTerm.
-Proof.
+Proof using.
   intros btx bty. destruct btx as [lvx ntx].
   destruct bty as [lvy nty].
   destruct (deq_nterm ntx nty);
@@ -1526,13 +1526,13 @@ Inductive nt_wf2 : NTerm -> [univ] :=
 (** mainly for convenience in proofs *)
 Theorem  selectbt_in2:  forall (n : nat) (bts : list BTerm),
   n < length bts -> { bt : BTerm & (LIn bt bts # (selectbt bts n)=bt) }.
-Proof.
+Proof using.
   intros. exists (selectbt bts n).
   split;auto. apply selectbt_in; trivial.
 Defined.
 
 Lemma nt_wf_nt_wf2 : forall t, (nt_wf t) <=> (nt_wf2 t).
-Proof.
+Proof using.
     assert (0= num_bvars (bterm [] (vterm nvarx))) as XX by auto.
   nterm_ind1 t as [?| o lbt Hind] Case; split; introv Hyp; sp.
   - inverts Hyp as Hl Hyp. constructor. apply_length Hyp;sp.
@@ -1567,7 +1567,7 @@ Theorem isprogram_ot_implies_eauto2 :
   forall o bts,
     isprogram (oterm o bts)
     -> (forall n, n< length bts -> isprogram_bt (selectbt bts n)).
-Proof.
+Proof using.
   introv Hp Hlt. apply isprogram_ot_iff in Hp.
   apply selectbt_in in Hlt. exrepnd.
   eauto with slow.
@@ -1578,7 +1578,7 @@ Lemma isprogram_bt_nobnd :
   forall t ,
     isprogram_bt (bterm [] t)
     -> isprogram (t).
-Proof.
+Proof using.
   unfold isprogram_bt, closed_bt, isprogram, closed; intros ?  Hxx;  spc; allsimpl.
   match goal with
   [H: (bt_wf _) |- _ ] => inverts H
@@ -1591,7 +1591,7 @@ Lemma free_vars_list_app :
   forall ts1 ts2,
     free_vars_list (ts1 ++ ts2)
     = free_vars_list ts1 ++ free_vars_list ts2.
-Proof.
+Proof using.
   induction ts1; simpl; sp.
   rw IHts1; simpl.
   rw app_assoc; sp.
@@ -1600,7 +1600,7 @@ Qed.
 
 
 Lemma isprog_ntwf_eauto : forall t, isprogram t -> nt_wf t.
-Proof. unfold isprogram. spc.
+Proof using. unfold isprogram. spc.
 Qed.
 
 Theorem isprogram_ot_if_eauto :
@@ -1608,7 +1608,7 @@ Theorem isprogram_ot_if_eauto :
     map num_bvars bts = OpBindings o
     -> (forall bt, LIn bt bts -> isprogram_bt bt)
     -> isprogram (oterm o bts).
-Proof.
+Proof using.
  intros. apply isprogram_ot_iff;spc.
 Qed.
 
@@ -1616,7 +1616,7 @@ Qed.
 Lemma isprogramd :
   forall v, isprogram v
   -> {o : Opid $ {lbt : list BTerm $ v = oterm o lbt}}.
-Proof.
+Proof using.
   introv Hpr.
   invertsn Hpr.
   destruct v; inverts Hpr.
@@ -1627,7 +1627,7 @@ Qed.
 Lemma isprogram_noncan:
   forall v, isprogram v
   -> (isvalue v [+] isnoncan v).
-Proof.
+Proof using.
   introv Hp. applydup isprogramd in Hp.
   exrepnd. subst.
   destruct o; cpx.
@@ -1635,12 +1635,12 @@ Qed.
 
 Lemma fold_combine : forall {A B} (v:A) (t:B), 
   [(v,t)] = (combine [v] [t]).
-Proof.
+Proof using.
   intros. simpl. auto.
 Qed.
 
 Lemma nvarx_nvary : nvarx <> nvary.
-Proof.
+Proof using.
   allunfold nvarx.
   allunfold nvary.
   introv Hinc.
@@ -1652,7 +1652,7 @@ Lemma noncan_not_value : forall e,
   isnoncan e
   -> isvalue e
   -> False.
-Proof.
+Proof using.
   introv Hisnc Hisv.
   destruct e as [?| o lbt]; allsimpl; cpx.
   destruct o; cpx.
@@ -1664,7 +1664,7 @@ Theorem isprogram_ot_if_eauto2 :
     map num_bvars bts = OpBindings o
     -> (forall n, n< length bts -> isprogram_bt (selectbt bts n))
     -> isprogram (oterm o bts).
-Proof.
+Proof using.
   introv Hn Hp. apply isprogram_ot_iff; dands; spcf.
   introv Hin. apply in_selectbt in Hin. exrepnd.
   eauto with slow.
@@ -1681,7 +1681,7 @@ Lemma newvars5_prop :
        # !LIn v3 (free_vars_list terms ++ [v1, v2])
        # !LIn v4 (free_vars_list terms ++ [v1, v2, v3])
        # !LIn v5 (free_vars_list terms ++ [v1, v2, v3, v4]).
-Proof.
+Proof using.
   introv eq.
   unfold newvars5 in eq; cpx.
   unfold newvarlst; simpl; allrw free_vars_list_app; simpl.
@@ -1706,7 +1706,7 @@ Lemma newvars5_prop2 :
        # !v3 = v4
        # !v3 = v5
        # !v4 = v5.
-Proof.
+Proof using.
   introv eq.
   apply newvars5_prop in eq; repnd.
   allrw in_app_iff; allsimpl.
@@ -1722,7 +1722,7 @@ Lemma newvars2_prop :
     (v1, v2) = newvars2 terms
     -> !LIn v1 (free_vars_list terms)
        # !LIn v2 (free_vars_list terms ++ [v1]).
-Proof.
+Proof using.
   introv eq.
   unfold newvars2 in eq; cpx.
   unfold newvarlst; simpl; allrw free_vars_list_app; simpl.
@@ -1735,7 +1735,7 @@ Lemma newvars2_prop2 :
     -> !LIn v1 (free_vars_list terms)
        # !LIn v2 (free_vars_list terms)
        # !v1 = v2.
-Proof.
+Proof using.
   introv eq.
   apply newvars2_prop in eq; repnd.
   allrw in_app_iff; allsimpl.
@@ -1747,7 +1747,7 @@ Qed.
 Lemma closed_implies:
   forall t,
     closed t -> (forall x, !LIn x (free_vars t)).
-Proof.
+Proof using.
   introv cl.
   unfold closed in cl.
   allrw; simpl; try (complete sp).
@@ -1758,7 +1758,7 @@ Definition cnewvar (t : CTerm) := newvar (proj1_sig t).
 
 Lemma cnewvar_eq :
   forall t, cnewvar t = nvarx.
-Proof.
+Proof using.
   destruct t; unfold cnewvar, newvar; simpl.
   rw isprog_eq in i.
   inversion i.
@@ -1771,7 +1771,7 @@ Lemma isprog_vars_cvterm_var :
   forall v : NVar,
   forall t : CTerm,
     isprog_vars [v] (proj1_sig t).
-Proof.
+Proof using.
   destruct t; unfold cnewvar.
   rw isprog_vars_eq; simpl.
   rw isprog_eq in i.
@@ -1783,7 +1783,7 @@ Qed.
 Lemma isprog_vars_cvterm_newvar :
   forall t : CTerm,
     isprog_vars [cnewvar t] (proj1_sig t).
-Proof.
+Proof using.
   sp; apply isprog_vars_cvterm_var.
 Qed.
 
@@ -1800,7 +1800,7 @@ Definition cvterm_newvar (t : CTerm) : CVTerm [cnewvar t] :=
 
 Lemma mk_cv_as_cvterm_var :
   forall v t, mk_cv [v] t = cvterm_var v t.
-Proof.
+Proof using.
   intros.
   destruct_cterms.
   unfold mk_cv, cvterm_var, get_cterm; simpl.
