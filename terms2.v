@@ -1811,6 +1811,50 @@ Proof using.
   apply bool_dec.
 Qed.
 
+
+Lemma list_nil_btwf: forall es,
+(forall l : BTerm, LIn l (map (bterm []) es) -> bt_wf l)
+<->
+(forall l : NTerm, LIn l es -> nt_wf l).
+Proof.
+  intros ?.
+  split; intros H  ? Hin.
+- apply (bt_wf_iff []).
+  apply H. apply in_map; auto. 
+- apply in_map_iff in Hin. exrepnd. subst.
+  constructor; auto. 
+Qed.
+
+Require Import Coq.Program.Basics.
+
+Open Scope program_scope.
+(* Move *)
+Lemma flat_map_vterm : forall gts lv,
+flat_map free_vars_bterm
+  (map ((@bterm gts) [] ∘ vterm) lv) = lv.
+Proof.
+  induction lv; auto.
+  simpl. f_equal; auto.
+Qed.
+
+
+Lemma subset_flat_map_lbt:
+forall lbt (l lv : list NVar) (n : NTerm),
+LIn (bterm l n) lbt ->
+subsetv (flat_map free_vars_bterm lbt) lv 
+-> subsetv (free_vars n) (l ++ lv).
+Proof.
+  intros ? ? ? ? Hin Hs.
+  rewrite subsetv_flat_map in Hs.
+  rewrite subsetv_prop.
+  apply_clear Hs in Hin.
+  simpl in Hin.
+  rewrite subsetv_prop in Hin.
+  intros x Hn. specialize (Hin x).
+  rewrite in_remove_nvars in Hin.
+  rewrite in_app_iff; destruct (dmemvar x l); cpx.
+Qed.
+
 End terms4Generic.
 
 
@@ -1845,5 +1889,89 @@ Ltac noRepDis :=
   destruct H as [Hnrd H]
 end); disjoint_reasoningv; 
 rewrite in_single_iff in *; subst; tauto; try tauto.
+
+(* try to move to list.v  . disjoint_reasoningv performs 
+  some non-list-based unfolding which may
+  be done using a database *)
+Ltac inauto:=
+(repeat match goal with
+[H: no_repeats [] |- _] => clear H
+|[H: no_repeats (_::_) |- _] =>
+  let Hnrd := fresh "Hnrd" in
+  apply no_repeats_as_disjoint in H;
+  destruct H as [Hnrd H]
+end); disjoint_reasoningv; 
+unfold subset in *;
+unfold disjoint in *;
+repeat match goal with 
+| [H:context[LIn _ (_::_) ] |- _] => simpl in H; try setoid_rewrite or_false_r in H
+| [|- context[LIn _ (_::_)]] => simpl; try setoid_rewrite or_false_r
+| [H:context[LIn _ (flat_map _ _) ] |- _] => setoid_rewrite in_flat_map in H
+| [|- context[LIn _ (flat_map _ _)]] => setoid_rewrite in_flat_map
+| [H:context[LIn  _ (map _ _)]|- _] => setoid_rewrite in_map_iff in H
+| [|- context[LIn  _ (map _ _)]] => setoid_rewrite in_map_iff
+| [H:context[LIn  _ (remove_nvars _ _)]|- _] => setoid_rewrite in_remove_nvars in H; simpl in H
+| [|- context[LIn  _ (remove_nvars _ _)]] => setoid_rewrite in_remove_nvars; simpl
+| [H: _ = []|- _] => apply null_iff_nil in H; unfold null in H; simpl in H
+| [|- _ = []] => apply null_iff_nil; unfold null; simpl
+| [|- context[LIn  _ (map _ _)]] => setoid_rewrite in_map_iff
+end;
+subst.
+
+
+
+
+
+Local Ltac 
+illFormedCase :=
+ (try reflexivity; try (simpl;rewrite flat_map_vterm; reflexivity)).
+
+
+(* Move *)
+
+Lemma flat_map_bterm_nil : forall gts lnt,
+flat_map free_vars_bterm
+  (map ((@bterm gts) []) lnt) = 
+flat_map free_vars lnt.
+Proof.
+  induction lnt; auto.
+  simpl. f_equal; auto.
+Qed.
+
+
+(* Move *)
+Ltac destructbtdeep2 bt tac :=
+  let btlv := fresh bt "lv" in
+  let btnt := fresh bt "nt" in
+  let btlv1 := fresh btlv "1" in
+  let btlv2 := fresh btlv "2" in
+  let btlv3 := fresh btlv "3" in
+  destruct bt as [btlv btnt];
+  destruct btlv as [| btlv1]; tac;
+  try(destruct btlv as [| btlv2]; tac);
+  try(destruct btlv as [| btlv3]; tac).
+
+Ltac destructlbt lbt tac :=
+  repeat (
+  let b := fresh "b" in
+  destruct lbt as [| b lbt];tac; []).
+
+Hint Rewrite
+remove_nvars_cons_r memvar_singleton : SquiggleLazyEq.
+
+Hint Rewrite
+  <- beq_var_refl : SquiggleLazyEq.
+
+Lemma fresh_var_not_eq : forall lv v, 
+  LIn v lv
+  -> ~(v = (fresh_var lv)).
+Proof.
+  intros.
+  pose proof (fresh_var_not_in lv).
+  intros Hc.
+  subst. tauto. 
+Qed.
+Hint Rewrite remove_var_nil remove_nvars_nil_r:  SquiggleLazyEq.
+
 
 

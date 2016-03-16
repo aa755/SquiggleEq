@@ -3264,3 +3264,29 @@ Qed.
 End RWInstances.
 
 End AlphaGeneric.
+
+Ltac ntwfauto :=
+unfold apply_bterm in *;
+unfold subst in *;
+(repeat match goal with
+[ |- nt_wf (lsubst _ _)] => 
+  let Hsub := fresh "Hsub" in
+  apply lsubst_wf_iff;[intros ? ? Hsub; try in_reasoning; cpx|]
+| [ H: nt_wf (lsubst _ _) |- _ ] => 
+  let Hb := fresh H in
+  pose proof H as Hb;
+  apply lsubst_nt_wf in Hb
+| [ H: nt_wf ?x |- _ ] => 
+  let H1 := fresh "Hntwf" in
+  let H2 := fresh "HntwfSig" in
+    inverts H as H1 H2;[]; simpl in H1; dLin_hyp
+| [ H: _ -> (nt_wf _) , H1:_ |- _ ] => apply H in H1; clear H
+| [ H: forall (_:_),  _ -> (nt_wf _) , H1:_ |- _ ] => apply H in H1
+| [ H: forall (_:_),  _ -> (bt_wf _) , H1:_ |- _ ] => apply H in H1
+| [ H: bt_wf (bterm _ _) |- _ ] => apply bt_wf_iff in H
+| [ |- nt_wf (vterm _)] => constructor
+| [ |- bt_wf _] => constructor
+| [ |- nt_wf _] => 
+  let Hin := fresh "HntwfIn" in
+    constructor; [try (intros ? Hin; simpl in Hin; in_reasoning; subst;  cpx)|]
+end); cpx.

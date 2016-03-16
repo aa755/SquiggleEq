@@ -1272,3 +1272,30 @@ Proof.
 Qed.
 
 End RWInstances.
+
+(* Move to list.v *)
+Lemma eqset_flat_maps
+     : forall (A B : Type) (f g : A -> list B) (l : list A),
+       (forall x : A, LIn x l -> eq_set (f x) (g x))
+         -> eqset (flat_map f l)  (flat_map g l).
+Proof.
+  induction l; intros; simpl; [refl|].
+  rewrite H;[| cpx].
+  rewrite IHl;[| cpx].
+  refl.
+Qed.
+
+Definition remove_nvars_nop :=
+(fun l1 l2 => proj1 (remove_nvars_unchanged l1 l2)).
+
+
+Lemma memvar_fresh_var : forall x,
+beq_var x (fresh_var [x]) = false.
+Proof.
+  intros.
+  pose proof (fresh_var_not_in [x]) as Hf.
+  apply not_eq_beq_var_false.
+  simpl in *. tauto.
+Qed.
+
+Hint Rewrite memvar_singleton memvar_fresh_var : SquiggleLazyEq.

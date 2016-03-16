@@ -2489,8 +2489,8 @@ Ltac dLin_hyp :=
   repeat match goal with
   [ H : forall  x : ?T , ((( ?L = x ) [+] ?R) -> ?C) |- _ ] => 
     let Hyp := fresh "Hyp" in
-    pose proof (H L (inl eq_refl)) as Hyp;
-    specialize (fun x y => H x (inr y))
+    pose proof (H L (or_introl eq_refl)) as Hyp;
+    specialize (fun x y => H x (or_intror y))
   | [ H : forall  x : ?T , False -> _ |- _ ] => clear H
   end.
 
@@ -2538,3 +2538,19 @@ Proof.
   subst. assumption.
 Qed.
 
+Lemma repeat_map_len : forall A B (b:B) (vs: list A) ,
+  map (fun _ => b) vs = repeat (Datatypes.length vs) b.
+Proof.
+  induction vs; auto; simpl; f_equal; auto.
+Qed.
+
+Lemma map_eq_repeat_implies : forall A B (b:B) f (vs: list A) n,
+  map f vs = repeat n b
+  -> forall v, LIn v vs -> f v = b.
+Proof.
+  induction vs; intros; [simpl in *; tauto|].
+  applydup (f_equal  (@length B)) in H.
+  rewrite repeat_length in H1.
+  simpl in *. destruct n;[omega|].
+  simpl in *. inverts H. in_reasoning; subst; eauto.
+Qed.

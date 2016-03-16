@@ -35,6 +35,10 @@ Require Export eq_rel.
 
 (** Taken from SfLib *)
 
+Ltac unsimpl t :=
+    let ts := eval simpl in t in
+    change ts with t.
+    
 Ltac move_to_top x :=
   match reverse goal with
   | H : _ |- _ => try move x after H
