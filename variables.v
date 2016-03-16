@@ -1289,11 +1289,11 @@ Definition remove_nvars_nop :=
 (fun l1 l2 => proj1 (remove_nvars_unchanged l1 l2)).
 
 
-Lemma memvar_fresh_var : forall x,
-beq_var x (fresh_var [x]) = false.
+Lemma memvar_fresh_var : forall x (lx : list NVar),
+beq_var x (fresh_var (x::lx)) = false.
 Proof.
   intros.
-  pose proof (fresh_var_not_in [x]) as Hf.
+  pose proof (fresh_var_not_in (x::lx)) as Hf.
   apply not_eq_beq_var_false.
   simpl in *. tauto.
 Qed.
