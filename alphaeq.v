@@ -3263,6 +3263,104 @@ Qed.
 
 End RWInstances.
 
+Lemma fold_apply_bterm : forall lv nt lnt,
+lsubst nt (combine lv lnt)
+= 
+apply_bterm (bterm lv nt) lnt.
+Proof.
+intros. refl.
+Qed.
+ 
+
+(*
+Lemma 
+apply_bterm_alpha_congr_nested:
+  forall lv1in lv2in lv1out lv2out nt1 nt2 o lnt1in lnt2in lnt1out lnt2out,
+  alpha_eq_bterm (bterm lv1out (oterm o [bterm lv1in nt1]))
+                 (bterm lv2out (oterm o [bterm lv2in nt2])) ->
+  bin_rel_nterm alpha_eq lnt1in  lnt2in ->
+  bin_rel_nterm alpha_eq lnt1out lnt2out ->
+  length lnt1in  = length lv1in  ->
+  length lnt1out = length lv1out
+  -> alpha_eq (lsubst (lsubst nt1 (combine lv1in lnt1in)) (combine lv1out lnt1out))
+              (lsubst (lsubst nt2 (combine lv2in lnt2in)) (combine lv2out lnt2out)).
+Proof.
+  intros.
+  simpl in *. inverts H.
+   SearchAbout (lsubst (lsubst _ _) _). 
+   repeat alphahypsd2.
+  apply apply_bterm_alpha_congr with (lnt1:= lnt1out) (lnt2:= lnt2out)  in H;
+    unfold num_bvars; simpl; auto.
+  unfold apply_bterm in H.
+  simpl in H.
+  SearchAbout lsubst oterm.  
+  apply apply_bterm_alpha_congr with (lnt1:= lnt1out) (lnt2:= lnt2out)  in H.
+  simpl in H.
+   simpl ; auto.
+  
+  repeat rewrite fold_apply_bterm.
+  apply apply_bterm_alpha_congr; simpl ; auto.
+  econstructor. Focus 5.
+  
+  SearchAbout (alpha_eq_bterm (bterm _ _) (bterm _ _)). 
+              
+SearchAbout alpha_eq_bterm apply_bterm.
+*)
+
+Lemma and_weaken_l : forall (A B C : Prop),
+ (A -> B)
+ -> (A # C)
+ -> (B # C).
+Proof.
+  intros. tauto. 
+Qed.
+
+
+Lemma forall_combine : forall (A : Type) (P Q R: A -> Prop),
+ (forall a:A, P a -> Q a /\ R a)
+ -> ((forall a:A, P a -> Q a)#(forall a:A, P a -> R a)).
+Proof.
+  intros. firstorder.
+Qed.
+
+
+Lemma alpha_eq_bterm_nil : forall o lnt t2,
+alpha_eq (oterm o (map (bterm []) lnt)) t2
+-> exists lnt2, t2 =  (oterm o (map (bterm []) lnt2))
+  /\ bin_rel_nterm alpha_eq lnt lnt2.
+Proof.
+  intros ? ? ? Hal.
+  inverts Hal. rewrite map_length in *.
+  rename H3 into Hbts.
+  exists (map get_nt lbt2).
+  rewrite map_map.
+  rewrite <- (map_id lbt2) at 1.
+  unfold compose.
+  eapply and_weaken_l;
+    [intros; f_equal; apply H|].
+  unfold bin_rel_nterm, binrel_list.
+  rewrite map_length. 
+  rewrite <- and_assoc.
+  eapply and_weaken_l;
+    [intros; split; auto; apply H|].
+  eapply and_weaken_l;
+    [intros; apply eq_maps_bt; auto; apply H|].
+  rewrite <- H1.
+  apply forall_combine.
+  intros n Hlt.
+  
+  specialize (Hbts n Hlt).
+  unfold selectbt at 1 in Hbts.
+  rewrite map_nth in Hbts.
+  repeat alphahypsd.
+  rewrite Hbts1.
+  split;[refl|].
+  change (vterm nvarx) with (get_nt (bterm [] (vterm nvarx))).
+  rewrite map_nth.
+  setoid_rewrite Hbts1.
+  simpl. assumption.
+Qed.
+
 End AlphaGeneric.
 
 Ltac ntwfauto :=
@@ -3290,3 +3388,87 @@ unfold subst in *;
   let Hin := fresh "HntwfIn" in
     constructor; [try (intros ? Hin; simpl in Hin; in_reasoning; subst;  cpx)|]
 end); cpx.
+
+(* copied from the above section *)
+Ltac alphahypsd2 := simpl;
+  match goal with 
+  | [H: S _ = length ?l |- _ ] => let ls := fresh l "s" in 
+        destruct l as [| ls l]; simpl in H; inverts H as H
+  | [H: length ?l = S _ |- _ ] => symmetry in H
+  | [H: alpha_eq (oterm ?o _) _ |- _] => let H1:= fresh H "len" in
+              let H2:= fresh H "bts" in
+              inverts H as H1 H2; simpl in H1; simpl in H2     
+  | [H: (forall _:nat, (_< ?m) -> alpha_eq_bterm _ _)  |- _ ] => 
+    
+    (let XXX:= fresh H "0bt" in
+      assert (0<m) as XXX by omega; apply H in XXX; simpl in XXX;
+      unfold selectbt in XXX; simphyps);
+    try (let XXX:= fresh H "1bt" in
+      assert (1<m) as XXX by omega; apply H in XXX; simpl in XXX;
+      unfold selectbt in XXX; simphyps);
+    try (let XXX:= fresh H "2bt" in
+      assert (2<m) as XXX by omega; apply H in XXX;  simpl in XXX;
+      unfold selectbt in XXX; simphyps);
+    try (let XXX:= fresh H "3bt" in
+      assert (3<m) as XXX by omega; apply H in XXX;  simpl in XXX;
+      unfold selectbt in XXX; simphyps); hide_hyp H
+  | [H: alpha_eq_bterm (bterm [] _) (bterm [] _) |- _] => apply alphaeqbt_nilv2 in H; exrepnd; subst
+  | [H: alpha_eq_bterm (bterm [] _) _ |- _] => apply alphaeqbt_nilv in H; exrepnd; subst
+  | [H: alpha_eq_bterm (bterm [_] _) _ |- _] => apply alphaeqbt_1v in H; exrepnd; subst
+  | [H: alpha_eq_bterm (bterm [_,_] _) _ |- _] => apply alphaeqbt_2v in H; exrepnd; subst
+  end.
+  Ltac alphahypsd3 :=
+  match goal with 
+  | [H: 1 = length _ |- _ ] => symmetry in H; apply length1 in H; exrepnd; subst
+  | [H: 2 = length _ |- _ ] => symmetry in H; apply length2 in H; exrepnd; subst
+  | [H: 3 = length _ |- _ ] => symmetry in H; apply length3 in H; exrepnd; subst
+  | [H: 0 = length _ |- _ ] => symmetry in H; apply length0 in H; subst
+  | [H: _ = S (length _) |- _ ] =>  inverts H as H
+  | [H: (forall _:nat, (_< ?m) -> alpha_eq_bterm _ _)  |- _ ] => 
+    fail_if_not_number m;
+    (let XXX:= fresh H "0bt" in
+      assert (0<m) as XXX by omega; apply H in XXX; 
+      unfold selectbt in XXX; simphyps);
+    try (let XXX:= fresh H "1bt" in
+      assert (1<m) as XXX by omega; apply H in XXX; 
+      unfold selectbt in XXX; simphyps);
+    try (let XXX:= fresh H "2bt" in
+      assert (2<m) as XXX by omega; apply H in XXX; 
+      unfold selectbt in XXX; simphyps);
+    try (let XXX:= fresh H "3bt" in
+      assert (3<m) as XXX by omega; apply H in XXX; 
+      unfold selectbt in XXX; simphyps); hide_hyp H
+  | [H: alpha_eq_bterm (bterm [] _) (bterm [] _) |- _] => apply alphaeqbt_nilv2 in H; exrepnd; subst
+  | [H: alpha_eq_bterm (bterm [] _) _ |- _] => apply alphaeqbt_nilv in H; exrepnd; subst
+  | [H: alpha_eq_bterm (bterm [_] _) _ |- _] => apply alphaeqbt_1v in H; exrepnd; subst
+  | [H: alpha_eq_bterm (bterm [_,_] _) _ |- _] => apply alphaeqbt_2v in H; exrepnd; subst
+  end.
+
+Ltac alphahypdfv H :=
+match type of H with
+| (forall _:nat, (_< ?m) -> alpha_eq_bterm _ _) => 
+  (let XXX:= fresh H "0bt" in
+  assert (0<m) as XXX by omega; apply H in XXX; 
+  unfold selectbt in XXX; simphyps);
+  try (let XXX:= fresh H "1bt" in
+  assert (1<m) as XXX by omega; apply H in XXX; 
+  unfold selectbt in XXX; simphyps);
+  try (let XXX:= fresh H "2bt" in
+  assert (2<m) as XXX by omega; apply H in XXX; 
+  unfold selectbt in XXX; simphyps); try (fail_if_not_number m; clear H)
+end.
+
+Ltac prove_bin_rel_nterm := 
+  split;[sp|simpl];[];
+  intros n Hlt; repeat (destruct n; try(omega));sp.
+
+Ltac prove_alpha_eq4 := unfold_all_mk; let Hlt := fresh "Hltalc" in
+match goal with
+| [ |- alpha_eq ?t ?t] => apply alpha_eq_refl
+| [ |- alpha_eq (oterm ?o _) (oterm ?o _)] => constructor;simpl;[repeat(simpl_list);spc
+                                                  | unfold selectbt;simpl]
+| [ |- alpha_eq ?t1 ?t2] => auto ; fail
+| [ |- forall _, _ < _ -> alpha_eq_bterm _ _ ] => introv Hlt;repeat(simpl_list);repeat(dlt Hlt)
+| [ |- alpha_eq_bterm ?t ?t ] => apply alphaeqbt_refl
+| [ |- alpha_eq_bterm (bterm [] _) (bterm [] _) ] => apply alphaeqbt_nilv2 
+end.

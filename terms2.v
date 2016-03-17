@@ -1971,6 +1971,13 @@ Proof.
   intros Hc.
   subst. tauto. 
 Qed.
+
+Lemma size_pos : forall {gts} t, 
+  0<(@size gts t).
+Proof.
+  intros. destruct t; simpl; omega.
+Qed.
+
 Hint Rewrite remove_var_nil remove_nvars_nil_r:  SquiggleLazyEq.
 
 

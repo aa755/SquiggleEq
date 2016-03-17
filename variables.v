@@ -1261,6 +1261,12 @@ Proof.
   intros ? ? ?. apply subsetv_trans.
 Qed.
 
+Global Instance properDisjoint {A} : Proper (eqsetv ==> eqsetv ==> iff ) (@disjoint A).
+Proof.
+  intros ? ? ? ? ? Heq.  subst. apply iff_t_iff.  unfold disjoint.
+  repeat setoid_rewrite Heq. setoid_rewrite H. reflexivity.
+Qed.
+
 Lemma subsetvAppLR {A} : forall a b c d,
   subsetv a c
   -> subsetv b d
@@ -1297,5 +1303,7 @@ Proof.
   apply not_eq_beq_var_false.
   simpl in *. tauto.
 Qed.
+
+Hint Rewrite <- beq_var_refl : SquiggleLazyEq.
 
 Hint Rewrite memvar_singleton memvar_fresh_var : SquiggleLazyEq.
