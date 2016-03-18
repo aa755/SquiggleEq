@@ -2554,3 +2554,27 @@ Proof.
   simpl in *. destruct n;[omega|].
   simpl in *. inverts H. in_reasoning; subst; eauto.
 Qed.
+
+Lemma list_find_same_compose {A B: Type} (f : A -> bool) 
+  (h : A -> B) (g : B -> bool) :
+(forall a, (compose g h) a = f a)
+-> forall (s1 def: A) (l1 l2: list A) ,
+  (map h l1 = map h l2)
+  -> find f l1 = Some s1
+  -> exists n, n < length l2 /\ find f l2 = Some (nth n l2 def)
+      /\ s1 = nth n l1 def /\ f s1 = true /\ f (nth n l2 def) = true.
+Proof.
+  intros Hc ? ? ?.
+  induction l1 as [|h1 t1]; intros ? Hm Hf;
+    destruct l2 as [|h2 t2]; inverts Hm as Hm;[inverts Hf|].
+  specialize (IHt1 _ H2). clear H2.
+  simpl in *. 
+  apply (f_equal g) in Hm.
+  setoid_rewrite Hc in Hm.
+  rewrite <- Hm.
+  remember (f h1) as fh.
+  destruct fh.
+  - inverts Hf. exists 0. split; auto. omega.
+  - apply_clear IHt1 in Hf. exrepnd. exists (S n).
+    split; auto. omega. 
+Qed.

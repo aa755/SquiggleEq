@@ -1816,7 +1816,7 @@ Lemma list_nil_btwf: forall es,
 (forall l : BTerm, LIn l (map (bterm []) es) -> bt_wf l)
 <->
 (forall l : NTerm, LIn l es -> nt_wf l).
-Proof.
+Proof using.
   intros ?.
   split; intros H  ? Hin.
 - apply (bt_wf_iff []).
@@ -1828,11 +1828,12 @@ Qed.
 Require Import Coq.Program.Basics.
 
 Open Scope program_scope.
-(* Move *)
+
+
 Lemma flat_map_vterm : forall gts lv,
 flat_map free_vars_bterm
   (map ((@bterm gts) [] ∘ vterm) lv) = lv.
-Proof.
+Proof using.
   induction lv; auto.
   simpl. f_equal; auto.
 Qed.
@@ -1843,7 +1844,7 @@ forall lbt (l lv : list NVar) (n : NTerm),
 LIn (bterm l n) lbt ->
 subsetv (flat_map free_vars_bterm lbt) lv 
 -> subsetv (free_vars n) (l ++ lv).
-Proof.
+Proof using.
   intros ? ? ? ? Hin Hs.
   rewrite subsetv_flat_map in Hs.
   rewrite subsetv_prop.
@@ -1853,6 +1854,18 @@ Proof.
   intros x Hn. specialize (Hin x).
   rewrite in_remove_nvars in Hin.
   rewrite in_app_iff; destruct (dmemvar x l); cpx.
+Qed.
+
+Lemma select_selectbt : forall n lbt b,
+select n lbt = Some b
+-> selectbt lbt n = b.
+Proof using.
+  intros ? ? ? Hin.
+  pose proof Hin.
+  apply select_lt in Hin.
+  apply nth_select1 with (def:= bterm [] (vterm nvarx))in Hin.
+  unfold selectbt.
+  congruence.
 Qed.
 
 End terms4Generic.
