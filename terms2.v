@@ -183,6 +183,7 @@ Proof using.
  assert(size nt < size (oterm o l)); auto.
 Qed.
 
+
 Lemma NTerm_better_ind2 :
   forall P : NTerm -> Type,
     (forall n : NVar, P (vterm n))
@@ -205,6 +206,27 @@ Proof using.
  eapply size_subterm3; eauto.
 Qed.
 
+Lemma NTerm_BTerm_ind :
+  forall (PN : NTerm -> Type) (PB : BTerm -> Type),
+    (forall n : NVar, PN (vterm n))
+    -> (forall (o : Opid) (lbt : list BTerm),
+          (forall b,
+             (LIn b lbt) -> PB b
+          )
+          -> PN (oterm o lbt)
+       )
+    -> (forall (lv: list NVar) (nt : NTerm),
+          PN nt -> PB (bterm lv nt)
+       )
+    -> ((forall t : NTerm, PN t) *  (forall t : BTerm, PB t)).
+Proof using.
+   introv Hv Hind Hb.
+   assert (forall A B, A -> (A -> B) -> (A*B)) as H by tauto.
+   apply H; clear H.
+- apply  NTerm_better_ind2; auto. 
+   introv Hx. apply Hind. introv Hin. destruct b. eauto.
+- intro Hnt. intro b. destruct b. eauto.  
+Qed.
 
 Lemma NTerm_better_ind :
   forall P : NTerm -> Type,

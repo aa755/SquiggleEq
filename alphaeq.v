@@ -54,13 +54,13 @@ with alpha_eq_bterm : BTerm -> BTerm -> [univ] :=
         -> length lv1 = length lv2
         -> length lv1 = length lv
         -> no_repeats lv
-        -> alpha_eq (lsubst nt1 (var_ren lv1 lv))
-                    (lsubst nt2 (var_ren lv2 lv))
+        -> alpha_eq (ssubst nt1 (var_ren lv1 lv))
+                    (ssubst nt2 (var_ren lv2 lv))
         -> alpha_eq_bterm (bterm lv1 nt1) (bterm lv2 nt2).
 
 (** % \noindent \\* %
     The interesting case is in the definition of [alpha_eq_bterm].
-    We list some useful properties about [lsubst] and [alpha_eq].
+    We list some useful properties about [ssubst] and [alpha_eq].
     Just like the above definitions, these proofs are independent
     of the operators of the language.
    *)
@@ -87,8 +87,8 @@ with alpha_eq_bterm3 (lva: list NVar) : BTerm -> BTerm -> [univ] :=
         -> length lv1 = length lv2
         -> length lv1 = length lv
         -> no_repeats lv
-        -> alpha_eq3 lva (lsubst_aux nt1 (var_ren lv1 lv))
-                    (lsubst_aux nt2 (var_ren lv2 lv))
+        -> alpha_eq3 lva (ssubst_aux nt1 (var_ren lv1 lv))
+                    (ssubst_aux nt2 (var_ren lv2 lv))
         -> alpha_eq_bterm3 lva (bterm lv1 nt1) (bterm lv2 nt2).
 
 (* Scheme alpha_eq_mut := Induction for alpha_eq Sort Type
@@ -118,7 +118,7 @@ Proof using.
     apply al_bterm3 with (lv:=newbtv); auto;
     [disjoint_reasoningv|].
     eapply Hind; eauto.
-    rewrite lsubst_aux_allvars_preserves_size2; auto.
+    rewrite ssubst_aux_allvars_preserves_size2; auto.
 Qed.
 
 Theorem alpha_eq_if3: forall nt1 nt2 lv,
@@ -131,10 +131,10 @@ Proof using.
   inverts Hlt as Hb1 Hb2 Hb3 Hb4 Hb5 Hb6 Hb7.
   apply al_bterm with (lv:=lv0); auto.
   disjoint_reasoningv.
-  change_to_lsubst_aux4.
+  change_to_ssubst_aux8.
   apply Hind with(lv0:=lv)(lv:=lv1)(nt:=nt1); auto.
   rewrite Hb6. apply selectbt_in; auto.
-  rewrite lsubst_aux_allvars_preserves_size; [ omega |]. apply allvars_combine; fail.
+  rewrite ssubst_aux_allvars_preserves_size; [ omega |]. apply allvars_combine; fail.
 Qed.
 
 
@@ -158,7 +158,7 @@ Proof using.
   inverts Hlt0 as Ha1 Ha2 Ha3 Ha4 Ha5. apply al_bterm with (lv:=lv); spc.
   - disjoint_reasoningv.
   - eapply Hind; eauto.
-    change_to_lsubst_aux4. rewrite lsubst_aux_allvars_preserves_size; [ omega |].
+    change_to_ssubst_aux8. rewrite ssubst_aux_allvars_preserves_size; [ omega |].
     apply allvars_combine.
 Qed.
 (* begin hide *)
@@ -176,7 +176,7 @@ Proof using.
   inverts Hlt0 as Ha1 Ha2 Ha3 Ha4 Ha5. apply al_bterm3 with (lv:=lv); spc.
   - disjoint_reasoningv.
   - eapply Hind; eauto.
-    rewrite lsubst_aux_allvars_preserves_size; [ omega |].
+    rewrite ssubst_aux_allvars_preserves_size; [ omega |].
     apply allvars_combine.
 Qed.
 
@@ -190,19 +190,19 @@ match (bt1, bt2) with
       length lv1 = length lv
       -> disjoint lv (all_vars nt1 ++ all_vars nt2)
       -> no_repeats lv
-      -> alpha_eq (lsubst nt1 (combine lv1 (map vterm lv)))
-            (lsubst nt2 (combine lv2 (map vterm lv)))
+      -> alpha_eq (ssubst nt1 (combine lv1 (map vterm lv)))
+            (ssubst nt2 (combine lv2 (map vterm lv)))
 end.
   
 
 (* there is a stronger version of it later. But as of now,
     the proof of that indirectly depends on this weaker version *)
-Lemma alpha3_lsubst_allvars_congr : forall nt1 nt2 lvi lvo lva,
+Lemma alpha3_ssubst_allvars_congr : forall nt1 nt2 lvi lvo lva,
   length lvi=length lvo
   -> alpha_eq3 (lvi++lvo++lva) nt1 nt2 
   -> disjoint (lvi++lvo) (bound_vars nt1 ++ bound_vars nt2) 
-  -> alpha_eq3 lva (lsubst_aux nt1 (var_ren lvi lvo))
-                     (lsubst_aux nt2 (var_ren lvi lvo)).
+  -> alpha_eq3 lva (ssubst_aux nt1 (var_ren lvi lvo))
+                     (ssubst_aux nt2 (var_ren lvi lvo)).
 Proof using.
   nterm_ind1s nt1 as [v1 | o1 lbt1 Hind] Case; introv Hllll Hal Hdis; inverts Hal as Hlen Hal.
   - Case "vterm"; apply alpha_eq3_refl.
@@ -211,7 +211,7 @@ Proof using.
     introv Hlt. rewrite selectbt_map; auto.
     duplicate Hlt. rewrite Hlen in Hlt0.
     rewrite selectbt_map; auto.
-    fold lsubst_bterm_aux.
+    fold ssubst_bterm_aux.
     applydup Hal in Hlt.
     clear Hal.
     pose proof (selectbt_in2 n lbt1 Hlt) as [bt99 pp].
@@ -239,27 +239,27 @@ Proof using.
       apply_clear Hin.
       repeat(rw in_app_iff).
       repeat(rw in_app_iff in Hc).
-      rewrite boundvars_lsubst_aux_vars in Hc;auto;[| disjoint_reasoningv;fail].
-      rewrite boundvars_lsubst_aux_vars in Hc;auto;[| disjoint_reasoningv;fail].
+      rewrite boundvars_ssubst_aux_vars in Hc;auto;[| disjoint_reasoningv;fail].
+      rewrite boundvars_ssubst_aux_vars in Hc;auto;[| disjoint_reasoningv;fail].
       repeat(dorn Hc); auto; [|];
-      apply free_vars_lsubst_aux in Hc;try(apply wf_sub_vars);try(apply disjoint_bv_vars;disjoint_reasoningv);
+      apply free_vars_ssubst_aux in Hc;try(apply wf_sub_vars);try(apply disjoint_bv_vars;disjoint_reasoningv);
          [|];
       dorn Hc; exrepnd; auto;[|];
       apply in_var_ren in Hc0; exrepnd; subst; allsimpl; dorn Hc1; subst; sp.
     + apply Hind with(lv:=blv1) (lvi:=lvi) (nt:=bnt1) in XX; eauto.
-      Focus 2. rewrite lsubst_aux_allvars_preserves_size; [ omega |]. apply allvars_combine; fail.  
+      Focus 2. rewrite ssubst_aux_allvars_preserves_size; [ omega |]. apply allvars_combine; fail.  
         Focus 2.
           introv Hin Hc.
-          rewrite boundvars_lsubst_aux_vars in Hc; auto;
+          rewrite boundvars_ssubst_aux_vars in Hc; auto;
            [|repeat(rw disjoint_app_r in Ha1);sp].
-          rewrite boundvars_lsubst_aux_vars in Hc; auto;
+          rewrite boundvars_ssubst_aux_vars in Hc; auto;
            [|congruence|repeat(rw disjoint_app_r in Ha1);sp].
           apply in_app_iff in Hc; auto.
           dorn Hc; [apply Hdis0 in Hin|apply Hdis in Hin];sp; fail.
 
-       rewrite lsubst_aux_nest_swap; try congruence;  disjoint_reasoningv. 
+       rewrite ssubst_aux_nest_swap; try congruence;  disjoint_reasoningv. 
        apply alpha_eq3_sym. (** because o/w rw undo the above *)
-       simpl. rewrite lsubst_aux_nest_swap; try congruence; dands; disjoint_reasoningv. 
+       simpl. rewrite ssubst_aux_nest_swap; try congruence; dands; disjoint_reasoningv. 
        apply alpha_eq3_sym; trivial.
 Qed.
 
@@ -282,20 +282,20 @@ Proof using.
     pose proof (selectbt_in   _ _ Hlt) as XX.
     rewrite <- HeqHdeq in XX.
     eapply Hind with(lv0:=(lv4++lvn++lv)) (nt:=nnt1) (lv:=lv1) in Hb5; auto.
-    Focus 2. change_to_lsubst_aux4. 
-    rewrite lsubst_aux_allvars_preserves_size; [ omega |]. apply allvars_combine; fail.
+    Focus 2. change_to_ssubst_aux8. 
+    rewrite ssubst_aux_allvars_preserves_size; [ omega |]. apply allvars_combine; fail.
     try (rw fold_var_ren in Hb5).
     try (rw fold_var_ren in Hb5).
     try (rw fold_var_ren).
     try (rw fold_var_ren).
-    apply alpha3_lsubst_allvars_congr in Hb5; try congruence.
-    + revert Hb5. change_to_lsubst_aux4. intro Hb5.
-      rewrite lsubst_aux_nest_vars_same in Hb5; auto;
+    apply alpha3_ssubst_allvars_congr in Hb5; try congruence.
+    + revert Hb5. change_to_ssubst_aux8. intro Hb5.
+      rewrite ssubst_aux_nest_vars_same in Hb5; auto;
       [ |congruence| disjoint_reasoningv | disjoint_reasoningv ].
-      rewrite lsubst_aux_nest_vars_same in Hb5; auto;
+      rewrite ssubst_aux_nest_vars_same in Hb5; auto;
       [ congruence | congruence | disjoint_reasoningv| disjoint_reasoningv].
-    + rewrite boundvars_lsubst_vars; [|congruence|disjoint_reasoningv].
-      rewrite boundvars_lsubst_vars;disjoint_reasoningv.
+    + rewrite boundvars_ssubst_vars; [|congruence|disjoint_reasoningv].
+      rewrite boundvars_ssubst_vars;disjoint_reasoningv.
 Qed.
 
 Theorem alpha_eq3_change_avoidvars:
@@ -307,12 +307,12 @@ Proof using.
   apply alpha_eq3_if; auto.
 Qed.
 
-Lemma alpha3_lsubst_aux_allvars_congr2 : forall nt1 nt2 lvi lvo lva,
+Lemma alpha3_ssubst_aux_allvars_congr2 : forall nt1 nt2 lvi lvo lva,
   length lvi=length lvo
   -> alpha_eq3 (lvi++lvo++lva) nt1 nt2 
   -> disjoint (lvo) (bound_vars nt1 ++ bound_vars nt2) 
-  -> alpha_eq3 lva (lsubst_aux nt1 (var_ren lvi lvo))
-                     (lsubst_aux nt2 (var_ren lvi lvo)).
+  -> alpha_eq3 lva (ssubst_aux nt1 (var_ren lvi lvo))
+                     (ssubst_aux nt2 (var_ren lvi lvo)).
 Proof using.
   nterm_ind1s nt1 as [v1 | o1 lbt1 Hind] Case; introv Hllll Hal Hdis;
     duplicate Hal; inverts Hal as Hlen Hal.
@@ -323,7 +323,7 @@ Proof using.
     introv Hlt. rewrite selectbt_map; auto.
     duplicate Hlt. rewrite Hlen in Hlt0.
     rewrite selectbt_map; auto.
-    fold lsubst_bterm_aux. clear Hal.
+    fold ssubst_bterm_aux. clear Hal.
     pose proof (selectbt_in2 n lbt1 Hlt) as [bt99 pp].
     exrepnd. destruct bt99 as [blv1 bnt1].
     pose proof (selectbt_in2 n lbt2 Hlt0) as [bt99 p2p].
@@ -353,7 +353,7 @@ Proof using.
     repeat(rewrite X2X0).
     apply al_bterm3 with (lv:=lv); auto.
     + disjoint_reasoningv.
-      * apply disjoint_sym. apply disjoint_free_vars_lsubst_aux;sp;
+      * apply disjoint_sym. apply disjoint_free_vars_ssubst_aux;sp;
         rewrite flat_map_free_var_vars_range;spc;spc;disjoint_reasoningv.
 
         let tac1:=(eapply disjoint_sub_filter_vars_r;eauto) in 
@@ -365,7 +365,7 @@ Proof using.
           dis_almost_complete1 tac1;dis_almost_complete1 tac2;disjoint_reasoningv.
 
 
-      * apply disjoint_sym. apply disjoint_bound_vars_lsubst_aux;sp;
+      * apply disjoint_sym. apply disjoint_bound_vars_ssubst_aux;sp;
         try(rewrite flat_map_free_var_vars_range;spc);
         try(rewrite flat_map_bound_var_vars_range;spc;spc);simpl;
         simpl_vlist;
@@ -373,7 +373,7 @@ Proof using.
         let tac2:=(eapply disjoint_sub_filter_vars_l;eauto) in 
           dis_almost_complete1 tac1;dis_almost_complete1 tac2;disjoint_reasoningv.
 
-      * apply disjoint_sym. apply disjoint_free_vars_lsubst_aux;sp;
+      * apply disjoint_sym. apply disjoint_free_vars_ssubst_aux;sp;
         rewrite flat_map_free_var_vars_range;spc;disjoint_reasoningv.
 
         let tac1:=(eapply disjoint_sub_filter_vars_r;eauto) in 
@@ -384,7 +384,7 @@ Proof using.
         let tac2:=(eapply disjoint_sub_filter_vars_l;eauto) in 
           dis_almost_complete1 tac1;dis_almost_complete1 tac2;disjoint_reasoningv.
 
-      * apply disjoint_sym. apply disjoint_bound_vars_lsubst_aux;sp;
+      * apply disjoint_sym. apply disjoint_bound_vars_ssubst_aux;sp;
         try(rewrite flat_map_free_var_vars_range;spc);
         try(rewrite flat_map_bound_var_vars_range;spc);simpl;
         simpl_vlist;
@@ -394,17 +394,17 @@ Proof using.
 
    +  apply Hind with(lv:=blv1) (lvi:=lvi) (nt:=bnt1) in XX; eauto.
 
-        Focus 2. rewrite lsubst_aux_allvars_preserves_size; [ omega |]. apply allvars_combine; fail.
+        Focus 2. rewrite ssubst_aux_allvars_preserves_size; [ omega |]. apply allvars_combine; fail.
         Focus 2.
           introv Hin Hc.
-          rewrite boundvars_lsubst_aux_vars in Hc; auto;
+          rewrite boundvars_ssubst_aux_vars in Hc; auto;
            [|repeat(rw disjoint_app_r in Ha1);sp].
-          rewrite boundvars_lsubst_aux_vars in Hc; auto;
+          rewrite boundvars_ssubst_aux_vars in Hc; auto;
            [|congruence|repeat(rw disjoint_app_r in Ha1);sp].
           apply in_app_iff in Hc; auto.
           dorn Hc; [apply Hdis0 in Hin|apply Hdis in Hin];sp; fail.
 
-      rewrite lsubst_aux_nest_swap; try congruence;[|disjoint_reasoningv| disjoint_reasoningv].
+      rewrite ssubst_aux_nest_swap; try congruence;[|disjoint_reasoningv| disjoint_reasoningv].
       Focus 3.
         let tac1:=(eapply disjoint_sub_filter_vars_r;eauto) in 
         let tac2:=(eapply disjoint_sub_filter_vars_l;eauto) in 
@@ -427,7 +427,7 @@ Proof using.
         sp;fail.
         
       apply alpha_eq3_sym.
-      rewrite lsubst_aux_nest_swap; try congruence;[|disjoint_reasoningv| disjoint_reasoningv].
+      rewrite ssubst_aux_nest_swap; try congruence;[|disjoint_reasoningv| disjoint_reasoningv].
 
       Focus 3.
         let tac1:=(eapply disjoint_sub_filter_vars_r;eauto) in 
@@ -453,10 +453,10 @@ Proof using.
 rw <- X1X0.
 rw <- X2X0.
 
-     rewrite lsubst_aux_sub_filter2.
+     rewrite ssubst_aux_sub_filter2.
     Focus 3.
       intros v Hin Hinc.
-      apply free_vars_lsubst_aux2 in Hin.
+      apply free_vars_ssubst_aux2 in Hin.
       dorn Hin. 
       repnd. unfold var_ren in Hin.
       rewrite dom_sub_combine in Hin;[| rw map_length;sp]. sp.
@@ -474,15 +474,15 @@ rw <- X2X0.
     Focus 2.
       rw disjoint_sub_as_flat_map.
       rewrite flat_map_free_var_vars_range;spc.
-      apply disjoint_sym. apply disjoint_bound_vars_lsubst_aux.
+      apply disjoint_sym. apply disjoint_bound_vars_ssubst_aux.
       rewrite flat_map_free_var_vars_range;spc. disjoint_reasoningv.
       rewrite flat_map_bound_var_vars_range;spc. simpl_vlist. disjoint_reasoningv;fail.
 
 
-     rewrite lsubst_aux_sub_filter2.
+     rewrite ssubst_aux_sub_filter2.
     Focus 3. 
       intros v Hin Hinc.
-      apply free_vars_lsubst_aux2 in Hin.
+      apply free_vars_ssubst_aux2 in Hin.
       dorn Hin. 
       repnd. unfold var_ren in Hin.
       rewrite dom_sub_combine in Hin;[| rw map_length;sp]. sp.
@@ -499,7 +499,7 @@ rw <- X2X0.
     Focus 2.
       rw disjoint_sub_as_flat_map.
       rewrite flat_map_free_var_vars_range;spc.
-      apply disjoint_sym. apply disjoint_bound_vars_lsubst_aux.
+      apply disjoint_sym. apply disjoint_bound_vars_ssubst_aux.
       rewrite flat_map_free_var_vars_range;spc. disjoint_reasoningv.
       rewrite flat_map_bound_var_vars_range;spc. simpl_vlist. disjoint_reasoningv.
 
@@ -514,18 +514,18 @@ Theorem alpha3bt_change_var: forall nt1 nt2 lv1 lv2 lv lva,
   -> length lv1 = length lv
   -> disjoint lv (all_vars nt1 ++ all_vars nt2)
   -> no_repeats lv
-  -> alpha_eq3 lva (lsubst_aux nt1 (var_ren lv1 lv))
-        (lsubst_aux nt2 (var_ren lv2 lv)).
+  -> alpha_eq3 lva (ssubst_aux nt1 (var_ren lv1 lv))
+        (ssubst_aux nt2 (var_ren lv2 lv)).
 Proof using.
   introv Hal Hlen Hdis Hnr.
   inverts Hal as Ha1 Ha2 Ha3 Ha4 Ha5.
   apply (alpha_eq3_change_avoidvars _ (lv4++lv++lva)) in Ha5.
-  apply alpha3_lsubst_aux_allvars_congr2 in Ha5;[| congruence | ].
-  Focus 2. rewrite boundvars_lsubst_aux_vars; [|congruence|disjoint_reasoningv].
-      rewrite boundvars_lsubst_aux_vars;disjoint_reasoningv.
-  rewrite lsubst_aux_nest_vars_same in Ha5;auto;
+  apply alpha3_ssubst_aux_allvars_congr2 in Ha5;[| congruence | ].
+  Focus 2. rewrite boundvars_ssubst_aux_vars; [|congruence|disjoint_reasoningv].
+      rewrite boundvars_ssubst_aux_vars;disjoint_reasoningv.
+  rewrite ssubst_aux_nest_vars_same in Ha5;auto;
     [| congruence| disjoint_reasoningv| disjoint_reasoningv].
-  rewrite lsubst_aux_nest_vars_same in Ha5;auto;
+  rewrite ssubst_aux_nest_vars_same in Ha5;auto;
     [ congruence | congruence | disjoint_reasoningv| disjoint_reasoningv]. 
 Qed.
 
@@ -566,7 +566,7 @@ Proof using.
     apply alpha_eq_if3 with (lv:=[]) in Hl2t.
     apply alpha_eq3_if with (lv:=[]).
     eapply Hind with(lv:=lv1) (nt:=nt1); eauto.
-    rewrite lsubst_aux_allvars_preserves_size; [ omega |]. apply allvars_combine.
+    rewrite ssubst_aux_allvars_preserves_size; [ omega |]. apply allvars_combine.
 Qed.
 (* begin hide *)
 
@@ -631,10 +631,10 @@ Proof using.
     assert(LIn (bterm lv1 nt1) lbt1) as Hinb 
       by (rewrite Heqbt1; apply selectbt_in; auto).
     eapply Hind  with (lv:=lv1) in Hi5; eauto.
-     - rw <- (lsubst_aux_allvars_wf_iff _ (allvars_combine lv2 lv) )  in Hi5. 
-       rw <- (lsubst_aux_allvars_wf_iff _ (allvars_combine lv1 lv) )  in Hi5. 
+     - rw <- (ssubst_aux_allvars_wf_iff _ (allvars_combine lv2 lv) )  in Hi5. 
+       rw <- (ssubst_aux_allvars_wf_iff _ (allvars_combine lv1 lv) )  in Hi5. 
        trivial. 
-     - rewrite lsubst_aux_allvars_preserves_size2; auto. 
+     - rewrite ssubst_aux_allvars_preserves_size2; auto. 
 Qed.
 
 (* end hide *)
@@ -646,47 +646,62 @@ Proof using.
   apply alphaeq3_preserves_wf;sp.
 Qed.
 (**     % \noindent \\* %
-The following lemma is the property we promised to prove while definining [lsubst].
+The following lemma is the property we promised to prove while definining [ssubst].
 *)
 
-Lemma change_bvars_alpha_spec: forall nt lv, 
+
+Lemma change_bvars_alpha_spec_aux: forall lv,
+  (forall nt, 
   let nt' := change_bvars_alpha lv nt in
-  disjoint lv (bound_vars nt') #alpha_eq nt nt'.
+  disjoint lv (bound_vars nt') #alpha_eq nt nt')
+  * (forall bt,
+  let bt' := change_bvars_alphabt lv bt in
+  disjoint lv (bound_vars_bterm bt') #alpha_eq_bterm bt bt').
 Proof using.
-  nterm_ind1 nt as [v| o lbt Hind] Case; intro; cpx.
-  simpl. split.
-  - introv Hin Hinc. rename t into vv.
-    apply lin_flat_map in Hinc. exrepnd.
-    rename x into bt'.
-    apply in_map_iff in Hinc1. exrepnd.
-    destruct a as [blv bnt].
-    allsimpl. subst. destruct (fresh_vars (length blv) (lv ++ all_vars
-     (change_bvars_alpha lv bnt))) as [vn pp].
-    exrepnd. allsimpl.
-    eapply Hind with (lv0:=lv) in Hinc1.
-    duplicate Hin.
-    apply Hinc1 in Hin0.
-    apply disjoint_sym  in pp1.
-    apply disjoint_app_l in pp1. repnd. apply pp2 in Hin.
-    rw boundvars_lsubst_aux_vars in Hinc0; sp; [|disjoint_reasoningv].
-    apply in_app_iff in Hinc0.
-    dorn Hinc0; sp.
-  - constructor; try (rw map_length; auto);[].
-    introv Hlt. rw selectbt_map; auto.
-    pose proof (selectbt_in2 n lbt Hlt) as XX; exrepnd.
-    destruct bt as [blv bnt]. rewrite XX0.
-    allsimpl. subst. destruct (fresh_vars (length blv) (lv ++ all_vars
+  intros. apply NTerm_BTerm_ind;
+    [intro v; cpx| |].
+  - intros ? ? Hind.
+   simpl. split.
+    + rewrite disjoint_flat_map_r.
+      intros ? Hin.
+      apply in_map_iff in Hin.
+      exrepnd. subst.
+      apply Hind. auto.
+    + 
+      constructor; try (rw map_length; auto);[].
+      introv Hlt. rw selectbt_map; auto.
+      pose proof (selectbt_in2 n lbt Hlt) as XX; exrepnd.
+      destruct bt as [blv bnt]. rewrite XX0.
+      apply Hind. auto.
+    
+- intros blv bnt Hnt. split.
+   +  introv Hin Hinc. rename t into vv.
+      allsimpl. subst.
+      simpl in *. destruct (fresh_vars (length blv) (lv ++ all_vars
+       (change_bvars_alpha lv bnt))) as [vn pp].
+      exrepnd. allsimpl.
+      duplicate Hin.
+      apply Hnt0 in Hin0.
+      rw boundvars_ssubst_aux_vars in Hinc; sp; [|disjoint_reasoningv].
+      apply disjoint_sym  in pp1.
+      apply disjoint_app_l in pp1. repnd. apply pp2 in Hin.
+      apply in_app_iff in Hinc.
+      simpl in *.  
+      dorn Hinc; sp.
+  
+
+  +  allsimpl. subst. destruct (fresh_vars (length blv) (lv ++ all_vars
      (change_bvars_alpha lv bnt))) as [vn pp].
     destruct (fresh_vars (length blv) (lv ++ vn ++ (all_vars bnt) 
         ++ all_vars
      (change_bvars_alpha lv bnt))) as [lvn pal].
     exrepnd. allsimpl. apply al_bterm with (lv:=lvn); sp.
-    unfold all_vars. rw boundvars_lsubst_aux_vars;sp;
+    unfold all_vars. rw boundvars_ssubst_aux_vars;sp;
     try(disjoint_reasoningv).
     apply disjoint_sym.
     apply disjoint_sym. introv Hin Hinc.
     applydup pal5 in Hin.
-    apply free_vars_lsubst_aux in Hinc;
+    apply free_vars_ssubst_aux in Hinc;
     [ |apply disjoint_bv_vars; sp].
     dorn Hinc; exrepnd; sp. apply in_var_ren in Hinc0. exrepnd.
     subst.
@@ -694,16 +709,20 @@ Proof using.
     dorn Hinc1; sp.
     subst.
     apply pal3 in Hin. sp.
-    rw <- lsubst_lsubst_aux; spcls; disjoint_reasoningv. rewrite lsubst_nest_vars_same; sp;
+    rw <- ssubst_ssubst_aux; spcls; disjoint_reasoningv. rewrite ssubst_nest_vars_same; sp;
     try congruence; try disjoint_reasoningv.
     apply alpha_eq_if3 with (lv:=nil).
-    change_to_lsubst_aux4.
-    apply alpha3_lsubst_aux_allvars_congr2;sp.
+    change_to_ssubst_aux8.
+    apply alpha3_ssubst_aux_allvars_congr2;sp.
     Focus 2. disjoint_reasoningv.
     apply alpha_eq3_if.
-    eapply Hind with (lv0:=lv)  in XX1; eauto.
-    cpx.
+    eauto.
 Qed.
+
+Definition change_bvars_alpha_spec := fun lv => fst (change_bvars_alpha_spec_aux lv).
+
+Definition change_bvars_alphabt_spec := fun lv => snd (change_bvars_alpha_spec_aux lv).
+
 (* begin hide *)
 Ltac add_changebvar_spec cb Hn:=
 match goal with 
@@ -717,9 +736,9 @@ Theorem alphaeqbt_preserves_wf:
 Proof using. 
   introv Hal. inverts Hal as Hi1 Hi2 Hi3 Hi4 Hal. repeat(rw bt_wf_iff).
   apply alphaeq_preserves_wf in Hal.
-  revert Hal. change_to_lsubst_aux4. intro Hal.
-  rw <- (lsubst_aux_allvars_wf_iff _ (allvars_combine lv2 lv) )  in Hal. 
-  rw <- (lsubst_aux_allvars_wf_iff _ (allvars_combine lv1 lv) )  in Hal. 
+  revert Hal. change_to_ssubst_aux8. intro Hal.
+  rw <- (ssubst_aux_allvars_wf_iff _ (allvars_combine lv2 lv) )  in Hal. 
+  rw <- (ssubst_aux_allvars_wf_iff _ (allvars_combine lv1 lv) )  in Hal. 
   trivial.
 Qed. 
 
@@ -735,7 +754,7 @@ Proof using.
   apply_clear Hal in Hlt. revert Hlt. rw XX0. introv Hlt.
   destruct (selectbt lbt2 n) as [lv2 nt2].
   simpl. invertsna Hlt  Hbal.
-  eapply Hind in Hbal3; eauto; allrw lsubst_aux_allvars_preserves_size2;sp.
+  eapply Hind in Hbal3; eauto; allrw ssubst_aux_allvars_preserves_size2;sp.
 Qed.
 
 Lemma alpha_eq_preserves_size: forall nt1 nt2,
@@ -745,19 +764,32 @@ Proof using.
   apply alpha_eq3_if. sp.
 Qed.
 
-Lemma lsubst_allvars_preserves_size : forall nt sub,
+Lemma ssubst_allvars_preserves_size : forall nt sub,
     allvars_sub sub
-   -> size (lsubst nt sub) = size nt.
+   -> size (ssubst nt sub) = size nt.
 Proof using. introv Hav.
-  unfold lsubst. cases_ifn Hd; rw lsubst_aux_allvars_preserves_size;sp;[].
+  intros. induction nt using NTerm_better_ind.
+  - rewrite ssubst_vterm.
+    rw ssubst_aux_allvars_preserves_size;sp.
+  - simpl. f_equal. f_equal.
+    rewrite map_map.
+    apply eq_maps.
+    intros ? Hin. unfold compose.
+    destruct x as [lv nt]. simpl.
+    destruct lv; [simpl; eauto|].
+    remember (n::lv) as llv. clear Heqllv.
+    cases_if; simpl; auto.
+    
+   SearchAbout addl.
+   SearchAbout addl map. 
   add_changebvar_spec nt' Hs. apply alpha_eq_preserves_size; sp.
   apply alpha_eq_sym;sp.
 Qed.
 
-Lemma lsubst_allvars_preserves_size2 : forall nt lvo lvn,
-   size (lsubst nt (var_ren lvo lvn)) = size nt.
+Lemma ssubst_allvars_preserves_size2 : forall nt lvo lvn,
+   size (ssubst nt (var_ren lvo lvn)) = size nt.
 Proof using.
-  intros. apply lsubst_allvars_preserves_size.
+  intros. apply ssubst_allvars_preserves_size.
   apply allvars_combine.
 Qed.
 (* end hide *)
@@ -779,13 +811,13 @@ nterm_ind1s t1 as [v1 | o lbt1 Hind] Case; introv Hal.
     allsimpl. inverts Haln as Hi1 Hi2 Hi3 Hi4 Haln.
     apply selectbt_eq_in in Heqbt1; trivial.
     eapply Hind in Haln; eauto;
-      [ | rw lsubst_allvars_preserves_size2; auto; fail].
+      [ | rw ssubst_allvars_preserves_size2; auto; fail].
      allrw fold_var_ren.
      allrw fold_var_ren.
      apply disjoint_app_r in Hi1. repnd.
      assert (length lv2 = length lv) by (rewrite <- Hi2; trivial).
-    rw freevars_lsubst_allvars2 in Haln; auto.
-    rw freevars_lsubst_allvars2 in Haln; auto.
+    rw freevars_ssubst_allvars2 in Haln; auto.
+    rw freevars_ssubst_allvars2 in Haln; auto.
     apply lmap_lapply_eq_implies in Haln; auto.
    allunfold all_vars. allrw disjoint_app_r. repnd.
    split; allrw disjoint_app_l; sp.
@@ -836,40 +868,41 @@ Hint Immediate alphaeqbt_refl.
 
 Hint Resolve alpha3bt_change_var alpha_eq_if3 : slow.
 (* end hide *)
-Lemma lsubst_wf_iff: 
+Lemma ssubst_wf_iff: 
   forall sub, 
   wf_sub sub
-  -> forall nt, (nt_wf nt <=> nt_wf (lsubst nt sub)).
+  -> forall nt, (nt_wf nt <=> nt_wf (ssubst nt sub)).
 Proof using.
- introv sr. unfold lsubst. introv.  cases_ifn Hd.
- - apply lsubst_aux_wf_iff; trivial.
- - add_changebvar_spec nt' Hs. rw <- (lsubst_aux_wf_iff _ sr).
+ introv sr. intro.
+   rewrite ssubst_ssubst_aux_hide. unfold ssubsthide. introv.  cases_ifn Hd.
+ - apply ssubst_aux_wf_iff; trivial.
+ - add_changebvar_spec nt' Hs. rw <- (ssubst_aux_wf_iff _ sr).
    repnd. apply alphaeq_preserves_wf;sp. apply alpha_eq_sym; sp.
 Qed.
 (* begin hide *)
 
-Theorem lsubst_wf_if_eauto: 
+Theorem ssubst_wf_if_eauto: 
   forall sub, 
   wf_sub sub
-  -> forall nt, (nt_wf nt -> nt_wf (lsubst nt sub)).
+  -> forall nt, (nt_wf nt -> nt_wf (ssubst nt sub)).
 Proof using.
-   apply lsubst_wf_iff.
+   apply ssubst_wf_iff.
 Qed.
 
-Hint Resolve lsubst_wf_if_eauto : slow.
+Hint Resolve ssubst_wf_if_eauto : slow.
 Hint Immediate wf_sub_vars.
-Hint Resolve  lsubst_wf_iff: slow.
+Hint Resolve  ssubst_wf_iff: slow.
 
-Theorem lsubst_wf_iff_vars: 
-  forall lvi lvo nt, (nt_wf nt <=> nt_wf (lsubst nt (var_ren lvi lvo))).
+Theorem ssubst_wf_iff_vars: 
+  forall lvi lvo nt, (nt_wf nt <=> nt_wf (ssubst nt (var_ren lvi lvo))).
 Proof using. intros. eauto with slow.
 Qed.
 
-Theorem lsubst_wf_if_vars_eauto: 
-  forall lvi lvo nt, (nt_wf nt -> nt_wf (lsubst nt (var_ren lvi lvo))).
-Proof using. apply lsubst_wf_iff_vars; sp.
+Theorem ssubst_wf_if_vars_eauto: 
+  forall lvi lvo nt, (nt_wf nt -> nt_wf (ssubst nt (var_ren lvi lvo))).
+Proof using. apply ssubst_wf_iff_vars; sp.
 Qed.
-Hint Resolve lsubst_wf_if_vars_eauto: slow.
+Hint Resolve ssubst_wf_if_vars_eauto: slow.
 
 Lemma alphaeq_bterm3_if: forall bt1 bt2,
   alpha_eq_bterm bt1 bt2
@@ -879,8 +912,8 @@ Proof using.
   apply alpha_eq3_if with  (lv:=lva) in Hal3.
   assert (alpha_eq_bterm3 [] (bterm lv1 nt1) (bterm lv2 nt2)) as XX.
   - eapply al_bterm3 with (lv:=lv); simpl_vlist; eauto.
-    rw <- lsubst_lsubst_aux; spcls; disjoint_reasoningv.
-    rw <- lsubst_lsubst_aux; spcls; disjoint_reasoningv.
+    rw <- ssubst_ssubst_aux; spcls; disjoint_reasoningv.
+    rw <- ssubst_ssubst_aux; spcls; disjoint_reasoningv.
      eapply alpha_eq3_change_avoidvars; eauto.
   - pose proof (fresh_vars (length lv1) (all_vars nt1 ++ all_vars nt2 ++lva)) as Hfr.
     exrepnd. apply alpha3bt_change_var with (lv:=lvn) in XX;sp; try congruence;
@@ -894,11 +927,11 @@ Theorem alphabt_change_var_aux: forall nt1 nt2 lv1 lv2 lv,
   -> length lv1 = length lv
   -> disjoint lv (all_vars nt1 ++ all_vars nt2)
   -> no_repeats lv
-  -> (alpha_eq (lsubst_aux nt1 (var_ren lv1 lv))
-        (lsubst_aux nt2 (var_ren lv2 lv)) # length lv1 = length lv2).
+  -> (alpha_eq (ssubst_aux nt1 (var_ren lv1 lv))
+        (ssubst_aux nt2 (var_ren lv2 lv)) # length lv1 = length lv2).
 Proof using.
   introns HX.
-  unfold lsubst.
+  unfold ssubst.
   duplicate HX as Hl.
   inverts Hl.
   apply alphaeq_bterm3_if with (lva:=[]) in HX.
@@ -915,14 +948,14 @@ Theorem alphabt_change_var: forall nt1 nt2 lv1 lv2 lv,
   -> length lv1 = length lv
   -> disjoint lv (all_vars nt1 ++ all_vars nt2)
   -> no_repeats lv
-  -> (alpha_eq (lsubst nt1 (var_ren lv1 lv))
-        (lsubst nt2 (var_ren lv2 lv)) # length lv1 = length lv2).
+  -> (alpha_eq (ssubst nt1 (var_ren lv1 lv))
+        (ssubst nt2 (var_ren lv2 lv)) # length lv1 = length lv2).
 Proof using.
   introns HX.
-  unfold lsubst.
+  unfold ssubst.
   duplicate HX as Hl.
   inverts Hl.
-  change_to_lsubst_aux4.
+  change_to_ssubst_aux8.
   apply alphaeq_bterm3_if with (lva:=[]) in HX.
 
      (*eauto*)
@@ -961,34 +994,34 @@ Qed.
 Hint Resolve alpha_eq_bterm_trans alpha_eq_bterm_sym: slow.
 
 (** all this to avoid duplicating these complicating proofs for nterm and bterm *)
-Definition lsubst_alpha3_congr_aux t1 t2 lvi lnt1 lnt2 :=
+Definition ssubst_alpha3_congr_aux t1 t2 lvi lnt1 lnt2 :=
   alpha_eq3 [] t1 t2
   -> length lvi = length lnt1
   -> length lvi = length lnt2
   -> disjoint (flat_map free_vars lnt1) (bound_vars t1)
   -> disjoint (flat_map free_vars lnt2) (bound_vars t2)
   -> bin_rel_nterm (alpha_eq3 []) lnt1 lnt2
-  -> alpha_eq3 [] (lsubst_aux t1 (combine lvi lnt1)) (lsubst_aux t2 (combine lvi lnt2)).
+  -> alpha_eq3 [] (ssubst_aux t1 (combine lvi lnt1)) (ssubst_aux t2 (combine lvi lnt2)).
 
-Definition lsubst_alphabt3_congr_aux bt1 bt2 lvi lnt1 lnt2 :=
+Definition ssubst_alphabt3_congr_aux bt1 bt2 lvi lnt1 lnt2 :=
   alpha_eq_bterm3 [] bt1 bt2
   -> length lvi = length lnt1
   -> length lvi = length lnt2
   -> disjoint (flat_map free_vars lnt1) (bound_vars_bterm bt1)
   -> disjoint (flat_map free_vars lnt2) (bound_vars_bterm bt2)
   -> bin_rel_nterm (alpha_eq3 []) lnt1 lnt2
-  -> alpha_eq_bterm3 [] (lsubst_bterm_aux bt1 (combine lvi lnt1)) 
-                    (lsubst_bterm_aux bt2 (combine lvi lnt2)).
+  -> alpha_eq_bterm3 [] (ssubst_bterm_aux bt1 (combine lvi lnt1)) 
+                    (ssubst_bterm_aux bt2 (combine lvi lnt2)).
 
-Hint Unfold lsubst_alphabt3_congr_aux.
-Hint Unfold lsubst_alpha3_congr_aux.
+Hint Unfold ssubst_alphabt3_congr_aux.
+Hint Unfold ssubst_alpha3_congr_aux.
 
 (** induction step for nterm proof ... after nterm proof, it can be used 
   trivially to get the proof for bterm case without much effort *)
-Theorem lsubst_alphabt3_congr_auxp : forall bnt1 blv1,
+Theorem ssubst_alphabt3_congr_auxp : forall bnt1 blv1,
   (forall t1' t2 lvi lnt1 lnt2, (size t1' <= size bnt1) 
-               -> lsubst_alpha3_congr_aux t1' t2 lvi lnt1 lnt2)
-  -> forall bt2 lvi lnt1 lnt2, lsubst_alphabt3_congr_aux (bterm blv1 bnt1) 
+               -> ssubst_alpha3_congr_aux t1' t2 lvi lnt1 lnt2)
+  -> forall bt2 lvi lnt1 lnt2, ssubst_alphabt3_congr_aux (bterm blv1 bnt1) 
                                                   bt2 lvi lnt1 lnt2.
 Proof using. introv Hind Hlt1 H1len H2len H1dis H2dis Hall.  
     destruct bt2 as [blv2 bnt2].
@@ -1015,25 +1048,25 @@ Proof using. introv Hind Hlt1 H1len H2len H1dis H2dis Hall.
     remember (range (sub_filter (combine lvi lnt2) blv2)) as lsnt2.
     rewrite Xsf1eta.
     rewrite Xsf2eta.
-    unfold lsubst_alpha3_congr_aux in Hind.
+    unfold ssubst_alpha3_congr_aux in Hind.
     simpl in Hind. 
     apply al_bterm3 with (lv:=lvn); auto.
     + disjoint_reasoningv;apply disjoint_sym;
-      try(apply disjoint_free_vars_lsubst_aux);
-      try(apply disjoint_bound_vars_lsubst_aux); spcls; disjoint_reasoningv;
+      try(apply disjoint_free_vars_ssubst_aux);
+      try(apply disjoint_bound_vars_ssubst_aux); spcls; disjoint_reasoningv;
       disjoint_sub_filter.
 
     + eapply Hind with (lvi:=lvi)  (lnt1:=lnt1) (lnt2:=lnt2) in XX; eauto.
-      Focus 2. rewrite lsubst_aux_allvars_preserves_size; [ omega |]. apply allvars_combine; fail.
-      Focus 2. rewrite boundvars_lsubst_aux_vars;spc; disjoint_reasoningv;fail.
-      Focus 2. rewrite boundvars_lsubst_aux_vars;spc; disjoint_reasoningv;fail.
+      Focus 2. rewrite ssubst_aux_allvars_preserves_size; [ omega |]. apply allvars_combine; fail.
+      Focus 2. rewrite boundvars_ssubst_aux_vars;spc; disjoint_reasoningv;fail.
+      Focus 2. rewrite boundvars_ssubst_aux_vars;spc; disjoint_reasoningv;fail.
       (** domains of subsitutions in the conclusion are different because 
-        they were filtered by different sets. we need to swap the lsubst
+        they were filtered by different sets. we need to swap the ssubst
         order to show that the filtering can be undone w.r.t syntactic equality*)
         
       unfold var_ren.
       (** swapping below requires the domains to be disjoint *)
-      rewrite lsubst_aux_nest_swap2; spcls; simpl; 
+      rewrite ssubst_aux_nest_swap2; spcls; simpl; 
       disjoint_reasoningv;try(disjoint_sub_filter; fail).
 
       Focus 2. rw Heqlsvi1.
@@ -1041,7 +1074,7 @@ Proof using. introv Hind Hlt1 H1len H2len H1dis H2dis Hall.
         spcls. apply disjoint_remove_nvars.
 
       apply alpha_eq3_sym.
-      rewrite lsubst_aux_nest_swap2; spcls; simpl; 
+      rewrite ssubst_aux_nest_swap2; spcls; simpl; 
       disjoint_reasoningv;try(disjoint_sub_filter; fail).
       
       Focus 2. rw Heqlsvi2.
@@ -1049,14 +1082,14 @@ Proof using. introv Hind Hlt1 H1len H2len H1dis H2dis Hall.
         spcls. apply disjoint_remove_nvars.
 
 
-      rw <- Xsf2eta. rw lsubst_aux_sub_filter2.
-      rw <- Xsf1eta. rw lsubst_aux_sub_filter2.
+      rw <- Xsf2eta. rw ssubst_aux_sub_filter2.
+      rw <- Xsf1eta. rw ssubst_aux_sub_filter2.
       apply alpha_eq3_sym. unfold var_ren in XX;sp.
       * unfold disjoint_bv_sub.
          rw disjoint_sub_as_flat_map.
          spcls.
-         apply disjoint_sym. apply disjoint_bound_vars_lsubst_aux;spcls;disjoint_reasoningv.
-      * introv Hin. apply free_vars_lsubst_aux2 in Hin. 
+         apply disjoint_sym. apply disjoint_bound_vars_ssubst_aux;spcls;disjoint_reasoningv.
+      * introv Hin. apply free_vars_ssubst_aux2 in Hin. 
       
           simpl_sub.
           dorn Hin;exrepnd; auto;[].
@@ -1071,9 +1104,9 @@ Proof using. introv Hind Hlt1 H1len H2len H1dis H2dis Hall.
       * unfold disjoint_bv_sub.
          rw disjoint_sub_as_flat_map.
          spcls.
-         apply disjoint_sym. apply disjoint_bound_vars_lsubst_aux;spcls;disjoint_reasoningv.
+         apply disjoint_sym. apply disjoint_bound_vars_ssubst_aux;spcls;disjoint_reasoningv.
 
-      * introv Hin. apply free_vars_lsubst_aux2 in Hin. 
+      * introv Hin. apply free_vars_ssubst_aux2 in Hin. 
       
           simpl_sub.
           dorn Hin;exrepnd; auto;[].
@@ -1090,14 +1123,14 @@ Qed.
 
   
 
-Theorem lsubst_alpha3_congr_auxp: forall t1 t2 lvi lnt1 lnt2,
+Theorem ssubst_alpha3_congr_auxp: forall t1 t2 lvi lnt1 lnt2,
   alpha_eq3 [] t1 t2
   -> length lvi = length lnt1
   -> length lvi = length lnt2
   -> disjoint (flat_map free_vars lnt1) (bound_vars t1)
   -> disjoint (flat_map free_vars lnt2) (bound_vars t2)
   -> bin_rel_nterm (alpha_eq3 [] ) lnt1 lnt2
-  -> alpha_eq3 [] (lsubst_aux t1 (combine lvi lnt1)) (lsubst_aux t2 (combine lvi lnt2)).
+  -> alpha_eq3 [] (ssubst_aux t1 (combine lvi lnt1)) (ssubst_aux t2 (combine lvi lnt2)).
 Proof using.
   nterm_ind1s t1 as [v1 | o1 lbt1 Hind] Case; introv Hal H1len H2len H1dis H2dis Hall; inverts Hal as Hlen Hal.
   - Case "vterm". simpl.
@@ -1120,7 +1153,7 @@ Proof using.
     introv Hlt. rewrite selectbt_map; auto.
     duplicate Hlt. rewrite Hlen in Hlt0.
     rewrite selectbt_map; auto.
-    fold (@lsubst_bterm_aux gts).
+    fold (@ssubst_bterm_aux gts).
     applydup Hal in Hlt.
     clear Hal.
     pose proof (selectbt_in2 n lbt1 Hlt) as [bt99 pp].
@@ -1132,24 +1165,24 @@ Proof using.
     simpl in H1dis, H2dis.
     eapply disjoint_lbt_bt2 in H1dis; eauto. repnd.
     eapply disjoint_lbt_bt2 in H2dis; eauto. repnd.
-    apply lsubst_alphabt3_congr_auxp; allsimpl; spc; disjoint_reasoningv;[].
+    apply ssubst_alphabt3_congr_auxp; allsimpl; spc; disjoint_reasoningv;[].
     introv. intros. eapply Hind with (nt:=bnt1); eauto.
 Qed.
 
     
 
 (**
-Theorem lsubst_alpha3_congr_aux2: forall t1 t2 lvi lnt1 lnt2,
+Theorem ssubst_alpha3_congr_aux2: forall t1 t2 lvi lnt1 lnt2,
   alpha_eq3 [] t1 t2
   -> length lvi = length lnt1
   -> length lvi = length lnt2
   -> disjoint (flat_map free_vars lnt1) (bound_vars t1)
   -> disjoint (flat_map free_vars lnt2) (bound_vars t2)
   -> bin_rel_nterm (alpha_eq3 []) lnt1 lnt2
-  -> alpha_eq3 [] (lsubst t1 (combine lvi lnt1)) (lsubst t2 (combine lvi lnt2)).
+  -> alpha_eq3 [] (ssubst t1 (combine lvi lnt1)) (ssubst t2 (combine lvi lnt2)).
 Proof using.
-  intros. change_to_lsubst_aux4.
-  apply lsubst_alpha3_congr_auxp;try(sp;fail);
+  intros. change_to_ssubst_aux4.
+  apply ssubst_alpha3_congr_auxp;try(sp;fail);
   try(apply disjoint_sub_as_flat_map;disjoint_reasoning).
 Qed.
 *)
@@ -1165,16 +1198,16 @@ Proof using.
 Qed.
 
 
-Theorem lsubst_aux_alpha_congr: forall t1 t2 lvi lnt1 lnt2,
+Theorem ssubst_aux_alpha_congr: forall t1 t2 lvi lnt1 lnt2,
   alpha_eq t1 t2
   -> length lvi = length lnt1
   -> length lvi = length lnt2
   -> disjoint (flat_map free_vars lnt1) (bound_vars t1)
   -> disjoint (flat_map free_vars lnt2) (bound_vars t2)
   -> bin_rel_nterm alpha_eq lnt1 lnt2
-  -> alpha_eq (lsubst_aux t1 (combine lvi lnt1)) (lsubst_aux t2 (combine lvi lnt2)).
+  -> alpha_eq (ssubst_aux t1 (combine lvi lnt1)) (ssubst_aux t2 (combine lvi lnt2)).
 Proof using.
-  intros. apply alpha_eq_if3 with (lv:=[]). apply lsubst_alpha3_congr_auxp;sp.
+  intros. apply alpha_eq_if3 with (lv:=[]). apply ssubst_alpha3_congr_auxp;sp.
   apply alpha_eq3_if;sp. eapply bin_rel_list_le; eauto.
   apply alpha3_le.
 Qed.
@@ -1185,28 +1218,28 @@ Lemma alphaeq_bterm_if3: forall bt1 bt2 lva,
 Proof using.
   introv Hal.  invertsna Hal Hal.
   apply al_bterm with (lv:=lv);spc; disjoint_reasoningv;[].
-  change_to_lsubst_aux4.
+  change_to_ssubst_aux4.
   eauto with slow.
 Qed.
 
-Lemma lsubst_aux_alphabt_congr : forall bt1 bt2 lvi lnt1 lnt2,
+Lemma ssubst_aux_alphabt_congr : forall bt1 bt2 lvi lnt1 lnt2,
   alpha_eq_bterm bt1 bt2
   -> length lvi = length lnt1
   -> length lvi = length lnt2
   -> disjoint (flat_map free_vars lnt1) (bound_vars_bterm bt1)
   -> disjoint (flat_map free_vars lnt2) (bound_vars_bterm bt2)
   -> bin_rel_nterm (alpha_eq) lnt1 lnt2
-  -> alpha_eq_bterm (lsubst_bterm_aux bt1 (combine lvi lnt1)) 
-                    (lsubst_bterm_aux bt2 (combine lvi lnt2)).
+  -> alpha_eq_bterm (ssubst_bterm_aux bt1 (combine lvi lnt1)) 
+                    (ssubst_bterm_aux bt2 (combine lvi lnt2)).
 Proof using.
   introns HH. apply alphaeq_bterm_if3 with (lva:=[]).
   apply alphaeq_bterm3_if with (lva:=[]) in HH.
-  pose proof lsubst_alphabt3_congr_auxp as XX.
-  unfold lsubst_alphabt3_congr_aux in XX.
+  pose proof ssubst_alphabt3_congr_auxp as XX.
+  unfold ssubst_alphabt3_congr_aux in XX.
   destruct bt1 as [lv1 nt1].
   eapply (bin_rel_list_le _ _ _  (alpha3_le [])) in HH4; eauto.
   apply XX; spc;[].
-  introv. intros. apply lsubst_alpha3_congr_auxp;sp.
+  introv. intros. apply ssubst_alpha3_congr_auxp;sp.
 Qed.
 
 Lemma id_le_alpha: le_bin_rel (fun x y : NTerm => (x = y)) (alpha_eq).
@@ -1215,16 +1248,16 @@ Proof using.
 Qed.
 
 Hint Resolve sub_eta_length : slow.
-(** there is no lsubst_bterm yet .. renaming bound variables in before this stage 
+(** there is no ssubst_bterm yet .. renaming bound variables in before this stage 
     when things are NTerms might work for most proofs *)
-Lemma lsubst_alphabt_congr : forall (bt1 bt2 : BTerm) (sub : Substitution),
+Lemma ssubst_alphabt_congr : forall (bt1 bt2 : BTerm) (sub : Substitution),
   alpha_eq_bterm bt1 bt2
   -> disjoint (bound_vars_bterm bt1 ++ bound_vars_bterm bt2)
          (flat_map free_vars (range sub))
-  -> alpha_eq_bterm (lsubst_bterm_aux bt1 sub) (lsubst_bterm_aux bt2 sub).
+  -> alpha_eq_bterm (ssubst_bterm_aux bt1 sub) (ssubst_bterm_aux bt2 sub).
 Proof using.
   intros. rewrite (sub_eta sub).
-  apply lsubst_aux_alphabt_congr; spc; eauto with slow; disjoint_reasoningv.
+  apply ssubst_aux_alphabt_congr; spc; eauto with slow; disjoint_reasoningv.
   apply bin_rel_list_refl.
   unfold refl_rel. eauto with slow.
 Qed.
@@ -1241,7 +1274,7 @@ Proof using.
   unfold var_ren in Hal3.
   destruct lv2; inverts Hal0.
   allsimpl.
-  repeat(rewrite lsubst_nil in Hal3).
+  repeat(rewrite ssubst_nil in Hal3).
   eexists; split; eauto.
 Qed.
 
@@ -1257,7 +1290,7 @@ Proof using.
   - Case "<-". introv Halb.
     eapply al_bterm; eauto;
         [constructor | unfold var_ren; simpl; 
-        repeat (rewrite lsubst_nil); trivial]; fail.
+        repeat (rewrite ssubst_nil); trivial]; fail.
 Qed.
 
 Lemma alphaeqbt_1v: forall v1 nt1 bt2,
@@ -1265,8 +1298,8 @@ Lemma alphaeqbt_1v: forall v1 nt1 bt2,
   -> {v2, vn : NVar $
          {nt2: NTerm $ bt2 = bterm [v2] nt2
           # disjoint [vn] (all_vars nt1 ++ all_vars nt2)
-          # alpha_eq (lsubst nt1 (var_ren [v1] [vn]))
-                    (lsubst nt2 (var_ren [v2] [vn])) } }.
+          # alpha_eq (ssubst nt1 (var_ren [v1] [vn]))
+                    (ssubst nt2 (var_ren [v2] [vn])) } }.
 Proof using.
   introv Halb. invertsna Halb Halb.
   destruct lv as [| vn lv ]; invertsn Halb1.
@@ -1284,8 +1317,8 @@ Lemma alphaeqbt_2v: forall b1v1 b1v2 nt1 bt2,
          {nt2: NTerm $ bt2 = bterm [b2v1, b2v2] nt2
           # no_repeats [vn1,vn2]
           # disjoint [vn1,vn2] (all_vars nt1 ++ all_vars nt2)
-          # alpha_eq (lsubst nt1 (var_ren [b1v1, b1v2] [vn1, vn2]))
-                    (lsubst nt2 (var_ren [b2v1, b2v2] [vn1, vn2])) } }.
+          # alpha_eq (ssubst nt1 (var_ren [b1v1, b1v2] [vn1, vn2]))
+                    (ssubst nt2 (var_ren [b2v1, b2v2] [vn1, vn2])) } }.
 Proof using.
   introv Halb. invertsna Halb Halb.
   destruct lv as [| vn1 lv ]; invertsn Halb1.
@@ -1465,34 +1498,34 @@ end.
     the members are respectively alpha equal.
 
 *)
-Theorem lsubst_alpha_congr: forall t1 t2 lvi lnt1 lnt2,
+Theorem ssubst_alpha_congr: forall t1 t2 lvi lnt1 lnt2,
   alpha_eq t1 t2
   -> length lvi = length lnt1
   -> length lvi = length lnt2
   -> bin_rel_nterm alpha_eq lnt1 lnt2
-  -> alpha_eq (lsubst t1 (combine lvi lnt1)) (lsubst t2 (combine lvi lnt2)).
+  -> alpha_eq (ssubst t1 (combine lvi lnt1)) (ssubst t2 (combine lvi lnt2)).
 Proof using.
-  introv Hal H1l H2l  Hbr. unfold lsubst.
+  introv Hal H1l H2l  Hbr. unfold ssubst.
   cases_ifn H1dc;cases_ifn H2dc.
-  - apply lsubst_aux_alpha_congr;spc; spcls; disjoint_reasoningv.
-  - add_changebvar_spec c2b H2s; repnd; apply lsubst_aux_alpha_congr; spc; spcls;  disjoint_reasoningv.
+  - apply ssubst_aux_alpha_congr;spc; spcls; disjoint_reasoningv.
+  - add_changebvar_spec c2b H2s; repnd; apply ssubst_aux_alpha_congr; spc; spcls;  disjoint_reasoningv.
     eapply alpha_eq_trans; eauto.
-  - add_changebvar_spec c1b H1s; repnd; apply lsubst_aux_alpha_congr;spc;spcls;  disjoint_reasoningv.
+  - add_changebvar_spec c1b H1s; repnd; apply ssubst_aux_alpha_congr;spc;spcls;  disjoint_reasoningv.
     eapply alpha_eq_trans; eauto with slow; apply alpha_eq_sym;sp.
   - add_changebvar_spec c1b H1s; repnd. add_changebvar_spec c2b H2s; repnd.
-    apply lsubst_aux_alpha_congr; spc;spcls; disjoint_reasoningv.
+    apply ssubst_aux_alpha_congr; spc;spcls; disjoint_reasoningv.
     alpha_equiv.
 Qed.
 
-Corollary lsubst_alpha_congr2: forall t1 t2 sub,
+Corollary ssubst_alpha_congr2: forall t1 t2 sub,
   alpha_eq t1 t2
-  -> alpha_eq (lsubst t1 sub) (lsubst t2 sub).
+  -> alpha_eq (ssubst t1 sub) (ssubst t2 sub).
 Proof using.
   intros. 
   pose proof (split_combine sub) as XX.
   pose proof (split_length_eq sub) as XL. repnd.
   destruct (split sub) as [lv lnt]. allrw <- XX. GC.
-  apply lsubst_alpha_congr;sp.
+  apply ssubst_alpha_congr;sp.
   apply bin_rel_list_refl.
   exact alpha_eq_refl.
 Qed.
@@ -1506,18 +1539,18 @@ end.
 Ltac alpharw H := let X99:= fresh "Xalrw" in
 let lhs := get_alpha_lhs H in
 match goal with 
-| [ |- alpha_eq (lsubst (lsubst lhs ?sub1) ?sub2) ?rhs] => 
-    pose proof  (lsubst_alpha_congr2 _ _ sub2 (lsubst_alpha_congr2 _ _ sub1 H)) as X99;
+| [ |- alpha_eq (ssubst (ssubst lhs ?sub1) ?sub2) ?rhs] => 
+    pose proof  (ssubst_alpha_congr2 _ _ sub2 (ssubst_alpha_congr2 _ _ sub1 H)) as X99;
     apply alpha_eq_trans with (nt3:=rhs)  in X99;[exact X99;fail|clear X99]
-| [ |- alpha_eq (lsubst lhs ?sub) ?rhs] => pose proof  (lsubst_alpha_congr2 _ _ sub H) as X99;
+| [ |- alpha_eq (ssubst lhs ?sub) ?rhs] => pose proof  (ssubst_alpha_congr2 _ _ sub H) as X99;
     apply alpha_eq_trans with (nt3:=rhs)  in X99;[exact X99;fail|clear X99]
 | [ |- alpha_eq lhs ?rhs ] => pose proof H as X99;
     apply alpha_eq_trans with (nt3:=rhs)  in X99;[exact X99;fail|clear X99]
 | [ |- context [ free_vars lhs ] ] => 
     pose proof (alphaeq_preserves_free_vars _ _ H) as X99;
     rewrite X99; clear X99
-| [ |- context [ free_vars (lsubst lhs ?sub) ] ] => 
-    pose proof (alphaeq_preserves_free_vars _ _ ((lsubst_alpha_congr2 _ _ sub H))) as X99;
+| [ |- context [ free_vars (ssubst lhs ?sub) ] ] => 
+    pose proof (alphaeq_preserves_free_vars _ _ ((ssubst_alpha_congr2 _ _ sub H))) as X99;
     rewrite X99; clear X99
 | [ |- context[isprogram lhs] ] => 
   rw (alphaeq_preserves_program _ _ H)
@@ -1534,14 +1567,14 @@ Ltac alpharw_rev H :=
 Ltac alpharwh H Hyp:=
 let lhs := get_alpha_lhs H in
 match goal with 
-[ Hyp: alpha_eq (lsubst lhs ?sub) ?rhs |- _] => pose proof  (lsubst_alpha_congr2 _ _ sub H) as X99;
+[ Hyp: alpha_eq (ssubst lhs ?sub) ?rhs |- _] => pose proof  (ssubst_alpha_congr2 _ _ sub H) as X99;
     apply alpha_eq_sym in X99;apply alpha_eq_trans with (nt3:=rhs)  in X99;sp;[];
     clear Hyp; rename X99 into Hyp
 | [ Hyp: context [ free_vars lhs ] |- _ ] => 
     pose proof (alphaeq_preserves_free_vars _ _ H) as X99;
     rewrite X99 in Hyp; clear X99
-| [ Hyp:context [ free_vars (lsubst lhs ?sub) ] |- _ ] => 
-    pose proof (alphaeq_preserves_free_vars _ _ ((lsubst_alpha_congr2 _ _ sub H))) as X99;
+| [ Hyp:context [ free_vars (ssubst lhs ?sub) ] |- _ ] => 
+    pose proof (alphaeq_preserves_free_vars _ _ ((ssubst_alpha_congr2 _ _ sub H))) as X99;
     rewrite X99 in Hyp; clear X99
 end.
 
@@ -1570,11 +1603,11 @@ Proof using.
   alpharws Hnt1'. alpharws Hnt2'.
   alpharwh Hnt1' Hal3.
   alpharwhs Hnt2' Hal3.
-  eapply lsubst_alpha_congr with (lvi:=lv) in Hal3; eauto.
+  eapply ssubst_alpha_congr with (lvi:=lv) in Hal3; eauto.
   Focus 2. spc;fail. Focus 2. spc;fail.
   
-  rewrite lsubst_nest_same in Hal3; spc; spcls;disjoint_reasoningv.
-  - rewrite lsubst_nest_same in Hal3; spc; spcls;disjoint_reasoningv.
+  rewrite ssubst_nest_same in Hal3; spc; spcls;disjoint_reasoningv.
+  - rewrite ssubst_nest_same in Hal3; spc; spcls;disjoint_reasoningv.
     alpharw_rev  Hnt2'. trivial.
   - alpharw_rev  Hnt1'. trivial.
 Qed.
@@ -1591,36 +1624,36 @@ Proof using.
   exact alpha_eq_refl.
 Qed.
 
-Lemma lsubst_nt_wf :
+Lemma ssubst_nt_wf :
   forall t sub,
-    nt_wf (lsubst t sub)
+    nt_wf (ssubst t sub)
     -> nt_wf t.
 Proof using.
-  introv. unfold lsubst. cases_ifn Hd.
-  - apply lsubst_aux_nt_wf.
+  introv. unfold ssubst. cases_ifn Hd.
+  - apply ssubst_aux_nt_wf.
   - add_changebvar_spec t' Hs. repnd. rw <- (alphaeq_preserves_wf _ _ Hs).
-    apply lsubst_aux_nt_wf.
+    apply ssubst_aux_nt_wf.
 Qed.
 
-Lemma lsubst_preserves_wf_term :
+Lemma ssubst_preserves_wf_term :
   forall sub t,
     wf_sub sub
     -> wf_term t
-    -> wf_term (lsubst t sub).
+    -> wf_term (ssubst t sub).
 Proof using.
   introv ws wt.
-  generalize (lsubst_wf_iff sub ws t); intro i.
+  generalize (ssubst_wf_iff sub ws t); intro i.
   repeat (rw nt_wf_eq in i).
   rw <- i; sp.
 Qed.
 
-Lemma lsubst_wf_term :
+Lemma ssubst_wf_term :
   forall sub t,
-    wf_term (lsubst t sub)
+    wf_term (ssubst t sub)
     -> wf_term t.
 Proof using.
   introv wf; allrw <- nt_wf_eq.
-  apply lsubst_nt_wf in wf; sp.
+  apply ssubst_nt_wf in wf; sp.
 Qed.
 
 (** takes H which is of the form alpha_eq t1 t2
@@ -1654,17 +1687,17 @@ match goal with
      alpha_hyps Hr))
 end.
 
-Lemma lsubst_sub_wf:
+Lemma ssubst_sub_wf:
   forall sub1 sub2,
     wf_sub sub1
     -> wf_sub sub2
-    -> wf_sub (lsubst_sub sub1 sub2).
+    -> wf_sub (ssubst_sub sub1 sub2).
 
 Proof using.
   induction sub1 as [|(v,t) sub Hind]; introv H1wf H2wf; allsimpl;sp;[].
   rw cons_as_app. apply sub_app_sat;rw cons_as_app in H1wf; apply sub_app_sat_if in H1wf;sp.
   - allunfold sub_range_sat. introv Hin. apply in_single in Hin. inverts Hin.
-    apply lsubst_wf_iff;sp. pose proof (H1wf0 _ _ (or_introl _ (eq_refl _))). sp.
+    apply ssubst_wf_iff;sp. pose proof (H1wf0 _ _ (or_introl _ (eq_refl _))). sp.
   - apply Hind;sp.
 Qed.
 
@@ -1675,32 +1708,32 @@ match goal with
 end.
 
 
-Theorem free_vars_lsubst2:
+Theorem free_vars_ssubst2:
   forall nt sub,
     forall v,
-         LIn v (free_vars (lsubst nt sub))
+         LIn v (free_vars (ssubst nt sub))
          -> LIn v (free_vars nt)
                 [+] {v' : NVar
                      $ {t : NTerm
                      $ LIn (v',t) sub # LIn v' (free_vars nt) # LIn v (free_vars t)}}.
 Proof using.
-  introns XX. revert XX. unfold lsubst. cases_ifn Hd.
+  introns XX. revert XX. unfold ssubst. cases_ifn Hd.
   + intro XX.
-    apply free_vars_lsubst_aux;try(sp;fail).
+    apply free_vars_ssubst_aux;try(sp;fail).
     try(rw disjoint_sub_as_flat_map;disjoint_reasoning).
   + add_changebvar_spec2 nt' XX. alpharw XXr. 
-    apply free_vars_lsubst_aux;try(sp;fail).
+    apply free_vars_ssubst_aux;try(sp;fail).
     try(rw disjoint_sub_as_flat_map;disjoint_reasoning).  
 Qed.
 
-Lemma disjoint_free_vars_lsubst2:
+Lemma disjoint_free_vars_ssubst2:
   forall (nt : NTerm) (sub : Substitution) lvdr,
    disjoint (free_vars nt ++ (flat_map free_vars (range sub))) lvdr
-  -> disjoint (free_vars (lsubst nt sub)) lvdr.
+  -> disjoint (free_vars (ssubst nt sub)) lvdr.
 Proof using.
   introv H2dis.
   introv Hin Hc.
-  apply free_vars_lsubst2 in Hin.
+  apply free_vars_ssubst2 in Hin.
   apply disjoint_app_l in H2dis; repnd.
   dorn Hin.
   - apply H2dis0 in Hin. sp.
@@ -1709,34 +1742,34 @@ Proof using.
     apply Hin0 in Hin1. sp.
 Qed.
 
-Lemma lsubst_sub_disjoint_bv2:
+Lemma ssubst_sub_disjoint_bv2:
   forall sub1 sub2 nt,
     disjoint_bv_sub nt sub1
     -> disjoint_bv_sub nt sub2
-    -> disjoint_bv_sub nt (lsubst_sub sub1 sub2).
+    -> disjoint_bv_sub nt (ssubst_sub sub1 sub2).
 Proof using.
   induction sub1 as [|(v,t) sub Hind]; introv H1wf H2wf; allsimpl;sp;[].
   rw cons_as_app. apply sub_app_sat;rw cons_as_app in H1wf; apply sub_app_sat_if in H1wf;sp.
   - allunfold sub_range_sat. introv Hin. apply in_single in Hin. inverts Hin.
-    remember [(v,t)] as vt. unfold lsubst. cases_ifn Hd.
+    remember [(v,t)] as vt. unfold ssubst. cases_ifn Hd.
     + disjoint_flat. subst. 
-      apply disjoint_free_vars_lsubst_aux; disjoint_flat;disjoint_reasoningv.
+      apply disjoint_free_vars_ssubst_aux; disjoint_flat;disjoint_reasoningv.
     + add_changebvar_spec2 t' XX. disjoint_flat. allrw Heqvt. clear Heqvt.
       apply alpha_eq_sym in XXr.
-      rw <- lsubst_lsubst_aux;[| spcls; disjoint_reasoningv];[].
+      rw <- ssubst_ssubst_aux;[| spcls; disjoint_reasoningv];[].
       alpharw XXr.
-      apply disjoint_free_vars_lsubst2; disjoint_flat;disjoint_reasoningv.
+      apply disjoint_free_vars_ssubst2; disjoint_flat;disjoint_reasoningv.
   - apply Hind;sp.
 Qed.
 
 Lemma combine_1var_sub:
   forall t sub1 sub2,
     allvars_sub sub1
-    -> alpha_eq (lsubst (lsubst t sub1) sub2) (lsubst t (lsubst_sub sub1 sub2 ++ sub2)).
+    -> alpha_eq (ssubst (ssubst t sub1) sub2) (ssubst t (ssubst_sub sub1 sub2 ++ sub2)).
 Proof using.
   (** change t to t' such that t' will never cause renaming.
       naive case split
-    proof gives 8 non-trivial cases(2 for each lsubst) *)
+    proof gives 8 non-trivial cases(2 for each ssubst) *)
   introv Hv.
   pose proof (get_sub_dom_vars_eta _ Hv) as Hs. exrepnd.
   rw Hs0. pose proof (change_bvars_alpha_spec t
@@ -1744,14 +1777,14 @@ Proof using.
   allsimpl. repnd. 
   remember (change_bvars_alpha (lvo ++ flat_map free_vars (range sub2)) t) as t'.
   alpharws Hfr.
-  change_to_lsubst_aux4.
+  change_to_ssubst_aux8.
   - rename d into Hild. alpha_refl_tac.
-    apply lsubst_aux_app; disjoint_flat; spcls; disjoint_reasoningv.
+    apply ssubst_aux_app; disjoint_flat; spcls; disjoint_reasoningv.
   - apply disjoint_sym. rw <- disjoint_sub_as_flat_map. 
     apply sub_app_sat;[| disjoint_flat; disjoint_reasoningv].
-    apply lsubst_sub_disjoint_bv2;
+    apply ssubst_sub_disjoint_bv2;
     disjoint_flat; spcls; disjoint_reasoningv.
-  - fold (var_ren lvi lvo). rw boundvars_lsubst_aux_vars;spc; spcls; disjoint_reasoningv.
+  - fold (var_ren lvi lvo). rw boundvars_ssubst_aux_vars;spc; spcls; disjoint_reasoningv.
 Qed.
 
 Lemma combine_1var_sub_wspec:
@@ -1759,19 +1792,19 @@ Lemma combine_1var_sub_wspec:
   allvars_sub sub1
   -> wf_sub sub2
   -> {sub3 : Substitution $ wf_sub sub3 # 
-        forall t,alpha_eq (lsubst (lsubst t sub1) sub2) (lsubst t sub3)}.
+        forall t,alpha_eq (ssubst (ssubst t sub1) sub2) (ssubst t sub3)}.
 Proof using.
   introv Hv Hw.
   pose proof (get_sub_dom_vars_eta _ Hv) as Hs. exrepnd.
-  exists ((lsubst_sub sub1 sub2) ++ sub2). split.
-  - apply sub_app_sat;sp. apply lsubst_sub_wf;sp;[]. 
+  exists ((ssubst_sub sub1 sub2) ++ sub2). split.
+  - apply sub_app_sat;sp. apply ssubst_sub_wf;sp;[]. 
     rw Hs0. apply wf_sub_vars.
   - intro nt. apply combine_1var_sub;sp.
 Qed.
 
-Lemma lsubst_trim_alpha:
+Lemma ssubst_trim_alpha:
 forall t sub,
-  alpha_eq (lsubst t sub) (lsubst t (sub_keep_first sub (free_vars t))).
+  alpha_eq (ssubst t sub) (ssubst t (sub_keep_first sub (free_vars t))).
 Proof using.
   introv.
   pose proof (change_bvars_alpha_wspec (flat_map free_vars (range sub)
@@ -1779,15 +1812,15 @@ Proof using.
   exrepnd. alpharw Hfr0. apply alpha_eq_sym. alpharw Hfr0.
   apply alpha_eq_sym.
   alpha_refl_tac.
-  change_to_lsubst_aux4.
-  alpharw Hfr0. apply lsubst_aux_trim.
+  change_to_ssubst_aux4.
+  alpharw Hfr0. apply ssubst_aux_trim.
   disjoint_flat. disjoint_reasoningv.
 Qed.
 
-Ltac lsubst_trim_alpha_tac :=
+Ltac ssubst_trim_alpha_tac :=
 match goal with
-[ |- context[lsubst ?t ?sub] ] => 
-  alpharw (lsubst_trim_alpha t sub)
+[ |- context[ssubst ?t ?sub] ] => 
+  alpharw (ssubst_trim_alpha t sub)
 end.
 
 (* end hide *)
@@ -1801,7 +1834,7 @@ end.
 Lemma eqsetv_free_vars_disjoint :
   forall t : NTerm,
   forall sub : Substitution,
-    eqsetv (free_vars (lsubst t sub))
+    eqsetv (free_vars (ssubst t sub))
               (remove_nvars (dom_sub sub) (free_vars t)
                ++ sub_free_vars (sub_keep_first sub (free_vars t))).
 Proof using.
@@ -1809,62 +1842,62 @@ Proof using.
   pose proof (change_bvars_alpha_wspec 
       (flat_map free_vars (range sub)) t) as Hfr.
   exrepnd. alpharw Hfr0. alpharw Hfr0.
-  change_to_lsubst_aux4.
+  change_to_ssubst_aux4.
   apply eqsetv_free_vars_disjoint_aux;try(sp;fail);
   try(apply disjoint_sub_as_flat_map;disjoint_reasoning).
 Qed.
 (* begin hide *)
 
-Lemma prog_lsubst_app : forall nt sub sub2,
+Lemma prog_ssubst_app : forall nt sub sub2,
   prog_sub sub2
-  -> disjoint (free_vars (lsubst nt sub)) (dom_sub sub2)
-  -> lsubst nt sub = lsubst nt (sub++sub2).
+  -> disjoint (free_vars (ssubst nt sub)) (dom_sub sub2)
+  -> ssubst nt sub = ssubst nt (sub++sub2).
 Proof using.
-  introv Hpr. unfold lsubst at 1.
-  unfold lsubst at 1.
+  introv Hpr. unfold ssubst at 1.
+  unfold ssubst at 1.
   simpl. cases_ifn ds.
-  - change_to_lsubst_aux4. introv H1dis.
-    + apply prog_lsubst_aux_app;sp; disjoint_flat;disjoint_reasoningv.
-    + rw range_app. rw flat_map_app. change_to_lsubst_aux4.
+  - change_to_ssubst_aux4. introv H1dis.
+    + apply prog_ssubst_aux_app;sp; disjoint_flat;disjoint_reasoningv.
+    + rw range_app. rw flat_map_app. change_to_ssubst_aux4.
       disjoint_reasoningv.
   - add_changebvar_spec2 nt' Hnt'. introv Hdis.
-    repnd. unfold lsubst. rw range_app. rw flat_map_app.
+    repnd. unfold ssubst. rw range_app. rw flat_map_app.
     rw (prog_sub_flatmap_range _ Hpr). simpl_vlist.
     cases_ifn dsr; sp;[].
     rw <- Heqnt'.
-    apply prog_lsubst_aux_app;sp; disjoint_flat;disjoint_reasoningv.
+    apply prog_ssubst_aux_app;sp; disjoint_flat;disjoint_reasoningv.
 Qed.
 
-Lemma prog_lsubst_app2 : forall nt sub sub2,
-  isprogram (lsubst nt sub)
+Lemma prog_ssubst_app2 : forall nt sub sub2,
+  isprogram (ssubst nt sub)
   -> prog_sub sub2
-  -> lsubst nt sub = lsubst nt (sub++sub2).
+  -> ssubst nt sub = ssubst nt (sub++sub2).
 Proof using.
   introv H1dis Hpr.
-  apply prog_lsubst_app;sp.
+  apply prog_ssubst_app;sp.
   rw (proj1 H1dis). disjoint_reasoning.
 Qed.
 
 
-Lemma lsubst_trim2_alpha1:
+Lemma ssubst_trim2_alpha1:
   forall a b sub,
-  isprogram (lsubst a sub)
-  -> isprogram (lsubst b sub)
+  isprogram (ssubst a sub)
+  -> isprogram (ssubst b sub)
   -> let sub':= (sub_keep_first sub (free_vars a ++ free_vars b)) in
-     alpha_eq (lsubst a sub) (lsubst a sub')
-     # alpha_eq (lsubst b sub) (lsubst b sub').
+     alpha_eq (ssubst a sub) (ssubst a sub')
+     # alpha_eq (ssubst b sub) (ssubst b sub').
 Proof using.
   introv H1pr H2pr. simpl.
-  dands;try(apply alpha_eq_sym; lsubst_trim_alpha_tac;
+  dands;try(apply alpha_eq_sym; ssubst_trim_alpha_tac;
     rw sub_keep_first_nest;[
-    apply alpha_eq_sym; apply lsubst_trim_alpha; fail| introv; rw in_app_iff; cpx]).
+    apply alpha_eq_sym; apply ssubst_trim_alpha; fail| introv; rw in_app_iff; cpx]).
 Qed.
 
-Lemma lsubst_trim2_alpha2:
+Lemma ssubst_trim2_alpha2:
   forall a b sub,
   wf_sub sub (* can be removed for a more complicated proof *)
-  -> isprogram (lsubst a sub)
-  -> isprogram (lsubst b sub)
+  -> isprogram (ssubst a sub)
+  -> isprogram (ssubst b sub)
   -> prog_sub (sub_keep_first sub (free_vars a ++ free_vars b)).
 Proof using.
   introv Hwfs Hapr Hbpr.
@@ -1910,10 +1943,10 @@ Proof using.
 Qed.
 
 (* end hide *)
-Lemma lsubst_sub_filter_alpha:
+Lemma ssubst_sub_filter_alpha:
   forall (t : NTerm) (sub : Substitution) (l : list NVar),
   disjoint (free_vars t) l 
-  -> alpha_eq (lsubst t (sub_filter sub l)) (lsubst t sub).
+  -> alpha_eq (ssubst t (sub_filter sub l)) (ssubst t sub).
 Proof using.
   introv Hdis.
   pose proof (change_bvars_alpha_wspec (flat_map free_vars (range sub)) t) as Hft.
@@ -1921,7 +1954,7 @@ Proof using.
   alpharws Hft0.
   alpharwh Hft0 Hdis.
   alpha_refl_tac.
-  apply lsubst_sub_filter2;sp;[];
+  apply ssubst_sub_filter2;sp;[];
   disjoint_flat;sp;fail.
 Qed.
 (* begin hide *)
@@ -1941,31 +1974,31 @@ match goal with
 end. 
 
 
-Lemma alpha_lsubst_congr_bterm_aux : forall (o:Opid) lva lvb nta ntb sub,
+Lemma alpha_ssubst_congr_bterm_aux : forall (o:Opid) lva lvb nta ntb sub,
   alpha_eq_bterm (bterm lva nta) 
                  (bterm lvb ntb)
   -> disjoint (lva ++ lvb ++ bound_vars nta ++ bound_vars ntb ) (flat_map free_vars (range sub)) 
-  -> alpha_eq_bterm (bterm lva (lsubst nta (sub_filter sub lva))) 
-                    (bterm lvb (lsubst ntb (sub_filter sub lvb))).
+  -> alpha_eq_bterm (bterm lva (ssubst nta (sub_filter sub lva))) 
+                    (bterm lvb (ssubst ntb (sub_filter sub lvb))).
 Proof using.
   introv o Hbal Hdis.
   assert (alpha_eq (oterm o [(bterm lva nta)]) 
                   (oterm o [(bterm lvb ntb)])) as Hal by prove_alpha_eq3.
 
-  apply lsubst_alpha_congr2 with (sub:=sub)  in Hal.
-  pose proof (lsubst_sub_filter_alpha (oterm o [bterm lva nta]) sub lva) as Htra.
-  pose proof (lsubst_sub_filter_alpha (oterm o [bterm lvb ntb]) sub lvb) as Htrb.
+  apply ssubst_alpha_congr2 with (sub:=sub)  in Hal.
+  pose proof (ssubst_sub_filter_alpha (oterm o [bterm lva nta]) sub lva) as Htra.
+  pose proof (ssubst_sub_filter_alpha (oterm o [bterm lvb ntb]) sub lvb) as Htrb.
   allsimpl.
   simpl_vlist.
   lapply Htra; clear Htra; [intro Htra|apply disjoint_remove_nvars];[].
   lapply Htrb; clear Htrb; [intro Htrb|apply disjoint_remove_nvars];[].
   apply alpha_eq_sym in Htra.
   apply alpha_eq_sym in Htrb.
-  assert ( alpha_eq  (lsubst (oterm o [bterm lva nta]) sub)
-         (lsubst (oterm o [bterm lvb ntb]) sub))  as Ha by (eauto with slow).
-  lsubst_lsubst_aux_eq_hyp H3eq Ha;[
+  assert ( alpha_eq  (ssubst (oterm o [bterm lva nta]) sub)
+         (ssubst (oterm o [bterm lvb ntb]) sub))  as Ha by (eauto with slow).
+  ssubst_ssubst_aux_eq_hyp H3eq Ha;[
     simpl; simpl_vlist; disjoint_reasoningv |].
-  lsubst_lsubst_aux_eq_hyp H4eq Ha;[
+  ssubst_ssubst_aux_eq_hyp H4eq Ha;[
     simpl; simpl_vlist; disjoint_reasoningv |].
     
   simpl in Ha.
@@ -1974,7 +2007,7 @@ Proof using.
   assert (0< 1) as Hlt by omega.
   apply_clear Hbal1 in Hlt.
   unfold selectbt in Hlt. simpl in Hlt.
-  change_to_lsubst_aux4;spc;[|];
+  change_to_ssubst_aux4;spc;[|];
   apply disjoint_sym; apply disjoint_sub_filter_r_flatmap2; disjoint_reasoningv.
 Qed.
 
@@ -1985,8 +2018,8 @@ Lemma alpha_eq_bterm_preserves_size: forall lv1 nt1 lv2 nt2,
 Proof using.
   introv Hal. invertsna Hal Hal.
   apply alpha_eq_preserves_size in Hal3.
-  rw lsubst_allvars_preserves_size2 in Hal3.
-  rw lsubst_allvars_preserves_size2 in Hal3.
+  rw ssubst_allvars_preserves_size2 in Hal3.
+  rw ssubst_allvars_preserves_size2 in Hal3.
   sp.
 Qed.
 
@@ -2002,26 +2035,26 @@ Qed.
 
 Hint Resolve alpha_eq_bterm_preserves_size : slow.
 Hint Resolve alpha_eq_preserves_size : slow.
-Hint Resolve disjoint_free_vars_lsubst : slow.
+Hint Resolve disjoint_free_vars_ssubst : slow.
 Hint Resolve disjoint_sym : slow.
 Lemma alpha_bterm_change: forall bt lv nt lvn,
   alpha_eq_bterm bt (bterm lv nt)
   -> disjoint (all_vars nt) lvn 
-  (** bvars required by  disjoint_free_vars_lsubst 
-      and fvars reqd by lsubst_nest_vars_same*)
-  -> no_repeats lvn (** required by lsubst_nest_vars_same*)
+  (** bvars required by  disjoint_free_vars_ssubst 
+      and fvars reqd by ssubst_nest_vars_same*)
+  -> no_repeats lvn (** required by ssubst_nest_vars_same*)
   -> length lv = length lvn
-  -> alpha_eq_bterm bt (bterm lvn (lsubst nt (var_ren lv lvn))).
+  -> alpha_eq_bterm bt (bterm lvn (ssubst nt (var_ren lv lvn))).
 Proof using.
   introv Hal Hdis Hnr Hlen.
   destruct bt as [lvl ntl]. allsimpl.
   apply alphaeq_bterm3_if with (lva:=lvn) in Hal.
   invertsna Hal Hbal.
   eapply al_bterm with (lv:=lv0);eauto;spc;[disjoint_reasoningv|].
-  - apply disjoint_sym. apply disjoint_free_vars_lsubst; spcls; disjoint_reasoningv.
-  - apply disjoint_sym. apply disjoint_bound_vars_lsubst; spcls; disjoint_reasoningv.
-  - rw lsubst_nest_vars_same; spc; disjoint_reasoningv.
-    apply alpha_eq_if3 in Hbal3. change_to_lsubst_aux4. sp.
+  - apply disjoint_sym. apply disjoint_free_vars_ssubst; spcls; disjoint_reasoningv.
+  - apply disjoint_sym. apply disjoint_bound_vars_ssubst; spcls; disjoint_reasoningv.
+  - rw ssubst_nest_vars_same; spc; disjoint_reasoningv.
+    apply alpha_eq_if3 in Hbal3. change_to_ssubst_aux4. sp.
 Qed.
 
 Lemma sub_filter_nil_combine : forall  sub lv,
@@ -2054,12 +2087,12 @@ Proof using.
   pose proof (fresh_vars (length lv) (all_vars nt ++ all_vars nt')) as Hfr.
   exrepnd.
   apply al_bterm with (lv:= lvn); spc; disjoint_reasoningv.
-  dimp (lsubst_sub_filter_alpha nt (var_ren lv lvn) lv); disjoint_reasoningv.
-  dimp (lsubst_sub_filter_alpha nt' (var_ren lv' lvn) lv'); disjoint_reasoningv.
+  dimp (ssubst_sub_filter_alpha nt (var_ren lv lvn) lv); disjoint_reasoningv.
+  dimp (ssubst_sub_filter_alpha nt' (var_ren lv' lvn) lv'); disjoint_reasoningv.
   rw sub_filter_nil_var_ren in hyp; auto.
   rw sub_filter_nil_var_ren in hyp0; try congruence.
-  rw lsubst_nil in hyp.
-  rw lsubst_nil in hyp0.
+  rw ssubst_nil in hyp.
+  rw ssubst_nil in hyp0.
   eauto with slow.
 Qed.
 
@@ -2071,10 +2104,10 @@ Proof using.
   pose proof (fresh_vars (length lv) (all_vars nt ++ all_vars nt')) as Hfr.
   exrepnd.
   apply al_bterm with (lv:= lvn); spc; disjoint_reasoningv.
-  apply lsubst_alpha_congr2; sp.
+  apply ssubst_alpha_congr2; sp.
 Qed.
 
-  Hint Resolve lsubst_alpha_congr2 : slow.
+  Hint Resolve ssubst_alpha_congr2 : slow.
   Hint Resolve alpha_eq_bterm_congr : slow.
 
 Lemma alpha_bterm_pair_change : forall (bt1 bt2: BTerm) lv nt1 nt2 lva,
@@ -2083,8 +2116,8 @@ Lemma alpha_bterm_pair_change : forall (bt1 bt2: BTerm) lv nt1 nt2 lva,
   -> {lvn :(list NVar) & { nt1n, nt2n : NTerm $ length lv =length lvn
                   # alpha_eq nt1 nt1n
                   # alpha_eq nt2 nt2n
-                  # alpha_eq_bterm bt1 (bterm lvn (lsubst nt1n (var_ren lv lvn)))
-                  # alpha_eq_bterm bt2 (bterm lvn (lsubst nt2n (var_ren lv lvn)))
+                  # alpha_eq_bterm bt1 (bterm lvn (ssubst nt1n (var_ren lv lvn)))
+                  # alpha_eq_bterm bt2 (bterm lvn (ssubst nt2n (var_ren lv lvn)))
                   # no_repeats lvn
                   #  disjoint lvn (all_vars nt1 ++ all_vars nt2 ++ lva ++ (bound_vars nt1n) ++ (bound_vars nt2n))
                   # disjoint (lvn ++ (bound_vars nt1n) ++ (bound_vars nt2n)) lva   } }.
@@ -2110,7 +2143,7 @@ Proof using.
       eapply alpha_eq_bterm_trans.
        exact H2b.
        apply alpha_eq_bterm_congr.
-        apply lsubst_alpha_congr2.
+        apply ssubst_alpha_congr2.
          exact H2fr0. *)
 Qed.
 
@@ -2123,8 +2156,8 @@ Lemma alpha_bterm_pair_change2 : forall (bt1 bt2: BTerm) lv nt1 nt2 lvn,
   -> { nt1n, nt2n : NTerm $
                   alpha_eq nt1 nt1n
                   # alpha_eq nt2 nt2n
-                  # alpha_eq_bterm bt1 (bterm lvn (lsubst nt1n (var_ren lv lvn)))
-                  # alpha_eq_bterm bt2 (bterm lvn (lsubst nt2n (var_ren lv lvn)))
+                  # alpha_eq_bterm bt1 (bterm lvn (ssubst nt1n (var_ren lv lvn)))
+                  # alpha_eq_bterm bt2 (bterm lvn (ssubst nt2n (var_ren lv lvn)))
                   #  disjoint lvn ((bound_vars nt1n) ++ (bound_vars nt2n))  }.
 Proof using. 
   introv H1b H2b Hlen Hnr Hdis.
@@ -2145,18 +2178,18 @@ Proof using.
       eapply alpha_eq_bterm_trans.
        exact H2b.
        apply alpha_eq_bterm_congr.
-        apply lsubst_alpha_congr2.
+        apply ssubst_alpha_congr2.
          exact H2fr0. *)
 Qed.
 
-Lemma lsubst_trivial_alpha : forall nt lv ,
-  alpha_eq (lsubst nt (var_ren lv lv)) nt.
+Lemma ssubst_trivial_alpha : forall nt lv ,
+  alpha_eq (ssubst nt (var_ren lv lv)) nt.
 Proof using.
   introv. pose proof (change_bvars_alpha_wspec lv nt) as Hfr.
   exrepnd.
   alpharws Hfr0.
-  change_to_lsubst_aux4.
-  unfold var_ren. rw combine_vars_map_sp. rw lsubst_aux_trivial_vars.
+  change_to_ssubst_aux4.
+  unfold var_ren. rw combine_vars_map_sp. rw ssubst_aux_trivial_vars.
   apply alpha_eq_refl.
 Qed.
 
@@ -2172,15 +2205,15 @@ Proof using.
   rename ntcv into nt2cv.
   alpharwhs H2sp0 Hbal3.
   alpharwh H1sp0 Hbal3.
-  apply lsubst_alpha_congr2 with (sub := var_ren lv0 lv) in Hbal3.
+  apply ssubst_alpha_congr2 with (sub := var_ren lv0 lv) in Hbal3.
   disjoint_reasoningv.
   alpharwh H2sp0  Hbal6.
   alpharwh H1sp0  Hbal6.
 
-  rw lsubst_nest_vars_same in Hbal3; spc; disjoint_reasoningv.
-  rw lsubst_nest_vars_same in Hbal3; spc; disjoint_reasoningv.
-  pose proof (lsubst_trivial_alpha nt1cv lv) as H1p.
-  pose proof (lsubst_trivial_alpha nt2cv lv) as H2p.
+  rw ssubst_nest_vars_same in Hbal3; spc; disjoint_reasoningv.
+  rw ssubst_nest_vars_same in Hbal3; spc; disjoint_reasoningv.
+  pose proof (ssubst_trivial_alpha nt1cv lv) as H1p.
+  pose proof (ssubst_trivial_alpha nt2cv lv) as H2p.
 
   assert (alpha_eq nt1cv nt2cv) by (eauto with slow).
   eauto with slow.
@@ -2223,14 +2256,14 @@ Qed.
 
 Lemma sub_rel_alpha_prop : forall subl subr,
   sub_range_rel alpha_eq subl subr
-  -> forall t, alpha_eq (lsubst t subl) (lsubst t subr).
+  -> forall t, alpha_eq (ssubst t subl) (ssubst t subr).
 Proof using.
   introv Hs. intro t.
   apply sub_range_rel_as_list in Hs.
   exrepnd.
   rw Hs4.
   rw Hs3.
-  apply lsubst_alpha_congr; spc.
+  apply ssubst_alpha_congr; spc.
 Qed.
 
 Lemma sub_rel_alpha_prop2 : forall subl subr,
@@ -2245,7 +2278,7 @@ Qed.
 
 Lemma change_bvars_range_wspec: forall  lva sub,
   {sub' : Substitution $ disjoint (flat_map bound_vars (range sub')) lva #
-      forall t, alpha_eq (lsubst t sub) (lsubst t sub')}.
+      forall t, alpha_eq (ssubst t sub) (ssubst t sub')}.
 Proof using.
   introv. exists (change_bvars_range lva sub).
   pose proof (change_bvars_range_spec lva sub) as Hfr.
@@ -2265,7 +2298,7 @@ Qed.
 Lemma change_bvars_range_wspec3: forall  lva sub,
   {sub' : Substitution $ disjoint (flat_map bound_vars (range sub')) lva #
       flat_map free_vars (range sub) =  flat_map free_vars (range sub') # dom_sub sub = dom_sub sub'
-      # (forall t, alpha_eq (lsubst t sub) (lsubst t sub'))}.
+      # (forall t, alpha_eq (ssubst t sub) (ssubst t sub'))}.
 Proof using.
   introv. exists (change_bvars_range lva sub).
   pose proof (change_bvars_range_spec lva sub) as Hfr.
@@ -2277,9 +2310,9 @@ Qed.
 
   
 
-Lemma sub_rel_lsubst_sub_alpha : forall subr subl subla,
+Lemma sub_rel_ssubst_sub_alpha : forall subr subl subla,
   sub_range_rel alpha_eq subl subla
-  -> sub_range_rel alpha_eq (lsubst_sub subl subr) (lsubst_sub subla subr).
+  -> sub_range_rel alpha_eq (ssubst_sub subl subr) (ssubst_sub subla subr).
 Proof using.
   induction subl as [|(v,t) subl Hind]; introv Hsr;
   destruct subla as [|(va,ta) subla]; inverts Hsr; allsimpl;sp.
@@ -2289,32 +2322,32 @@ Qed.
 
 Hint Resolve sub_range_refl refl_rel_alpha_eauto : slow.
 
-Hint Resolve sub_range_refl sub_range_rel_app sub_rel_lsubst_sub_alpha : slow.
+Hint Resolve sub_range_refl sub_range_rel_app sub_rel_ssubst_sub_alpha : slow.
 
 (* end hide *)
 (** 
     % \noindent \\* %
-    In the following lemma, [lsubst_sub] is a function such that 
-    [lsubst_sub sub1 sub2] performs the [Substitution] sub2 on each element
+    In the following lemma, [ssubst_sub] is a function such that 
+    [ssubst_sub sub1 sub2] performs the [Substitution] sub2 on each element
     of the range of [sub1].
 
 *)
 
 Lemma combine_sub_nest:
   forall t sub1 sub2,
-    alpha_eq (lsubst (lsubst t sub1) sub2) 
-             (lsubst t (lsubst_sub sub1 sub2 ++ sub2)).
+    alpha_eq (ssubst (ssubst t sub1) sub2) 
+             (ssubst t (ssubst_sub sub1 sub2 ++ sub2)).
 Proof using.
   (* change t to t' such that t' will never cause renaming.
       naive case split
-    proof gives 8 non-trivial cases(2 for each lsubst) *)
+    proof gives 8 non-trivial cases(2 for each ssubst) *)
   
   introv.
   pose proof (change_bvars_range_wspec2 (flat_map free_vars (range sub2)) sub1) as Hfs.
   exrepnd. rename sub' into sub1b.
   duplicate Hfs0 as Hbc.  apply sub_rel_alpha_prop with (t:=t)  in Hbc.
   alpharw Hbc.
-  assert (sub_range_rel alpha_eq (lsubst_sub sub1 sub2 ++ sub2) (lsubst_sub sub1b sub2 ++ sub2)) as XX.
+  assert (sub_range_rel alpha_eq (ssubst_sub sub1 sub2 ++ sub2) (ssubst_sub sub1b sub2 ++ sub2)) as XX.
     apply sub_range_rel_app. dands; eauto with slow. apply sub_range_refl; eauto with slow.
   
   apply sub_rel_alpha_prop with (t:=t)  in XX.
@@ -2325,14 +2358,14 @@ Proof using.
   allsimpl. repnd. 
   remember (change_bvars_alpha lva t) as t'.
   alpharws Hfr. rw Heqlva in Hfr0.
-  change_to_lsubst_aux4.
+  change_to_ssubst_aux4.
   - rename d into Hild. alpha_refl_tac.
-    apply lsubst_aux_app; disjoint_flat; spcls; disjoint_reasoningv.
+    apply ssubst_aux_app; disjoint_flat; spcls; disjoint_reasoningv.
   - apply disjoint_sym. rw <- disjoint_sub_as_flat_map. 
     apply sub_app_sat;[| disjoint_flat; disjoint_reasoningv].
-    apply lsubst_sub_disjoint_bv2;
+    apply ssubst_sub_disjoint_bv2;
     disjoint_flat; spcls; disjoint_reasoningv.
-  - disjoint_lsubst.
+  - disjoint_ssubst.
 Qed.
 (* begin hide *)
 
@@ -2341,36 +2374,36 @@ Lemma combine_sub_nest_wspec:
   wf_sub sub1
   -> wf_sub sub2
   -> {sub3 : Substitution & wf_sub sub3 # 
-        forall t,alpha_eq (lsubst (lsubst t sub1) sub2) (lsubst t sub3)}.
+        forall t,alpha_eq (ssubst (ssubst t sub1) sub2) (ssubst t sub3)}.
 Proof using.
   introv H1w H2w.
-  exists ((lsubst_sub sub1 sub2) ++ sub2). split.
-  - apply sub_app_sat;sp. apply lsubst_sub_wf;sp. 
+  exists ((ssubst_sub sub1 sub2) ++ sub2). split.
+  - apply sub_app_sat;sp. apply ssubst_sub_wf;sp. 
   - intro nt. apply combine_sub_nest;sp.
 Qed.
 
 
-Hint Resolve alpha_eq_preserves_size alpha_eq_bterm_preserves_size lsubst_allvars_preserves_size2: slow.
+Hint Resolve alpha_eq_preserves_size alpha_eq_bterm_preserves_size ssubst_allvars_preserves_size2: slow.
 
 Ltac ntsize :=
   match goal with 
-  [ |- context [size (lsubst ?t (var_ren _ _))]]
-  => rw lsubst_allvars_preserves_size2
+  [ |- context [size (ssubst ?t (var_ren _ _))]]
+  => rw ssubst_allvars_preserves_size2
 end.
 
-Lemma lsubst_on_closed_term :
+Lemma ssubst_on_closed_term :
   forall t sub,
     isprogram t
-    -> alpha_eq (lsubst t sub) t.
+    -> alpha_eq (ssubst t sub) t.
 Proof using.
   introv isp.
   pose proof (change_bvars_alpha_wspec (flat_map free_vars (range sub)) t); exrepnd.
   alpharws H0.
-  change_to_lsubst_aux4.
+  change_to_ssubst_aux4.
   alpha_refl_tac.
   alpha_hyps H0.
 
-  apply lsubst_aux_trivial4.
+  apply ssubst_aux_trivial4.
   unfold isprogram in *; repnd.
   allrw; sp.
 
@@ -2398,13 +2431,13 @@ Proof using.
   apply alphaeq_preserves_free_vars in Hal3.
   apply in_remove_nvars in Hin.
   repnd.
-  assert (LIn v (free_vars (lsubst nt1 (var_ren lv1 lv)))) as XX.
+  assert (LIn v (free_vars (ssubst nt1 (var_ren lv1 lv)))) as XX.
   - pose proof (eqsetv_free_vars_disjoint nt1 (var_ren lv1 lv)) as XX.
     apply eqsetv_prop with (x:=v) in XX.
     apply XX. apply in_app_iff.
     left. unfold var_ren. rw dom_sub_combine; try( simpl_list;spc);[].
     apply in_remove_nvars;sp.
-  - rw Hal3 in XX. apply substitution.free_vars_lsubst2 in XX;
+  - rw Hal3 in XX. apply substitution.free_vars_ssubst2 in XX;
       [| apply disjoint_bv_vars; disjoint_reasoningv;fail].
     dorn XX; exrepnd.
     + unfold var_ren in XX. rw dom_sub_combine in XX; try( simpl_list;spc);[].
@@ -2460,8 +2493,8 @@ Lemma alpha_bterm_pair_change4 : forall (bt1 bt2: BTerm) lv nt1 nt2 lvn lva,
   -> { nt1n, nt2n : NTerm $
                   alpha_eq nt1 nt1n
                   # alpha_eq nt2 nt2n
-                  # alpha_eq_bterm bt1 (bterm lvn (lsubst nt1n (var_ren lv lvn)))
-                  # alpha_eq_bterm bt2 (bterm lvn (lsubst nt2n (var_ren lv lvn)))
+                  # alpha_eq_bterm bt1 (bterm lvn (ssubst nt1n (var_ren lv lvn)))
+                  # alpha_eq_bterm bt2 (bterm lvn (ssubst nt2n (var_ren lv lvn)))
                   #  disjoint (lva ++ lvn) ((bound_vars nt1n) ++ (bound_vars nt2n))  }.
 Proof using. 
   introv H1b H2b Hlen Hnr Hdis.
@@ -2470,21 +2503,21 @@ Proof using.
   rename lvn0 into lvnp.
   dimp (alpha_bterm_pair_change2 _ _ _ _ _ lvn H1c4 H1c5); spcf.
   - exrepnd. 
-    assert (alpha_eq_bterm bt2 (bterm lvn (lsubst (lsubst 
+    assert (alpha_eq_bterm bt2 (bterm lvn (ssubst (ssubst 
       nt2n (var_ren lv lvnp)) (var_ren lvnp lvn)))) as H1XX by eauto with slow.
-    assert (alpha_eq_bterm bt1 (bterm lvn (lsubst (lsubst 
+    assert (alpha_eq_bterm bt1 (bterm lvn (ssubst (ssubst 
       nt1n (var_ren lv lvnp)) (var_ren lvnp lvn)))) as H2XX by eauto with slow.
-    rewrite lsubst_nest_vars_same in H1XX; spc; try (disjoint_reasoningv; fail);
+    rewrite ssubst_nest_vars_same in H1XX; spc; try (disjoint_reasoningv; fail);
      [| alpharw (alpha_eq_sym _ _ H1c3); disjoint_reasoningv;fail].
-    rewrite lsubst_nest_vars_same in H2XX; spc; try (disjoint_reasoningv; fail);
+    rewrite ssubst_nest_vars_same in H2XX; spc; try (disjoint_reasoningv; fail);
      [| alpharw (alpha_eq_sym _ _ H1c2); disjoint_reasoningv;fail].
     eexists . eexists. dands; eauto;[]. disjoint_reasoningv.
   - unfold all_vars. 
-    repeat (rw boundvars_lsubst_vars;
+    repeat (rw boundvars_ssubst_vars;
     [ | disjoint_reasoningv | disjoint_reasoningv];[]).
     disjoint_reasoningv;[|].
     + introv Hin Hinc.
-      apply substitution.free_vars_lsubst2 in Hinc;
+      apply substitution.free_vars_ssubst2 in Hinc;
         [| apply disjoint_bv_vars; disjoint_reasoningv;fail].
       dorn Hinc; exrepnd.
       * unfold var_ren in Hinc. rw dom_sub_combine in Hinc; try( simpl_list;spc);[].
@@ -2495,7 +2528,7 @@ Proof using.
       * apply in_var_ren in Hinc0. exrepnd. subst. allsimpl. dorn Hinc1;spc;[].
         subst. disjoint_lin_contra.
     + introv Hin Hinc.
-      apply substitution.free_vars_lsubst2 in Hinc;
+      apply substitution.free_vars_ssubst2 in Hinc;
         [| apply disjoint_bv_vars; disjoint_reasoningv;fail].
       dorn Hinc; exrepnd.
       * unfold var_ren in Hinc. rw dom_sub_combine in Hinc;
@@ -2514,20 +2547,20 @@ Ltac prove_bin_rel_nterm :=
   (*-> disjoint (lvio++(flat_map free_vars lnt)) (bound_vars t)*)
 (* end hide *)
 
-Lemma lsubst_nest_same_alpha :
+Lemma ssubst_nest_same_alpha :
   forall t lvi lvio lnt,
   length lvio=length lvi
   -> length lvio=length lnt
   -> no_repeats lvio
   -> disjoint lvio (free_vars t)
-  -> alpha_eq (lsubst (lsubst t (var_ren lvi lvio)) (combine lvio lnt))
-      (lsubst t (combine lvi lnt)).
+  -> alpha_eq (ssubst (ssubst t (var_ren lvi lvio)) (combine lvio lnt))
+      (ssubst t (combine lvi lnt)).
 Proof using.
   intros.
   pose proof (change_bvars_alpha_wspec (lvio++(flat_map free_vars lnt)) t) as Hf.
   exrepnd.
   alpharws Hf0.
-  rw lsubst_nest_same;spc.
+  rw ssubst_nest_same;spc.
   alpharws (alpha_eq_sym _ _ Hf0). sp.
 Qed.
 (* begin hide *)
@@ -2570,68 +2603,68 @@ Ltac alphahypsd2 := simpl;
   | [H: alpha_eq_bterm (bterm [_] _) _ |- _] => apply alphaeqbt_1v in H; exrepnd; subst
   | [H: alpha_eq_bterm (bterm [_,_] _) _ |- _] => apply alphaeqbt_2v in H; exrepnd; subst
   end.
-Lemma lsubst_over_alpha_bt1 : forall o btnt rlbt sub,
+Lemma ssubst_over_alpha_bt1 : forall o btnt rlbt sub,
   disjoint (flat_map bound_vars_bterm rlbt) (flat_map free_vars (range sub))
-  -> alpha_eq (oterm o ((bterm [] (lsubst btnt sub)):: (map (fun t => lsubst_bterm_aux t sub) rlbt)))
-              (lsubst (oterm o ((bterm [] btnt):: rlbt)) sub).
+  -> alpha_eq (oterm o ((bterm [] (ssubst btnt sub)):: (map (fun t => ssubst_bterm_aux t sub) rlbt)))
+              (ssubst (oterm o ((bterm [] btnt):: rlbt)) sub).
 Proof using.
   introv Hdis.
   pose proof (change_bvars_alpha_wspec (flat_map free_vars (range sub))
      (oterm o (bterm [] btnt :: rlbt))) as Hfr.
   exrepnd.
   alpharws Hfr0.
-  remember (lsubst btnt sub) as ls.
-  change_to_lsubst_aux4.
+  remember (ssubst btnt sub) as ls.
+  change_to_ssubst_aux4.
   subst. clear d.
   repeat (alphahypsd2); show_hyps.
   repeat(prove_alpha_eq4).
   - simpl. rw sub_filter_nil_r.
-    rw <- lsubst_lsubst_aux;[| disjoint_reasoningv].
+    rw <- ssubst_ssubst_aux;[| disjoint_reasoningv].
     eauto with slow.
   - dimp (Hfr0bts (S n));[omega|]. unfold selectbt in hyp. simpl in hyp.
     revert hyp. repeat(fold_selectbt). introv Hlt.
     repeat(rw selectbt_map);spc;[].
     dimp (selectbt_in n rlbt).
     dimp (selectbt_in n lbt2); spc;[].
-    apply lsubst_alphabt_congr;sp;[].
+    apply ssubst_alphabt_congr;sp;[].
     disjoint_reasoningv; repeat(disjoint_flat3);
       show_hyps; disjoint_reasoningv.
 Qed.
 
-Lemma lsubst_over_alpha_bt2 : forall o bt1 bt2nt rlbt sub,
+Lemma ssubst_over_alpha_bt2 : forall o bt1 bt2nt rlbt sub,
   disjoint (flat_map bound_vars_bterm rlbt) (flat_map free_vars (range sub))
   -> disjoint (bound_vars_bterm bt1) (flat_map free_vars (range sub))
-  -> alpha_eq (oterm o ((lsubst_bterm_aux bt1 sub)::(bterm [] (lsubst bt2nt sub))
-                  :: (map (fun t => lsubst_bterm_aux t sub) rlbt)))
-              (lsubst (oterm o (bt1:: (bterm [] bt2nt):: rlbt)) sub).
+  -> alpha_eq (oterm o ((ssubst_bterm_aux bt1 sub)::(bterm [] (ssubst bt2nt sub))
+                  :: (map (fun t => ssubst_bterm_aux t sub) rlbt)))
+              (ssubst (oterm o (bt1:: (bterm [] bt2nt):: rlbt)) sub).
 Proof using.
   introv Hdis H2dis.
   pose proof (change_bvars_alpha_wspec (flat_map free_vars (range sub))
      (oterm o (bt1:: bterm [] bt2nt :: rlbt))) as Hfr.
   exrepnd.
   alpharws Hfr0.
-  remember (lsubst bt2nt sub) as ls.
-  change_to_lsubst_aux4.
+  remember (ssubst bt2nt sub) as ls.
+  change_to_ssubst_aux4.
   subst. clear d.
   repeat (alphahypsd2); show_hyps.
   repeat(prove_alpha_eq4).
-  - simpl. apply lsubst_alphabt_congr;cpx; disjoint_reasoningv.
+  - simpl. apply ssubst_alphabt_congr;cpx; disjoint_reasoningv.
   - simpl. rw sub_filter_nil_r.
-    rw <- lsubst_lsubst_aux;[| disjoint_reasoningv].
+    rw <- ssubst_ssubst_aux;[| disjoint_reasoningv].
     eauto with slow.
   - dimp (Hfr0bts (S (S n)));[omega|]. unfold selectbt in hyp. simpl in hyp.
     revert hyp. repeat(fold_selectbt). introv Hlt.
     repeat(rw selectbt_map);spc;[].
     dimp (selectbt_in n rlbt).
     dimp (selectbt_in n lbt2); spc;[].
-    apply lsubst_alphabt_congr;sp;[];
+    apply ssubst_alphabt_congr;sp;[];
     disjoint_reasoningv; repeat(disjoint_flat3);
       show_hyps; disjoint_reasoningv.
 Qed.
 Lemma eq_vars_progsub :
   forall (t : NTerm) (sub : Substitution),
   prog_sub sub
-  -> eqsetv (free_vars (lsubst t sub)) (remove_nvars (dom_sub sub) (free_vars t)).
+  -> eqsetv (free_vars (ssubst t sub)) (remove_nvars (dom_sub sub) (free_vars t)).
 Proof using.
   introv Hpr.
   pose proof (eqsetv_free_vars_disjoint t sub) as XX.
@@ -2650,8 +2683,8 @@ Proof using.
   sp.
 Qed.
 
-Lemma lsubst_program_implies : forall t sub,
-  isprogram (lsubst t sub)
+Lemma ssubst_program_implies : forall t sub,
+  isprogram (ssubst t sub)
   -> subset (free_vars t) (dom_sub sub).
 Proof using.
   introv Hpr.
@@ -2670,7 +2703,7 @@ Lemma eq_vars_prog_sub_same_dom: forall ta tb suba subb,
   -> prog_sub subb
   -> (dom_sub suba = dom_sub subb)
   -> eqsetv (free_vars ta) (free_vars tb)
-  -> eqsetv (free_vars (lsubst ta suba)) (free_vars (lsubst tb subb)).
+  -> eqsetv (free_vars (ssubst ta suba)) (free_vars (ssubst tb subb)).
 Proof using.
   introv Hap Hbp Hds Heq.
   pose proof (eq_vars_progsub ta _ Hap).
@@ -2686,7 +2719,7 @@ Qed.
 
 Lemma eq_vars_same_sub: forall ta tb sub,
   eqsetv (free_vars ta) (free_vars tb)
-  -> eqsetv (free_vars (lsubst ta sub)) (free_vars (lsubst tb sub)).
+  -> eqsetv (free_vars (ssubst ta sub)) (free_vars (ssubst tb sub)).
 Proof using.
   introv Heq.
   pose proof (eqsetv_free_vars_disjoint ta sub).
@@ -2704,10 +2737,10 @@ Proof using.
   apply eqsetv_sub_keep_first; auto.
 Qed.
 
-Hint Resolve lsubst_nt_wf lsubst_wf_if_eauto : slow.
+Hint Resolve ssubst_nt_wf ssubst_wf_if_eauto : slow.
 
-Lemma isprogram_lsubst_implies_ispbt : forall t sub, 
-    isprogram (lsubst t sub)
+Lemma isprogram_ssubst_implies_ispbt : forall t sub, 
+    isprogram (ssubst t sub)
     -> isprogram_bt (bterm (dom_sub sub) t).
 Proof using.
   introv Hpr.
@@ -2717,13 +2750,13 @@ Proof using.
   split;[|constructor; eauto with slow].
   unfolds_base.
   simpl.
-  apply lsubst_program_implies in Hpr.
+  apply ssubst_program_implies in Hpr.
   apply nil_remove_nvars_iff; auto.
 Qed.
 
 Hint Unfold wf_sub sub_range_sat : slow.
 
-Hint Resolve lsubst_nt_wf: slow.
+Hint Resolve ssubst_nt_wf: slow.
 (* replace in cequiv.v *)
 
 Lemma subst_change_prog : forall t ts td v,
@@ -2732,9 +2765,9 @@ Lemma subst_change_prog : forall t ts td v,
   -> isprogram (subst t v td).
 Proof using.
   introv  Hpd Hpl.
-  applydup lsubst_program_implies in Hpl.
-  allunfold subst. apply isprogram_lsubst;sp. 
-  - repnud Hpl. apply lsubst_nt_wf in Hpl;sp.
+  applydup ssubst_program_implies in Hpl.
+  allunfold subst. apply isprogram_ssubst;sp. 
+  - repnud Hpl. apply ssubst_nt_wf in Hpl;sp.
   -  in_reasoning. cpx.
 Qed.
 
@@ -2761,18 +2794,18 @@ Lemma subst_aux_change_prog : forall t ts td v,
   -> isprogram (subst t v td).
 Proof using.
   introns XX. unfold subst_aux in *.
-  rewrite <- lsubst_lsubst_aux_prog_sub in XX1 ;[| prove_sub_range_sat; fail].
+  rewrite <- ssubst_ssubst_aux_prog_sub in XX1 ;[| prove_sub_range_sat; fail].
   apply subst_change_prog with (ts:=ts); auto.
 Qed.
 
-Lemma progsub_lsubst_disjointfv_domsub :
+Lemma progsub_ssubst_disjointfv_domsub :
   forall t sub,
   prog_sub sub
-  -> disjoint (free_vars (lsubst t sub)) (dom_sub sub).
+  -> disjoint (free_vars (ssubst t sub)) (dom_sub sub).
 Proof using.
   introv Hprs.
   intros v Hin Hinc.
-  rw isprogram_lsubst2 in Hin; auto;[].
+  rw isprogram_ssubst2 in Hin; auto;[].
   apply in_remove_nvars in Hin.
   repnd. sp.
 Qed.
@@ -2782,33 +2815,33 @@ Lemma btchange_alpha_aux: forall lv nt lvn,
   length lv = length lvn 
   -> no_repeats lvn
   -> disjoint (all_vars nt) lvn
-  -> alpha_eq_bterm (bterm lv nt) (bterm lvn (lsubst nt (var_ren lv lvn))).
+  -> alpha_eq_bterm (bterm lv nt) (bterm lvn (ssubst nt (var_ren lv lvn))).
 Proof using.
   introv Hlen Hdis Hnr.
   pose proof (fresh_vars (length lvn) (all_vars nt ++lvn)).
   exrepnd.
   rename lvn0 into lvnn.
-  change_to_lsubst_aux4. clear d.
-  exists lvnn;auto; try congruence; disjoint_reasoningv; repeat(disjoint_lsubst);spcls; disjoint_reasoningv;[].
-  rewrite <- lsubst_lsubst_aux;[| spcls; disjoint_reasoningv].
+  change_to_ssubst_aux4. clear d.
+  exists lvnn;auto; try congruence; disjoint_reasoningv; repeat(disjoint_ssubst);spcls; disjoint_reasoningv;[].
+  rewrite <- ssubst_ssubst_aux;[| spcls; disjoint_reasoningv].
   apply alpha_eq_sym.
-  apply lsubst_nest_same_alpha; spcls; auto;disjoint_reasoningv.
+  apply ssubst_nest_same_alpha; spcls; auto;disjoint_reasoningv.
 Qed.
 
 Lemma btchange_alpha: forall lv nt lvn,
   length lv = length lvn 
   -> no_repeats lvn
   -> disjoint (free_vars nt) lvn
-  -> alpha_eq_bterm (bterm lv nt) (bterm lvn (lsubst nt (var_ren lv lvn))).
+  -> alpha_eq_bterm (bterm lv nt) (bterm lvn (ssubst nt (var_ren lv lvn))).
 Proof using.
   introv Hlen Hdis Hnr.
   pose proof (change_bvars_alpha_wspec lvn nt) as Hfr.
   exrepnd.
   alpharwh Hfr0 Hnr.
-  assert (alpha_eq_bterm (bterm lv nt) (bterm lvn (lsubst ntcv (var_ren lv lvn))));
+  assert (alpha_eq_bterm (bterm lv nt) (bterm lvn (ssubst ntcv (var_ren lv lvn))));
   [| eauto with slow].
   apply alpha_eq_bterm_sym.
-  assert (alpha_eq_bterm (bterm lv ntcv) (bterm lvn (lsubst ntcv (var_ren lv lvn))));
+  assert (alpha_eq_bterm (bterm lv ntcv) (bterm lvn (ssubst ntcv (var_ren lv lvn))));
   [| eauto with slow].
   clear dependent nt.
   apply btchange_alpha_aux; auto; disjoint_reasoningv.
@@ -2817,12 +2850,12 @@ Qed.
 Lemma alpha_eq_bterm_single_change : forall e1 vx,
   subset (free_vars e1) [vx]
   -> forall vy, alpha_eq_bterm (bterm [vx] e1)
-                (bterm [vy] (lsubst e1 (var_ren [vx] [vy]))).
+                (bterm [vy] (ssubst e1 (var_ren [vx] [vy]))).
 Proof using.
   introv Hs. intros.
   destruct (deq_nvar vx vy); subst.
   - apply alpha_eq_bterm_congr. apply alpha_eq_sym. 
-    apply lsubst_trivial_alpha.
+    apply ssubst_trivial_alpha.
   - apply btchange_alpha; auto;[apply no_rep_cons; cpx; fail|].
     eapply subset_disjoint; eauto.
     disjoint_reasoningv; cpx.
@@ -2831,7 +2864,7 @@ Qed.
 Lemma alpha_eq_bterm_single_change2 : forall e1 vx vy,
   isprogram_bt  (bterm [vx] e1)
   -> alpha_eq_bterm (bterm [vx] e1)
-                (bterm [vy] (lsubst e1 (var_ren [vx] [vy]))).
+                (bterm [vy] (ssubst e1 (var_ren [vx] [vy]))).
 Proof using.
   introv X. apply alpha_eq_bterm_single_change.
   repnud X.
@@ -2842,10 +2875,10 @@ Proof using.
 Qed.
 
 
-Lemma lsubst_nest_single : forall e vx vy t,
+Lemma ssubst_nest_single : forall e vx vy t,
   subset (free_vars e) [vx]
-  -> alpha_eq (lsubst e [(vx,t)])
-                           (lsubst (lsubst e (var_ren [vx] [vy])) [(vy,t)]).
+  -> alpha_eq (ssubst e [(vx,t)])
+                           (ssubst (ssubst e (var_ren [vx] [vy])) [(vy,t)]).
 Proof using.
   introv Hs. intros.
   apply alpha_eq_bterm_single_change with (vy:=vy) in Hs.
@@ -2855,14 +2888,14 @@ Qed.
 
 
 Lemma prog_sub_change : forall sub1 sub2 t,
-  isprogram (lsubst t sub1)
+  isprogram (ssubst t sub1)
   -> prog_sub sub1
   -> prog_sub sub2
   -> dom_sub sub1 =dom_sub sub2
-  -> isprogram (lsubst t sub2).
+  -> isprogram (ssubst t sub2).
 Proof using.
   introv Hp H1p H2p Hd.
-  apply isprogram_lsubst_implies_ispbt in Hp.
+  apply isprogram_ssubst_implies_ispbt in Hp.
   apply isprogram_bt_implies with (lnt := range sub2) in Hp;
   unfold num_bvars; simpl; auto;[ | |rw Hd; eauto with slow ].
   - unfold apply_bterm in Hp.
@@ -2920,24 +2953,24 @@ Proof using.
   pose proof (change_bvars_alpha_wspec (free_vars (oterm (NCan no) lbt)) e) as Hfr.
   exrepnd. duplicate Hfr0 as Hal.
   apply alpha_eq_sym in Hfr0.
-  apply lsubst_alpha_congr2 with (sub:= [(vx,t)])in Hfr0.
+  apply ssubst_alpha_congr2 with (sub:= [(vx,t)])in Hfr0.
   apply (alpha_preserves_value _ _ Hfr0).
-  apply lsubst_alpha_congr2 with (sub:= [(vx,(oterm (NCan no) lbt))])in Hal.
+  apply ssubst_alpha_congr2 with (sub:= [(vx,(oterm (NCan no) lbt))])in Hal.
   apply (alpha_preserves_value _ _ Hal) in Hv.
   clear dependent e. duplicate Hv. inverts Hv0 as Hvv Hvvv.
   rw Hvvv in Hvv. apply subst_change_prog with (td:=t) in Hvv; auto.
-  lsubst_lsubst_aux_eq_hyp  Hdd Hv; [simpl ;repeat (simpl_sub5); disjoint_reasoningv| ].
+  ssubst_ssubst_aux_eq_hyp  Hdd Hv; [simpl ;repeat (simpl_sub5); disjoint_reasoningv| ].
   duplicate Hp. repnud Hp0.
-  change_to_lsubst_aux4; [| simpl ;rw Hp1; disjoint_reasoningv;fail ].
+  change_to_ssubst_aux4; [| simpl ;rw Hp1; disjoint_reasoningv;fail ].
   apply subst_val in Hv.
   exrepnd. subst.
   unfold subst in Hvv.
-  lsubst_lsubst_aux_eq_hyp  Hff Hvv.
+  ssubst_ssubst_aux_eq_hyp  Hff Hvv.
   allsimpl.
   auto.
 Qed.
 
-Lemma noncan_lsubst_aux : forall e vy t1 t2,
+Lemma noncan_ssubst_aux : forall e vy t1 t2,
   isnoncan t1
   -> isnoncan (subst_aux e vy t1)
   -> isnoncan t2
@@ -2961,7 +2994,7 @@ Proof using.
   constructor.
 Qed.
   
-Lemma noncan_lsubst : forall e vx t1 t2,
+Lemma noncan_ssubst : forall e vx t1 t2,
   isnoncan t1
   -> isnoncan (subst e vx t1)
   -> isnoncan t2
@@ -2971,14 +3004,14 @@ Proof using.
   pose proof (change_bvars_alpha_wspec (free_vars t1 ++ free_vars t2) e) as Hfr.
   exrepnd. duplicate Hfr0 as Hal.
   apply alpha_eq_sym in Hfr0.
-  apply lsubst_alpha_congr2 with (sub:= [(vx,t2)])in Hfr0.
+  apply ssubst_alpha_congr2 with (sub:= [(vx,t2)])in Hfr0.
   apply (alpha_noncan _ _ Hfr0).
-  apply lsubst_alpha_congr2 with (sub:= [(vx,t1)])in Hal.
+  apply ssubst_alpha_congr2 with (sub:= [(vx,t1)])in Hal.
   apply (alpha_noncan _ _ Hal) in H1snc.
   clear dependent e.
-  lsubst_lsubst_aux_eq_hyp  Hdd H1snc; [simpl ;repeat (simpl_sub5); disjoint_reasoningv| ].
-  change_to_lsubst_aux4; [| simpl; disjoint_reasoningv;fail ].
-  eapply noncan_lsubst_aux with (t1:=t1); eauto.
+  ssubst_ssubst_aux_eq_hyp  Hdd H1snc; [simpl ;repeat (simpl_sub5); disjoint_reasoningv| ].
+  change_to_ssubst_aux4; [| simpl; disjoint_reasoningv;fail ].
+  eapply noncan_ssubst_aux with (t1:=t1); eauto.
 Qed.
 
 Lemma alpha_prog_eauto:
@@ -2992,7 +3025,7 @@ Qed.
 Hint Resolve alpha_prog_eauto : slow.
 
 (* end hide *)
-Lemma lsubst_nest_swap_alpha: forall t sub1 sub2,
+Lemma ssubst_nest_swap_alpha: forall t sub1 sub2,
   let lvi1 := dom_sub sub1 in
   let lvi2 := dom_sub sub2 in
   let lnt1 := range sub1 in
@@ -3000,7 +3033,7 @@ Lemma lsubst_nest_swap_alpha: forall t sub1 sub2,
   disjoint lvi1 (flat_map free_vars lnt2) (*o/w capture will occur in RHS*)
   -> disjoint lvi2 (flat_map free_vars lnt1) (*o/w capture will occur in LHS*)
   -> disjoint lvi1 lvi2 (*o/w order will matter*)
-  -> alpha_eq (lsubst(lsubst t sub1) sub2)  (lsubst(lsubst t sub2) sub1).
+  -> alpha_eq (ssubst(ssubst t sub1) sub2)  (ssubst(ssubst t sub2) sub1).
 Proof using.
   introv H2dis H1dis Hdom.
   pose proof (change_bvars_range_wspec3 (flat_map free_vars (range sub1)) sub2) as Hfs.
@@ -3008,7 +3041,7 @@ Proof using.
   rename sub' into sub2'.
   pose proof (Hfs0 t) as XX.
   alpharws XX. clear XX.
-  pose proof (Hfs0 (lsubst t sub1)) as XX.
+  pose proof (Hfs0 (ssubst t sub1)) as XX.
   alpharws XX. clear XX.
   rw Hfs3 in H1dis.
   rw Hfs3 in Hdom.
@@ -3020,7 +3053,7 @@ Proof using.
   rename sub' into sub1'.
   pose proof (Hfss0 t) as XX.
   alpharws XX. clear XX.
-  pose proof (Hfss0 (lsubst t sub2)) as XX.
+  pose proof (Hfss0 (ssubst t sub2)) as XX.
   alpharws XX. clear XX.
   rw Hfss3 in H2dis.
   rw Hfss3 in Hdom.
@@ -3033,8 +3066,8 @@ Proof using.
   alpharws Hfr0.
   clear dependent t.
   rename ntcv into t.
-  change_to_lsubst_aux4; try(disjoint_lsubst).
-  pose proof (lsubst_aux_nest_swap2 t sub1 sub2) as ZZ.
+  change_to_ssubst_aux4; try(disjoint_ssubst).
+  pose proof (ssubst_aux_nest_swap2 t sub1 sub2) as ZZ.
   simpl in ZZ.
   dimp ZZ; auto; disjoint_reasoningv.
   rw hyp.
@@ -3059,8 +3092,8 @@ Lemma alpha_bterm_pair_change3 : forall (bt1 bt2: BTerm) lv nt1 nt2 lvn,
   -> { nt1n, nt2n : NTerm $
                   alpha_eq nt1 nt1n
                   # alpha_eq nt2 nt2n
-                  # alpha_eq_bterm bt1 (bterm lvn (lsubst nt1n (var_ren lv lvn)))
-                  # alpha_eq_bterm bt2 (bterm lvn (lsubst nt2n (var_ren lv lvn)))
+                  # alpha_eq_bterm bt1 (bterm lvn (ssubst nt1n (var_ren lv lvn)))
+                  # alpha_eq_bterm bt2 (bterm lvn (ssubst nt2n (var_ren lv lvn)))
                   #  disjoint lvn ((bound_vars nt1n) ++ (bound_vars nt2n))  }.
 Proof using. 
   intros. apply alpha_bterm_pair_change4 with (lva := nil);spc.
@@ -3115,39 +3148,39 @@ Ltac simpl_sub4 :=
 | [ |-  context[flat_map bound_vars (map vterm _)] ] => rewrite flat_map_bound_var_vterm
 end).
 
-Lemma lsubst_nest3_1vars :  forall t lvi lvo sub subc,
+Lemma ssubst_nest3_1vars :  forall t lvi lvo sub subc,
   length lvi = length lvo
   -> disjoint (dom_sub subc) (lvi++lvo)
   -> prog_sub sub
   -> prog_sub subc
-  -> alpha_eq  (lsubst (lsubst (lsubst t subc) (var_ren lvi lvo)) sub)
-             (lsubst (lsubst (lsubst t (var_ren lvi lvo) ) (sub_filter sub (dom_sub subc)))  subc).
+  -> alpha_eq  (ssubst (ssubst (ssubst t subc) (var_ren lvi lvo)) sub)
+             (ssubst (ssubst (ssubst t (var_ren lvi lvo) ) (sub_filter sub (dom_sub subc)))  subc).
 Proof using.
   introv Hlen Hdis Hps Hpr. 
   match goal with 
-  [ |- alpha_eq (lsubst (lsubst (lsubst ?t ?subi) ?subo) _) _] => 
-      pose proof (lsubst_nest_swap_alpha t subi subo) as ZZ 
+  [ |- alpha_eq (ssubst (ssubst (ssubst ?t ?subi) ?subo) _) _] => 
+      pose proof (ssubst_nest_swap_alpha t subi subo) as ZZ 
   end.
   simpl in ZZ;spcls;
       dimp ZZ;repeat(simpl_sub4);(try match goal with [|- disjoint _ _] => disjoint_reasoningv end).
   clear ZZ. allrw (fold_var_ren).
   alpharw hyp. clear hyp.
   match goal with
-  [ |- alpha_eq  (lsubst ?t sub) _ ] => 
-      dimp (lsubst_sub_filter_alpha t sub (dom_sub subc));
-      [apply  progsub_lsubst_disjointfv_domsub; auto|]
+  [ |- alpha_eq  (ssubst ?t sub) _ ] => 
+      dimp (ssubst_sub_filter_alpha t sub (dom_sub subc));
+      [apply  progsub_ssubst_disjointfv_domsub; auto|]
   end;[].
   apply alpha_eq_sym in hyp.
   alpharw hyp.
   match goal with
-  [ |- alpha_eq  (lsubst (lsubst ?t ?subi) ?subo) _] => 
-      pose proof (lsubst_nest_swap_alpha t subi subo) as ZZ; simpl in ZZ; spcls
+  [ |- alpha_eq  (ssubst (ssubst ?t ?subi) ?subo) _] => 
+      pose proof (ssubst_nest_swap_alpha t subi subo) as ZZ; simpl in ZZ; spcls
   end.
   apply sub_filter_sat with (lv:=(dom_sub subc)) in Hps.
   fold (prog_sub (sub_filter sub (dom_sub subc))) in Hps.
   dimp ZZ; spcls; repeat(simpl_sub2);simpl;
   try(apply disjoint_sym; apply disjoint_dom_sub_filt);
-  change_to_lsubst_aux4; disjoint_reasoningv.
+  change_to_ssubst_aux4; disjoint_reasoningv.
 Qed.
 
 Lemma crary_5_9_aux :  forall t v lvi lvo sub tt,
@@ -3155,11 +3188,11 @@ Lemma crary_5_9_aux :  forall t v lvi lvo sub tt,
   -> disjoint [v] (lvi++lvo)
   -> prog_sub sub
   -> isprogram tt 
-  -> alpha_eq  (lsubst (lsubst (lsubst t [(v, tt)]) (var_ren lvi lvo)) sub)
-             (lsubst (lsubst (lsubst t (var_ren lvi lvo) ) (sub_filter sub [v]))  [(v, tt)]).
+  -> alpha_eq  (ssubst (ssubst (ssubst t [(v, tt)]) (var_ren lvi lvo)) sub)
+             (ssubst (ssubst (ssubst t (var_ren lvi lvo) ) (sub_filter sub [v]))  [(v, tt)]).
 Proof using.
   intros.
-  apply lsubst_nest3_1vars; auto.
+  apply ssubst_nest3_1vars; auto.
   prove_sub_range_sat.
 Qed.
 
@@ -3192,12 +3225,12 @@ Proof using.
 Qed.
 
 
-Lemma lsubst_oterm : forall (lbt : list BTerm) (o : Opid) (sub: Substitution),
-  {lbts : list BTerm | lsubst (oterm o lbt) sub = oterm o lbts
+Lemma ssubst_oterm : forall (lbt : list BTerm) (o : Opid) (sub: Substitution),
+  {lbts : list BTerm | ssubst (oterm o lbt) sub = oterm o lbts
     /\ map num_bvars lbt = map num_bvars lbts}.
 Proof using.
   intros ? ? ?.
-  unfold lsubst.
+  unfold ssubst.
   cases_if.
   - simpl. eexists. split;[reflexivity|]. rewrite map_map.
     apply eq_maps. intros ? _. destruct x. refl.
@@ -3212,7 +3245,7 @@ Proof using.
     apply eq_maps. intros ? _. destruct x. refl.
 Qed.
 
-SearchAbout lsubst num_bvars.
+SearchAbout ssubst num_bvars.
   
 Section RWInstances.  
 (** contents of this section will work only when [univ] := Prop. Coq does (yet) not support rewriting
@@ -3253,12 +3286,12 @@ Proof using.
 Qed.
 
 Global Instance properAlphaLSubst : 
-  Proper (alpha_eq ==> (sub_range_rel alpha_eq) ==> alpha_eq) lsubst.
+  Proper (alpha_eq ==> (sub_range_rel alpha_eq) ==> alpha_eq) ssubst.
 Proof using.
   intros ? ? Heq s1 s2 Hs.
   unfold subst.
   apply sub_rel_alpha_prop with (t:= x) in Hs.
-  apply lsubst_alpha_congr2  with (sub:=s2)  in Heq.
+  apply ssubst_alpha_congr2  with (sub:=s2)  in Heq.
   eauto with slow.
 Qed.
 
@@ -3271,16 +3304,16 @@ Qed.
 
 (** substitution of substitutions *)
 Global Instance properAlphaLSubstSub : 
-  Proper ((sub_range_rel alpha_eq) ==> (eq (* can be generalized *)) ==> (sub_range_rel alpha_eq)) lsubst_sub.
+  Proper ((sub_range_rel alpha_eq) ==> (eq (* can be generalized *)) ==> (sub_range_rel alpha_eq)) ssubst_sub.
 Proof using.
   intros ? ? Heq s1 s2 Hs.
-  subst. apply sub_rel_lsubst_sub_alpha. trivial.
+  subst. apply sub_rel_ssubst_sub_alpha. trivial.
 Qed.
 
 End RWInstances.
 
 Lemma fold_apply_bterm : forall lv nt lnt,
-lsubst nt (combine lv lnt)
+ssubst nt (combine lv lnt)
 = 
 apply_bterm (bterm lv nt) lnt.
 Proof.
@@ -3298,18 +3331,18 @@ apply_bterm_alpha_congr_nested:
   bin_rel_nterm alpha_eq lnt1out lnt2out ->
   length lnt1in  = length lv1in  ->
   length lnt1out = length lv1out
-  -> alpha_eq (lsubst (lsubst nt1 (combine lv1in lnt1in)) (combine lv1out lnt1out))
-              (lsubst (lsubst nt2 (combine lv2in lnt2in)) (combine lv2out lnt2out)).
+  -> alpha_eq (ssubst (ssubst nt1 (combine lv1in lnt1in)) (combine lv1out lnt1out))
+              (ssubst (ssubst nt2 (combine lv2in lnt2in)) (combine lv2out lnt2out)).
 Proof.
   intros.
   simpl in *. inverts H.
-   SearchAbout (lsubst (lsubst _ _) _). 
+   SearchAbout (ssubst (ssubst _ _) _). 
    repeat alphahypsd2.
   apply apply_bterm_alpha_congr with (lnt1:= lnt1out) (lnt2:= lnt2out)  in H;
     unfold num_bvars; simpl; auto.
   unfold apply_bterm in H.
   simpl in H.
-  SearchAbout lsubst oterm.  
+  SearchAbout ssubst oterm.  
   apply apply_bterm_alpha_congr with (lnt1:= lnt1out) (lnt2:= lnt2out)  in H.
   simpl in H.
    simpl ; auto.
@@ -3377,7 +3410,7 @@ Proof.
   simpl. assumption.
 Qed.
 
-  SearchAbout  lsubst oterm. 
+  SearchAbout  ssubst oterm. 
 
 End AlphaGeneric.
 
@@ -3385,13 +3418,13 @@ Ltac ntwfauto :=
 unfold apply_bterm in *;
 unfold subst in *;
 (repeat match goal with
-[ |- nt_wf (lsubst _ _)] => 
+[ |- nt_wf (ssubst _ _)] => 
   let Hsub := fresh "Hsub" in
-  apply lsubst_wf_iff;[intros ? ? Hsub; try in_reasoning; cpx|]
-| [ H: nt_wf (lsubst _ _) |- _ ] => 
+  apply ssubst_wf_iff;[intros ? ? Hsub; try in_reasoning; cpx|]
+| [ H: nt_wf (ssubst _ _) |- _ ] => 
   let Hb := fresh H in
   pose proof H as Hb;
-  apply lsubst_nt_wf in Hb
+  apply ssubst_nt_wf in Hb
 | [ H: nt_wf ?x |- _ ] => 
   let H1 := fresh "Hntwf" in
   let H2 := fresh "HntwfSig" in
