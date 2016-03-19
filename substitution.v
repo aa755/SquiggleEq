@@ -7040,14 +7040,6 @@ match goal with
   [change_to_ssubst_aux4; sp ;fail | rw H]
 end.
 
-Ltac ssubst_ssubst_aux_eq_hyp H Hyp :=
-let T := type of Hyp in 
-match T with
-|  context[ssubst ?t ?sub] => 
-  assert (ssubst t sub = ssubst_aux t sub) as H;
-  [change_to_ssubst_aux4; sp  | rewrite H in Hyp ]
-end.
-
 Ltac disjoint_flat3 := allunfold disjoint_bv_sub; allunfold sub_range_sat; allsimpl;
   match goal with
 |[ H: (LIn (_,?t) ?sub), H2 : (disjoint (flat_map ?f (range ?sub)) ?l)  |- disjoint (?f ?t) ?l ] =>
@@ -7124,3 +7116,12 @@ Ltac change_to_ssubst_aux8 :=
               apply disjoint_sub_as_flat_map in H;apply disjoint_sym in H
           end);
   repeat(cases_if;clears_last; [|sp;disjoint_reasoningv;spcls;try(false_disjoint)]).
+  
+Ltac ssubst_ssubst_aux_eq_hyp H Hyp :=
+let T := type of Hyp in 
+match T with
+|  context[ssubst ?t ?sub] => 
+  assert (ssubst t sub = ssubst_aux t sub) as H;
+  [change_to_ssubst_aux8; sp  | rewrite H in Hyp ]
+end.
+  
