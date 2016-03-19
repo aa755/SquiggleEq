@@ -1347,13 +1347,39 @@ Finally, here is the function that safely perfoms
 
 *)
 
+Class FreeVars (T:Type) := freevars : T -> list NVar.
+
 Section SubstGeneric2.
 Context {gts : GenericTermSig}.
+Global Instance FreeVarsNTerm : FreeVars NTerm := free_vars.
+Global Instance FreeVarsBTerm : FreeVars BTerm := free_vars_bterm.
+Global Instance FreeVarsSub : FreeVars Substitution := 
+  fun s => flat_map free_vars (range s).
+
 Definition lsubst  (t : NTerm) (sub : Substitution) : NTerm :=
   let sfr := flat_map free_vars (range sub) in
     if dec_disjointv (bound_vars t) sfr
     then lsubst_aux t sub
     else lsubst_aux (change_bvars_alpha  sfr t) sub.
+
+Fixpoint ssubst  (t : NTerm) (sub : Substitution) : NTerm :=
+match t with
+| vterm var =>
+    match sub_find sub var with
+    | Some st => st
+    | None => t
+    end
+| oterm op bts => oterm op (map (fun t => ssubst_bterm t sub) bts)
+end
+with ssubst_bterm  (bt : BTerm) (sub : Substitution) : BTerm :=
+  match bt with
+  | bterm [] nt => bterm [] (ssubst nt sub)
+  | _ => 
+      let sfr := flat_map free_vars (range sub) in
+      let btalpha := change_bvars_alphabt sfr bt in
+      (** doing alpha renaming recursively can be painful *)
+      lsubst_bterm_aux bt sub
+  end.
 
 
 (** %\noindent% The following definition will be useful while

@@ -2841,6 +2841,7 @@ Proof using.
   rw nil_remove_nvars_iff in X0; auto.
 Qed.
 
+
 Lemma lsubst_nest_single : forall e vx vy t,
   subset (free_vars e) [vx]
   -> alpha_eq (lsubst e [(vx,t)])
@@ -3190,6 +3191,7 @@ Proof using.
   apply alpha_eq_trans with (nt2 := x0); auto.
 Qed.
 
+
 Lemma lsubst_oterm : forall (lbt : list BTerm) (o : Opid) (sub: Substitution),
   {lbts : list BTerm | lsubst (oterm o lbt) sub = oterm o lbts}.
 Proof using.
@@ -3360,6 +3362,8 @@ Proof.
   setoid_rewrite Hbts1.
   simpl. assumption.
 Qed.
+
+  SearchAbout  lsubst oterm. 
 
 End AlphaGeneric.
 

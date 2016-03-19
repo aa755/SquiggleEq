@@ -1858,14 +1858,17 @@ Qed.
 
 Lemma select_selectbt : forall n lbt b,
 select n lbt = Some b
--> selectbt lbt n = b.
+<-> (selectbt lbt n = b /\ n < length lbt).
 Proof using.
-  intros ? ? ? Hin.
-  pose proof Hin.
-  apply select_lt in Hin.
+  intros ? ? ?.
+  split; intros Hin.
+- pose proof Hin.
+  apply select_lt in Hin. split;[|assumption].
   apply nth_select1 with (def:= bterm [] (vterm nvarx))in Hin.
   unfold selectbt.
   congruence.
+- repnd. eapply nth_select3; auto.
+  apply Hin0.
 Qed.
 
 End terms4Generic.
