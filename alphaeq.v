@@ -3193,14 +3193,28 @@ Qed.
 
 
 Lemma lsubst_oterm : forall (lbt : list BTerm) (o : Opid) (sub: Substitution),
-  {lbts : list BTerm | lsubst (oterm o lbt) sub = oterm o lbts}.
+  {lbts : list BTerm | lsubst (oterm o lbt) sub = oterm o lbts
+    /\ map num_bvars lbt = map num_bvars lbts}.
 Proof using.
   intros ? ? ?.
   unfold lsubst.
-  cases_if;simpl; eexists; reflexivity.
+  cases_if.
+  - simpl. eexists. split;[reflexivity|]. rewrite map_map.
+    apply eq_maps. intros ? _. destruct x. refl.
+  - add_changebvar_spec cb Hc. repnd.
+    destruct cb;[apply False_rec; inverts Hc|].
+    simpl. pose proof Hc as Hcb.
+    eexists. inverts Hc.
+    split;[reflexivity|].
+    apply alpha_eq_ot_numvars in Hcb.
+    rewrite Hcb.
+    rewrite map_map.
+    apply eq_maps. intros ? _. destruct x. refl.
 Qed.
+
+SearchAbout lsubst num_bvars.
   
-Section RWInstances.
+Section RWInstances.  
 (** contents of this section will work only when [univ] := Prop. Coq does (yet) not support rewriting
 with relations in Type *)
 Global Instance equivAlphaEq : Equivalence alpha_eq.
