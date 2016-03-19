@@ -959,18 +959,17 @@ Theorem alphabt_change_var: forall nt1 nt2 lv1 lv2 lv,
         (ssubst nt2 (var_ren lv2 lv)) # length lv1 = length lv2).
 Proof using.
   introns HX.
-  unfold ssubst.
   duplicate HX as Hl.
   inverts Hl.
   change_to_ssubst_aux8.
   apply alphaeq_bterm3_if with (lva:=[]) in HX.
 
-     (*eauto
+     (*eauto*)
+
       split; spc;
       eapply alpha_eq_if3;
       eapply alpha3bt_change_var;eauto.
-*)
-Abort.
+Qed.
 
 Hint Resolve alpha_eq_sym alpha_eq_trans : slow.
 
@@ -984,12 +983,12 @@ Proof using. introv H1b H2b.
   destruct bt3 as [lv3 nt3].
   pose proof (fresh_vars (length lv1) (all_vars nt1++all_vars nt2++all_vars nt3)).
   exrepnd.
-(*  apply alphabt_change_var with (lv:=lvn) in H1b; eauto; disjoint_reasoningv.
+  apply alphabt_change_var with (lv:=lvn) in H1b; eauto; disjoint_reasoningv.
   apply alphabt_change_var with (lv:=lvn) in H2b; eauto; disjoint_reasoningv;spc.
   apply al_bterm with (lv:=lvn); spc; disjoint_reasoningv.
   eauto with slow. 
-  *)
-Abort.
+Qed.
+
 
 Lemma alpha_eq_bterm_sym :
   forall bt1 bt2, alpha_eq_bterm bt1 bt2 -> alpha_eq_bterm bt2 bt1.
@@ -1317,11 +1316,27 @@ Proof using.
   exrepnd.
   rename lvn0 into lvnn.
   exists lvnn;auto; try congruence; disjoint_reasoningv; repeat(disjoint_ssubst);spcls; disjoint_reasoningv;[].
-(*  rewrite <- ssubst_ssubst_aux;[| spcls; disjoint_reasoningv].
-  apply alpha_eq_sym.
-  apply ssubst_nest_same_alpha; spcls; auto;disjoint_reasoningv. *)
-Admitted.
+  setoid_rewrite ssubst_ssubst_aux at 2; [| simpl; 
+      rewrite boundvars_ssubst_aux_vars; spcls ;disjoint_reasoningv].
+  unfold var_ren at 3.
+  rewrite ssubst_aux_nest_same; auto; spcls; auto; disjoint_reasoningv.
+  setoid_rewrite ssubst_ssubst_aux; [| simpl; spcls; disjoint_reasoningv].
+  apply alpha_eq_refl.  
+Qed.
 
+Lemma alpha_eq_bterm_congr : forall lv nt nt',
+  alpha_eq nt nt'
+  -> alpha_eq_bterm (bterm lv nt) (bterm lv nt').
+Proof using.
+  introv Hal.
+  pose proof (fresh_vars (length lv) (all_vars nt ++ all_vars nt')) as Hfr.
+  exrepnd.
+  apply al_bterm with (lv:= lvn); spc; disjoint_reasoningv.
+  change_to_ssubst_aux8.
+  apply ssubst_aux_alpha_congr; auto; spcls; auto.
+  apply bin_rel_list_refl.
+  exact alpha_eq_refl.
+Qed.
 
 (** this characterization makes ssubst look like the old lsubst, and
   hence makes it posssible to 
@@ -1358,52 +1373,20 @@ Proof.
     add_changebvar_spec ss Hdd.
     apply ssubst_alphabt_congr;[| simpl; 
       rewrite boundvars_ssubst_aux_vars; disjoint_reasoningv].
-   Focus 2.
-   disjoint_reasoningv.
-   SearchAbout change_bvars_alpha.
-    apply ssubst_aux_alphabt_congr.
-    simpl.
-    rewrite Heqlvv.
-   generalize (v :: lv). intro l. simpl.
-    
-    SearchAbout ssubst_aux nil.
-    SearchAbout change_bvars_alpha .
-  simpl. 
-  
-  fresh_vars.
-  unfold fresh_vars.
- simpl.
-
-   SearchAbout LIn selectbt.
-  SearchAbout selectbt map.
-  + rewrite map_map. unfold compose.
-    do 2 rewrite map_length.
-      
-  destruct t;[simpl; refl|].
-  simpl. f_equal.
-  rewrite map_map.
-  apply eq_maps. unfold compose.
-  intros ? ?.
-  Print ssubst_bterm.
-  simpl.
-  add_changebvar_spec ta Hd.
-  repnd.
-  
-  destruct t.
-- simpl in *.
-   ta Hd.
-  alpha_eq t1 t2
-  -> length lvi = length lnt1
-  -> length lvi = length lnt2
-  -> disjoint (flat_map free_vars lnt1) (bound_vars t1)
-  -> disjoint (flat_map free_vars lnt2) (bound_vars t2)
-  -> bin_rel_nterm alpha_eq lnt1 lnt2
-  -> alpha_eq (ssubst_aux t1 (combine lvi lnt1)) (ssubst_aux t2 (combine lvi lnt2)).
-Proof using.
-  intros. apply alpha_eq_if3 with (lv:=[]). apply ssubst_alpha3_congr_auxp;sp.
-  apply alpha_eq3_if;sp. eapply bin_rel_list_le; eauto.
-  apply alpha3_le.
+    disjoint_reasoningv.
+    clear dependent sub.
+    apply alpha_eq_bterm_congr with (lv:=lvv )in Hdd.
+    eapply alpha_eq_bterm_trans;[apply Hdd|].
+    apply btchange_alpha_ssubst_aux; auto.
+    disjoint_reasoningv.
 Qed.
+
+Print Assumptions ssubst_ssubst_aux_alpha_nb.
+(*
+Section Variables:
+gts : GenericTermSig
+*)
+
 Theorem ssubst_ssubst_aux: forall bt sub,
   {bta : BTerm | ssubst_bterm bt sub = ssubst_bterm_aux bta sub 
                 /\ alpha_eq_bterm bt bta}.
