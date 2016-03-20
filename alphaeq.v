@@ -3454,7 +3454,37 @@ apply_bterm (bterm lv nt) lnt.
 Proof using.
 intros. refl.
 Qed.
- 
+
+(*  SearchPattern (alpha_eq_bterm (bterm _ _) (bterm _ _)). 
+Print al_bterm
+*)
+
+(* easier to use than [al_bterm]:
+1)  it picks the fresh variables ([lv]) for you.
+        [lv] is aditionally disjoint from a list [lva] of your choice.
+2)  lets you use ssubst_aux, so that you dont have to worry about alpha renaming while
+    substitution.
+*)
+Lemma prove_alpha_bterm : 
+forall (lva lv1 lv2  : list NVar) (nt1 nt2 : NTerm),
+  (forall lv,
+        disjoint lv (all_vars nt1 ++ all_vars nt2 ++ lva) ->
+        length lv1 = length lv2 ->
+        length lv1 = length lv ->
+        no_repeats lv ->
+        alpha_eq (ssubst_aux nt1 (var_ren lv1 lv)) (ssubst_aux nt2 (var_ren lv2 lv))) 
+  -> length lv1 = length lv2
+  -> alpha_eq_bterm (bterm lv1 nt1) (bterm lv2 nt2).
+Proof.
+  intros ? ? ? ? ? Hal Hl.
+  pose proof (fresh_vars (length lv1) (all_vars nt1 ++ all_vars nt2 ++ lva)) as Hfr.
+  exrepnd.
+  specialize (Hal lvn Hfr2 $(congruence)$ $(congruence)$ $(assumption)$).
+  apply al_bterm with (lv:= lvn); spc; disjoint_reasoningv.
+  change_to_ssubst_aux8.
+  change_to_ssubst_aux8.
+  assumption.
+Qed.
 
 (*
 Lemma 
@@ -3672,4 +3702,20 @@ match goal with
   let Hfr := fresh "Hfr" in 
   let lvn := fresh "lvn" in 
     destruct (fresh_vars n lv) as [lvn Hfr]
+end.
+
+(* Move *)
+Ltac dnumvbars H btt :=
+match type of H with
+map num_bvars ?lbt = ?h::?t =>
+let bt := fresh btt in 
+let btlv := fresh bt "lv" in 
+let btnt := fresh bt "nt" in 
+let Hbt := fresh bt "H" in 
+destruct lbt as [|bt lbt];[inverts H| inverts H as Hbt H];[];
+destruct bt as [btlv btnt]; unfold num_bvars in Hbt; simpl in Hbt;
+dlist_len_name btlv btlv;  try dnumvbars H btt
+
+| map num_bvars ?lbt = [] => 
+destruct lbt;[ clear H | inverts H]
 end.
