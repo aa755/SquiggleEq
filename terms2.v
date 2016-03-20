@@ -1994,8 +1994,9 @@ Ltac destructlbt lbt tac :=
   let b := fresh "b" in
   destruct lbt as [| b lbt];tac; []).
 
-Hint Rewrite
-remove_nvars_cons_r memvar_singleton : SquiggleLazyEq.
+Hint Rewrite memvar_singleton : SquiggleLazyEq.
+
+Hint Rewrite remove_nvars_cons_r : SquiggleLazyEq2.
 
 Hint Rewrite
   <- beq_var_refl : SquiggleLazyEq.

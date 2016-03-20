@@ -1230,7 +1230,7 @@ Lemma ssubst_ssubst_aux_alpha_nb: forall sub,
   (forall bt,
   let bta := change_bvars_alphabt (flat_map free_vars (range sub)) bt in
   alpha_eq_bterm (ssubst_bterm bt sub) (ssubst_bterm_aux bta sub))).
-Proof.
+Proof using.
   simpl. intros. apply NTerm_BTerm_ind.
 - simpl. intros. apply alpha_eq_refl.
 - intros ? ? Hind. simpl. constructor; repeat rewrite map_length;
@@ -1272,10 +1272,12 @@ Definition ssubst_ssubst_aux_alpha := fun s => fst (ssubst_ssubst_aux_alpha_nb s
 Definition ssubst_ssubst_bterm_aux_alpha := fun s => snd (ssubst_ssubst_aux_alpha_nb s).
 
 Global Instance equivAlphaEq : Equivalence alpha_eq.
+Proof using.
   constructor; eauto with core slow.
 Qed.
 
 Global Instance equivAlphaEqBterm : Equivalence alpha_eq_bterm.
+Proof using.
   constructor; eauto with core slow.
 - intros ? ?. apply alpha_eq_bterm_sym.
 - intros ? ?. apply alpha_eq_bterm_trans.
@@ -1284,10 +1286,12 @@ Qed.
 Require Import Morphisms.
 
 Global Instance properAlphaSize : Proper (alpha_eq ==> eq) size.
+Proof using.
  exact alpha_eq_preserves_size.
 Qed.
 
 Global Instance properAlphaAlphaBt : Proper (eq ==> alpha_eq ==> alpha_eq_bterm) bterm.
+Proof using.
   intros ? ? ? ? ? ?.
   subst. apply alpha_eq_bterm_congr.
   assumption.
@@ -3018,6 +3022,19 @@ Proof using.
     disjoint_reasoningv; cpx.
 Qed.
 
+Lemma alpha_eq_bterm_single_change3 : forall e vx vy,
+  disjoint (remove_nvars [vx] (free_vars e)) [vy]
+  -> alpha_eq_bterm (bterm [vx] e)
+                (bterm [vy] (ssubst e (var_ren [vx] [vy]))).
+Proof using.
+  introv Hs. intros.
+  destruct (deq_nvar vx vy); subst.
+  - apply alpha_eq_bterm_congr. apply alpha_eq_sym. 
+    apply ssubst_trivial_alpha.
+  - apply btchange_alpha; auto;[apply no_rep_cons; cpx; fail|].
+    inauto. tauto.
+Qed.
+
 Lemma alpha_eq_bterm_single_change2 : forall e1 vx vy,
   isprogram_bt  (bterm [vx] e1)
   -> alpha_eq_bterm (bterm [vx] e1)
@@ -3405,7 +3422,7 @@ Qed.
 Lemma num_bvars_ssubst_bterm:
   forall  (bt : BTerm) (sub : Substitution),
   num_bvars (ssubst_bterm bt sub) = num_bvars bt.
-Proof.
+Proof using.
   intros. rewrite ssubst_ssubst_bterm_aux_alpha.
   rewrite num_bvars_bterm.
   apply alphaeqbt_numbvars.
@@ -3434,7 +3451,7 @@ Lemma fold_apply_bterm : forall lv nt lnt,
 ssubst nt (combine lv lnt)
 = 
 apply_bterm (bterm lv nt) lnt.
-Proof.
+Proof using.
 intros. refl.
 Qed.
  
@@ -3478,7 +3495,7 @@ Lemma and_weaken_l : forall (A B C : Prop),
  (A -> B)
  -> (A # C)
  -> (B # C).
-Proof.
+Proof using.
   intros. tauto. 
 Qed.
 
@@ -3486,7 +3503,7 @@ Qed.
 Lemma forall_combine : forall (A : Type) (P Q R: A -> Prop),
  (forall a:A, P a -> Q a /\ R a)
  -> ((forall a:A, P a -> Q a)#(forall a:A, P a -> R a)).
-Proof.
+Proof using.
   intros. firstorder.
 Qed.
 
@@ -3495,7 +3512,7 @@ Lemma alpha_eq_bterm_nil : forall o lnt t2,
 alpha_eq (oterm o (map (bterm []) lnt)) t2
 -> exists lnt2, t2 =  (oterm o (map (bterm []) lnt2))
   /\ bin_rel_nterm alpha_eq lnt lnt2.
-Proof.
+Proof using.
   intros ? ? ? Hal.
   inverts Hal. rewrite map_length in *.
   rename H3 into Hbts.
@@ -3528,7 +3545,6 @@ Proof.
   simpl. assumption.
 Qed.
 
-  SearchAbout  ssubst oterm. 
 
 End AlphaGeneric.
 
