@@ -6439,10 +6439,11 @@ Proof using.
   rw simple_ssubst_app; simpl; sp; cpx.
 Qed.
 
-Definition map_sub_range (f : NTerm -> NTerm) (sub : Substitution) :=
+Definition map_sub_range {gtsi} {gtso} (f : @NTerm gtsi -> @NTerm gtso) 
+  (sub : @Substitution gtsi): @Substitution gtso :=
   map (fun p => (fst p, f (snd p))) sub.
 
-Lemma dom_sub_map_range : forall f sub,
+Lemma dom_sub_map_range {gtsi} {gtso} : forall (f : @NTerm gtsi -> @NTerm gtso) sub,
    dom_sub (map_sub_range f sub) = dom_sub sub.
 Proof using.
   induction sub; auto.
@@ -6798,11 +6799,30 @@ Proof using.
   intros.
   change_to_ssubst_aux4.
 Qed.
-  
-(* The line below should be at the end of the file. Do NOT
-  write anything below that is not supposed to be included in the Tech Report*)
+
+
 (* end hide*)
 End SubstGeneric2.
+
+Lemma sub_find_some_map {gtsi gtso : GenericTermSig}
+ (f : @NTerm gtsi -> @NTerm gtso) v (sub : @Substitution gtsi) (t: @NTerm gtsi) :
+ sub_find sub v = Some t
+ -> sub_find (map_sub_range f sub) v = Some (f t).
+Proof using.
+  induction sub as [| (vs,ts) sub]; intros Heq;[inverts Heq|].
+  simpl in *.  cases_if; auto.
+  inverts Heq. auto.
+Qed.
+
+Lemma sub_find_none_map {gtsi gtso : GenericTermSig}
+ (f : @NTerm gtsi -> @NTerm gtso) v (sub : @Substitution gtsi) :
+ sub_find sub v = None
+ -> sub_find (map_sub_range f sub) v = None.
+Proof using.
+  induction sub as [| (vs,ts) sub]; intros Heq;[inverts Heq|].
+  simpl in *; auto. simpl in *.  cases_if; auto.
+  inverts Heq.
+Qed.
 
 (** the stuff below are duplicates of above *)
 
@@ -7124,4 +7144,5 @@ match T with
   assert (ssubst t sub = ssubst_aux t sub) as H;
   [change_to_ssubst_aux8; sp  | rewrite H in Hyp ]
 end.
-  
+
+Hint Rewrite (fun gtsi gtso  => @dom_sub_map_range gtsi gtso) : SquiggleLazyEq.

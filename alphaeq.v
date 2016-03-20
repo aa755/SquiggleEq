@@ -3402,7 +3402,16 @@ Proof using.
 Qed.
 
   
-
+Lemma num_bvars_ssubst_bterm:
+  forall  (bt : BTerm) (sub : Substitution),
+  num_bvars (ssubst_bterm bt sub) = num_bvars bt.
+Proof.
+  intros. rewrite ssubst_ssubst_bterm_aux_alpha.
+  rewrite num_bvars_bterm.
+  apply alphaeqbt_numbvars.
+  symmetry.
+  apply change_bvars_alphabt_spec.
+Qed.
 
 
 Global Instance properAlphaSubst : 
@@ -3631,4 +3640,20 @@ match goal with
 | [ |- forall _, _ < _ -> alpha_eq_bterm _ _ ] => introv Hlt;repeat(simpl_list);repeat(dlt Hlt)
 | [ |- alpha_eq_bterm ?t ?t ] => apply alphaeqbt_refl
 | [ |- alpha_eq_bterm (bterm [] _) (bterm [] _) ] => apply alphaeqbt_nilv2 
+end.
+
+Ltac add_changebvar_spec cb Hn:=
+match goal with 
+| [ |- context[change_bvars_alpha ?lv ?nt] ] => pose proof (change_bvars_alpha_spec nt lv) as Hn;
+    remember (change_bvars_alpha  lv nt) as cb; simpl in Hn
+| [ |- context[change_bvars_alphabt ?lv ?nt] ] => pose proof (change_bvars_alphabt_spec lv nt) as Hn;
+    remember (change_bvars_alphabt  lv nt) as cb; simpl in Hn
+end.
+
+Ltac dfresh_vars :=
+match goal with
+[|- context[ fresh_vars ?n ?lv]] =>
+  let Hfr := fresh "Hfr" in 
+  let lvn := fresh "lvn" in 
+    destruct (fresh_vars n lv) as [lvn Hfr]
 end.
