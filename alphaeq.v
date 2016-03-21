@@ -3455,6 +3455,29 @@ Proof using.
 intros. refl.
 Qed.
 
+(* easier to use than [al_bterm]:
+1)  it picks the fresh variables ([lv]) for you.
+        [lv] is aditionally disjoint from a list [lva] of your choice.
+2)  lets you use ssubst_aux, so that you dont have to worry about alpha renaming while
+    substitution.
+*)
+Lemma prove_alpha_bterm1 : 
+forall (lva lv1 lv2  : list NVar) (nt1 nt2 : NTerm),
+  (forall lv,
+        disjoint lv (all_vars nt1 ++ all_vars nt2 ++ lva) ->
+        length lv1 = length lv2 ->
+        length lv1 = length lv ->
+        no_repeats lv ->
+        alpha_eq (ssubst nt1 (var_ren lv1 lv)) (ssubst nt2 (var_ren lv2 lv))) 
+  -> length lv1 = length lv2
+  -> alpha_eq_bterm (bterm lv1 nt1) (bterm lv2 nt2).
+Proof.
+  intros ? ? ? ? ? Hal Hl.
+  pose proof (fresh_vars (length lv1) (all_vars nt1 ++ all_vars nt2 ++ lva)) as Hfr.
+  exrepnd.
+  specialize (Hal lvn Hfr2 $(congruence)$ $(congruence)$ $(assumption)$).
+  apply al_bterm with (lv:= lvn); spc; disjoint_reasoningv.
+Qed.
 (*  SearchPattern (alpha_eq_bterm (bterm _ _) (bterm _ _)). 
 Print al_bterm
 *)
@@ -3463,7 +3486,10 @@ Print al_bterm
 1)  it picks the fresh variables ([lv]) for you.
         [lv] is aditionally disjoint from a list [lva] of your choice.
 2)  lets you use ssubst_aux, so that you dont have to worry about alpha renaming while
-    substitution.
+    substitution. However, keep in mind that lemmas about [ssubst_aux], e.g. 
+    about commuting nested substitutions,  have more
+    obligations, e.g. about disjointness of bound variables.
+    In that case, use [prove_alpha_bterm1] above
 *)
 Lemma prove_alpha_bterm : 
 forall (lva lv1 lv2  : list NVar) (nt1 nt2 : NTerm),
@@ -3477,13 +3503,126 @@ forall (lva lv1 lv2  : list NVar) (nt1 nt2 : NTerm),
   -> alpha_eq_bterm (bterm lv1 nt1) (bterm lv2 nt2).
 Proof.
   intros ? ? ? ? ? Hal Hl.
-  pose proof (fresh_vars (length lv1) (all_vars nt1 ++ all_vars nt2 ++ lva)) as Hfr.
-  exrepnd.
-  specialize (Hal lvn Hfr2 $(congruence)$ $(congruence)$ $(assumption)$).
-  apply al_bterm with (lv:= lvn); spc; disjoint_reasoningv.
+  apply (prove_alpha_bterm1 lva); auto.
+  intros.
   change_to_ssubst_aux8.
   change_to_ssubst_aux8.
-  assumption.
+  eauto.
+Qed.
+
+(*
+Ltac disjoint_reasoning :=
+match goal with
+| [  |- disjoint _ (_ ++ _) ] => apply disjoint_app_r;split
+| [  |- disjoint (_ ++ _) _ ] => apply disjoint_app_l;split
+| [  |- disjoint _ _ ] => (sp;fail  || apply disjoint_sym; sp;fail)
+(** important to leave it the way it was .. so that repeat progress won't loop*)
+| [ H: disjoint _ (_ ++ _) |- _ ] => apply disjoint_app_r in H;sp
+| [ H: disjoint (_ ++ _) _ |- _ ] => apply disjoint_app_l in H;sp
+| [ H: !(disjoint  _ []) |- _ ] => provefalse; apply H; apply disjoint_nil_r
+| [ H: !(disjoint  [] _) |- _ ] => provefalse; apply H; apply disjoint_nil_l
+| [ H: (disjoint  _ []) |- _ ] => clear H
+| [ H: (disjoint  [] _) |- _ ] => clear H
+end.
+*)
+
+Ltac failifnil v :=
+match v with
+| [] => fail 1
+| _ => idtac
+end.
+
+Ltac disjoint_reasoning2 :=
+match goal with
+| [  |- disjoint _ (_ ++ _) ] => apply disjoint_app_r;split
+| [  |- disjoint (_ ++ _) _ ] => apply disjoint_app_l;split
+| [  |- disjoint _ (_ :: (_ :: _)) ] => apply disjoint_cons_r;split
+| [  |- disjoint (_ :: (_ :: _)) _ ] => apply disjoint_cons_l;split
+| [  |- disjoint _ (_ :: ?v) ] => failifnil v;apply disjoint_cons_r;split
+| [  |- disjoint (_ :: ?v) _ ] => failifnil v;apply disjoint_cons_l;split
+| [  |- disjoint _ _ ] => (sp;fail  || apply disjoint_sym; sp;fail)
+(** important to leave it the way it was .. so that repeat progress won't loop*)
+| [ H: disjoint _ (_ ++ _) |- _ ] => apply disjoint_app_r in H;sp
+| [ H: disjoint (_ ++ _) _ |- _ ] => apply disjoint_app_l in H;sp
+| [ H: disjoint _ (_ :: (_ :: _)) |- _ ] => apply disjoint_cons_r in H;sp
+| [ H: disjoint (_ :: (_ :: _)) _ |- _ ] => apply disjoint_cons_l in H;sp
+| [ H: disjoint _ (_ :: ?v) |- _ ] => failifnil v;apply disjoint_cons_r in H;sp
+| [ H: disjoint (_ :: ?v) _ |- _ ] => failifnil v;apply disjoint_cons_l in H;sp
+| [ H: !(disjoint  _ []) |- _ ] => provefalse; apply H; apply disjoint_nil_r
+| [ H: !(disjoint  [] _) |- _ ] => provefalse; apply H; apply disjoint_nil_l
+| [ H: (disjoint  _ []) |- _ ] => clear H
+| [ H: (disjoint  [] _) |- _ ] => clear H
+|[H: ! (LIn _ _) |- _] => apply disjoint_singleton_l in H
+|[|- ! (LIn _ _)] => apply disjoint_singleton_l
+end.
+
+Lemma ssubst_trivial_disjoint_dom:
+  forall (t : NTerm) (sub : Substitution),
+  disjoint (free_vars t) (dom_sub sub) 
+  -> alpha_eq  (ssubst t sub) t.
+Proof.
+  introv H.
+  erewrite <- ssubst_sub_filter_alpha;[| apply H].
+  setoid_rewrite (sub_filter_nil_combine sub []).
+  rewrite ssubst_nil.
+  refl.
+Qed.
+
+Lemma ssubst_sub_trivial_disjoint_dom:
+forall sub1 sub2 : Substitution,
+disjoint (dom_sub sub1) (flat_map free_vars (range sub2)) ->
+sub_range_rel alpha_eq (ssubst_sub sub2 sub1) sub2.
+Proof.
+  intros.
+  induction sub2 as [| (v,tt) sub2 Hind ];[refl|].
+  simpl in *. split; [refl|].
+  split.
+- rewrite ssubst_trivial_disjoint_dom; [refl| disjoint_reasoningv].
+- apply Hind; disjoint_reasoningv.
+Qed.
+
+Lemma ssubst_nest_swap_as_app
+     : forall (t : NTerm) (sub1 sub2 : Substitution),
+       let lvi1 := dom_sub sub1 in
+       let lvi2 := dom_sub sub2 in
+       let lnt1 := range sub1 in
+       let lnt2 := range sub2 in
+       disjoint lvi1 (flat_map free_vars lnt2) ->
+       disjoint lvi2 (flat_map free_vars lnt1) ->
+       disjoint lvi1 lvi2 ->
+       alpha_eq (ssubst (ssubst t sub1) sub2) (ssubst t (sub2++sub1)).
+Proof.
+  simpl. intros.
+  rewrite ssubst_nest_swap_alpha; auto.
+  rewrite combine_sub_nest.
+  f_equiv.
+  apply sub_range_rel_app.
+  split;[| refl]. clear H1 H0.
+  rewrite ssubst_sub_trivial_disjoint_dom; auto.
+  refl.
+Qed.
+
+Lemma alpha_bterm_cons : forall (lv1 lv2  : list NVar) (nt1 nt2 : NTerm) v,
+  disjoint [v] (lv1 ++ lv2)
+  -> alpha_eq_bterm (bterm lv1 nt1) (bterm lv2 nt2)
+  -> alpha_eq_bterm (bterm (v::lv1) nt1) (bterm (v::lv2) nt2).
+Proof.
+  intros ? ? ? ? ? Hdis Hal. 
+  apply (prove_alpha_bterm1 ([v]++lv1++lv2)); simpl; [| inverts Hal; auto].
+  intros ? Hd H1l H2l Hnr.
+  dlist_len_name lv vv.
+  inverts Hnr as Hnr Hin.
+  apply alphabt_change_var with (lv:=lv)in Hal; auto;[| disjoint_reasoningv].
+  unfold var_ren. simpl.
+  repnd.
+  pose proof (@properAlphaSubst _ _ Hal0 v v eq_refl (vterm vv) (vterm vv) $(refl)$)
+    as Hall. clear Hal.
+  unfold subst in Hall.
+  let t := repeat (progress disjoint_reasoning2) in
+  rewrite ssubst_nest_swap_as_app in Hall; simpl; spcls;
+    [| t |  t | t];[];
+  rewrite ssubst_nest_swap_as_app in Hall; simpl; spcls;
+    [t | t |  t ].
 Qed.
 
 (*
@@ -3719,3 +3858,35 @@ dlist_len_name btlv btlv;  try dnumvbars H btt
 | map num_bvars ?lbt = [] => 
 destruct lbt;[ clear H | inverts H]
 end.
+
+Ltac failifnil v :=
+match v with
+| [] => fail 1
+| _ => idtac
+end.
+Ltac disjoint_reasoning2 :=
+match goal with
+| [  |- disjoint _ (_ ++ _) ] => apply disjoint_app_r;split
+| [  |- disjoint (_ ++ _) _ ] => apply disjoint_app_l;split
+| [  |- disjoint _ (_ :: (_ :: _)) ] => apply disjoint_cons_r;split
+| [  |- disjoint (_ :: (_ :: _)) _ ] => apply disjoint_cons_l;split
+| [  |- disjoint _ (_ :: ?v) ] => failifnil v;apply disjoint_cons_r;split
+| [  |- disjoint (_ :: ?v) _ ] => failifnil v;apply disjoint_cons_l;split
+| [  |- disjoint _ _ ] => (sp;fail  || apply disjoint_sym; sp;fail)
+(** important to leave it the way it was .. so that repeat progress won't loop*)
+| [ H: disjoint _ (_ ++ _) |- _ ] => apply disjoint_app_r in H;sp
+| [ H: disjoint (_ ++ _) _ |- _ ] => apply disjoint_app_l in H;sp
+| [ H: disjoint _ (_ :: (_ :: _)) |- _ ] => apply disjoint_cons_r in H;sp
+| [ H: disjoint (_ :: (_ :: _)) _ |- _ ] => apply disjoint_cons_l in H;sp
+| [ H: disjoint _ (_ :: ?v) |- _ ] => failifnil v;apply disjoint_cons_r in H;sp
+| [ H: disjoint (_ :: ?v) _ |- _ ] => failifnil v;apply disjoint_cons_l in H;sp
+| [ H: !(disjoint  _ []) |- _ ] => provefalse; apply H; apply disjoint_nil_r
+| [ H: !(disjoint  [] _) |- _ ] => provefalse; apply H; apply disjoint_nil_l
+| [ H: (disjoint  _ []) |- _ ] => clear H
+| [ H: (disjoint  [] _) |- _ ] => clear H
+|[H: ! (LIn _ _) |- _] => apply disjoint_singleton_l in H
+|[|- ! (LIn _ _)] => apply disjoint_singleton_l
+end.
+
+Tactic Notation "disjoint_reasoningv2" :=
+  (unfold all_vars in *); repeat( progress disjoint_reasoning2).

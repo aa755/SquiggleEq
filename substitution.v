@@ -4921,6 +4921,38 @@ Proof using.
    apply map_eq_lift_vterm; trivial.
 Qed.
 
+Lemma ssubst_aux_trivial5 :
+  (forall t sub,
+    disjoint (free_vars t) (dom_sub sub)
+    -> ssubst_aux t sub = t)*
+  (forall bt sub,
+    disjoint (dom_sub sub) (free_vars_bterm bt)
+    -> ssubst_bterm_aux bt sub = bt).
+Proof using.
+  apply NTerm_BTerm_ind.
+  - intros n sub Hdis. simpl in *.
+    disjoint_reasoningv.
+    apply sub_find_none_if in Hdis.
+    rewrite Hdis. refl.
+
+  - intros ? ? Hind  ? Hdis. simpl in *. f_equal.
+    rewrite <- map_id.
+    apply eq_maps. intros bt Hin.
+    apply Hind; auto. apply disjoint_sym in Hdis.
+    eapply disjoint_flat_map_r; eauto.
+  - intros ? ?  Hind ? Hdis. simpl.
+    f_equal. simpl in *.
+    apply Hind .
+    rewrite <- dom_sub_sub_filter.
+    apply disjoint_remove_nvars_l.
+    disjoint_reasoning.
+Qed.
+
+Definition ssubst_aux_trivial_disj := fst ssubst_aux_trivial5.
+Definition ssubst_bterm_aux_trivial_disj := snd ssubst_aux_trivial5.
+
+
+(* TODO : delete because [ssubst_aux_trivial_disj] is stronger and easier to use *)
 Lemma ssubst_aux_trivial3 :
   forall t sub,
     (forall v u, LIn (v, u) sub -> disjoint (free_vars u) (bound_vars t) 
@@ -4956,6 +4988,7 @@ Proof using.
       allrw in_app_iff.
       allrw not_over_or; sp.
 Qed.
+
 
 Lemma ssubst_trivial3 :
   forall t sub,
