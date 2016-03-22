@@ -1368,7 +1368,7 @@ Proof using.
   sp; allrw; sp.
 Qed.
 
-Theorem selectbt_map : forall lbt n (f: BTerm -> BTerm) ,
+Theorem selectbt_map {gtsi gtso}: forall lbt n (f: (@BTerm gtsi) -> (@BTerm gtso)) ,
   n<length lbt
   -> selectbt (map f lbt) n = f (selectbt lbt n).
 Proof using.
