@@ -3475,7 +3475,7 @@ Proof.
   intros ? ? ? ? ? Hal Hl.
   pose proof (fresh_vars (length lv1) (all_vars nt1 ++ all_vars nt2 ++ lva)) as Hfr.
   exrepnd.
-  specialize (Hal lvn Hfr2 $(congruence)$ $(congruence)$ $(assumption)$).
+  specialize (Hal lvn Hfr2 ltac:(congruence) ltac:(congruence) ltac:(assumption)).
   apply al_bterm with (lv:= lvn); spc; disjoint_reasoningv.
 Qed.
 (*  SearchPattern (alpha_eq_bterm (bterm _ _) (bterm _ _)). 
@@ -3615,7 +3615,7 @@ Proof.
   apply alphabt_change_var with (lv:=lv)in Hal; auto;[| disjoint_reasoningv].
   unfold var_ren. simpl.
   repnd.
-  pose proof (@properAlphaSubst _ _ Hal0 v v eq_refl (vterm vv) (vterm vv) $(refl)$)
+  pose proof (@properAlphaSubst _ _ Hal0 v v eq_refl (vterm vv) (vterm vv) ltac:(refl))
     as Hall. clear Hal.
   unfold subst in Hall.
   let t := repeat (progress disjoint_reasoning2) in
