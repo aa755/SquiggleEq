@@ -66,15 +66,54 @@ Proof.
   simpl; destruct m; simpl; sp.
 Qed.
 
-Definition Deq (T : Type) := forall (x y : T), {x = y} + {x <> y}.
-
-Lemma deq_prod :
-  forall (A B : Type), Deq A -> Deq B -> Deq (A * B).
+Require Import Coq.Classes.DecidableClass.
+Global Instance DecConj A B (_: Decidable A) (_ :Decidable B) : Decidable (A /\ B).
 Proof.
-  unfold Deq; introv da db; introv; sp.
-  generalize (da x0 y0) (db x y); introv ea eb; sp; subst; sp;
-  right; intro k; inversion k; sp.
+  exists (andb (decide A) (decide B)).
+  unfold decide.
+  destruct H.
+  destruct H0.
+  rewrite Bool.andb_true_iff.
+  unfold DecidableClass.Decidable_witness. tauto.
+Defined.
+
+Definition decideP (P:Prop) `{Decidable P} : {P} + {~P}.
+  remember (decide P) as dec. 
+  destruct dec; [left | right];
+  symmetry in Heqdec;
+  unfold decide in Heqdec;
+  pose proof Decidable_spec; try tauto.
+  intro Hc.
+  rewrite <- H0 in Hc. congruence.
+Defined.
+
+Lemma decide_decideP  {P:Prop }`{Decidable P} {R:Type} (a b : R) :
+(if (decide P) then  a else b) = (if (decideP P) then  a else b).
+Proof.
+  symmetry. unfold decide.
+  cases_if.  
+- rewrite Decidable_complete; auto.
+- rewrite Decidable_sound_alt; auto.
 Qed.
+
+Class Deq T := deceq :> forall (a b:T), Decidable (a=b).
+
+Definition DeqAsSumbool {T:Type} `{Deq T} : forall (x y : T), {x = y} + {x <> y}.
+Proof.
+  intros ? ?.
+  apply decideP. auto.
+Defined.
+
+
+Global Instance deq_prod {A B : Type} `{Deq A} `{Deq B}
+ : Deq (A*B).
+Proof using.
+  intros  x y. destruct x. destruct y.
+  exists (decide (a=a0 /\ b = b0)).
+  rewrite Decidable_spec.
+  split; intros Hyp; auto; inversion Hyp; auto.
+  congruence.
+Defined.
 
 Definition assert (b : bool) : Prop := b = true.
 
@@ -478,3 +517,5 @@ Ltac dforall_lt_hyp name :=
 Lemma and_true_r :
   forall t, t # True <=> t.
 Proof. sp; split; sp. Qed.
+
+

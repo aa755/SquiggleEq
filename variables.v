@@ -407,33 +407,21 @@ Proof.
   trw assert_eqsetb; sp.
 Qed.
 
-Lemma eqsetv_prop {A}:
-  forall (vs1 vs2 : list A),
-    eqsetv vs1 vs2 <=> forall x, LIn x vs1 <=> LIn x vs2.
+Lemma eqsetv_remove_nvar :
+  forall vars1 vars2 v,
+    eqsetv vars1 vars2
+    -> eqsetv (remove_nvar vars1 v) (remove_nvar vars2 v).
 Proof.
-  sp; unfold eqsetv, eq_vars.
-  unfold subset.  firstorder.
-Qed.
-
-Lemma eqsetv_sym {A} :
-  forall (s1 s2 : list A), eqsetv s1 s2 <=> eqsetv s2 s1.
-Proof.
-  introv. unfold eq_set. tauto.
-Qed.
-
-Lemma eqsetv_disjoint {A}:
-  forall (s1 s2 s3 : list A),
-    eqsetv s1 s2
-    -> disjoint s1 s3
-    -> disjoint s2 s3.
-Proof.
-   unfold eqset, disjoint, subset.
-   firstorder.
+  introv.
+  rewrite eqsetv_prop.
+  rewrite eqsetv_prop in *; sp.
+  allrw in_remove_nvar.
+  allrw; sp.
 Qed.
 
 Lemma eqsetv_cons_l_iff :
   forall v vs1 vs2,
-    eqsetv (v :: vs1) vs2
+    eq_set (v :: vs1) vs2
     <=> (LIn v vs2 # eqsetv (remove_nvar vs1 v) (remove_nvar vs2 v)).
 Proof.
   sp. do 2 (rewrite eqsetv_prop).
@@ -451,17 +439,6 @@ Proof.
   discover; sp; firstorder.
 Qed.
 
-Lemma eqsetv_remove_nvar :
-  forall vars1 vars2 v,
-    eqsetv vars1 vars2
-    -> eqsetv (remove_nvar vars1 v) (remove_nvar vars2 v).
-Proof.
-  introv.
-  rewrite eqsetv_prop.
-  rewrite eqsetv_prop in *; sp.
-  allrw in_remove_nvar.
-  allrw; sp.
-Qed.
 
 (** insertion of a nat in a list of variables in an ordered way *)
 Fixpoint insert (v : nat) (vars : list NVar) : list NVar :=
@@ -1024,30 +1001,11 @@ Proof.
 Qed.
 
 Lemma eqsetv_nil {A}: forall (lva lvb : list A),
-  lva=[] -> eqsetv lva lvb -> lvb=[].
+  lva=[] -> eq_set lva lvb -> lvb=[].
 Proof.
   introv  Ha Heq.
   rw Ha in Heq.
   apply eq_vars_nil in Heq. auto.
-Qed.
-
-Lemma eqsetv_trans {A}: forall (lva lvb lvc : list A),
-  eqsetv lva lvb
-  -> eqsetv lvb lvc
-  -> eqsetv lva lvc.
-Proof.
-  introv He1 He2.
-  rewrite (eqsetv_prop) in *.
-  split; intro Hin;
-  repeat (try(apply He1 in Hin); try(apply He2 in Hin); auto).
-Qed.
-
-Lemma eq_vars_sym {A}: forall (lv1 lv2 : list A),
-  eqsetv lv1 lv2 -> eqsetv lv2 lv1.
-Proof.
-  introv. rewrite eqsetv_prop. rewrite eqsetv_prop.
-  intros X x. rw X.
-  dtiffs2. split; auto.
 Qed.
 
 Ltac inj0_step :=
@@ -1210,86 +1168,7 @@ Proof.
   apply k; sp.
 Qed.
 
-(* end hide *)
 
-Lemma iff_t_iff : forall A B : Prop, A <-> B <-> (A <=> B).
-Proof.
-  firstorder.
-Qed.
-  
-Section RWInstances.
-(** contents of this section will work only when [univ] := Prop. Coq does (yet) not support rewriting
-with relations in Type *)
-Global Instance equivEqsetv {A}: Equivalence (@eqsetv A).
-Proof.
-  constructor; eauto using eqsetv_trans, eq_vars_sym.
-Qed.
-
-Require Import Morphisms.
-
-Global Instance properEqsetvLin {A} : Proper (eq ==> eqsetv ==> iff ) (@LIn A).
-Proof.
-  intros ? ? ? ? ? ?. apply iff_t_iff. subst. apply eqsetv_prop; assumption.
-Qed.
-
-Global Instance properEqsetvNull {A} : Proper (eqsetv ==> iff ) (@null A).
-Proof.
-  intros ? ? H. unfold null. split; intros; [rewrite <- H| rewrite H]; eauto.
-Qed.
-
-Global Instance properEqsetvApp {A}: Proper (eqsetv ==> eqsetv ==> eqsetv ) (@app A).
-Proof.
-  intros ? ? H1 ? ? H2. apply eqsetv_prop. setoid_rewrite in_app_iff.
-  setoid_rewrite H1. setoid_rewrite H2. tauto.
-Qed.
-
-(*generalize to arbitrary types with decidable equality*)
-Global Instance properEqsetvRemove : Proper (eqsetv ==> eqsetv ==> eqsetv ) remove_nvars.
-Proof.
-  intros ? ? H1 ? ? H2. apply eqsetv_prop. setoid_rewrite in_remove_nvars.
-  setoid_rewrite H1. setoid_rewrite H2. tauto.
-Qed.
-
-Global Instance properEqsetvSubsetv {A} : Proper (eqsetv ==> eqsetv ==> iff ) (@subsetv A).
-Proof.
-  intros ? ? ? ? ? Heq.  subst. apply iff_t_iff.  unfold subset.
-  repeat setoid_rewrite Heq. setoid_rewrite H. reflexivity.
-Qed.
-
-Global Instance transSubsetv {A}: Transitive (@subsetv A).
-Proof.
-  intros ? ? ?. apply subsetv_trans.
-Qed.
-
-Global Instance properDisjoint {A} : Proper (eqsetv ==> eqsetv ==> iff ) (@disjoint A).
-Proof.
-  intros ? ? ? ? ? Heq.  subst. apply iff_t_iff.  unfold disjoint.
-  repeat setoid_rewrite Heq. setoid_rewrite H. reflexivity.
-Qed.
-
-Lemma subsetvAppLR {A} : forall a b c d,
-  subsetv a c
-  -> subsetv b d
-  -> @subsetv A (a++b) (c++d).
-Proof.
-  intros ? ? ? ? H1s H2s.
-  apply subsetv_app_l.
-  split;[|apply subsetv_swap_r];apply subsetv_app_weak_l; assumption.
-Qed.
-
-End RWInstances.
-
-(* Move to list.v *)
-Lemma eqset_flat_maps
-     : forall (A B : Type) (f g : A -> list B) (l : list A),
-       (forall x : A, LIn x l -> eq_set (f x) (g x))
-         -> eqset (flat_map f l)  (flat_map g l).
-Proof.
-  induction l; intros; simpl; [refl|].
-  rewrite H;[| cpx].
-  rewrite IHl;[| cpx].
-  refl.
-Qed.
 
 Definition remove_nvars_nop :=
 (fun l1 l2 => proj1 (remove_nvars_unchanged l1 l2)).

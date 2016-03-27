@@ -69,13 +69,39 @@ Proof.
   trw IHl; split; sp; subst; sp.
 Qed.
 
+
+
+Require Import Coq.Classes.DecidableClass.
+
+  Fixpoint remove {A:Type } `{Deq A} (x : A) (l : list A) : list A :=
+    match l with
+      | [] => []
+      | y::tl => if (decide (x = y)) then remove x tl else y::(remove x tl)
+    end.
+
+  Theorem remove_In {A:Type } `{Deq A} : forall (l : list A) (x : A), ~ In x (remove x l).
+  Proof.
+    induction l as [|x l]; auto. simpl. intro y.
+    rewrite decide_decideP.
+    cases_if; simpl; auto.
+    firstorder.
+  Qed.
+  
+(** l \ lr -- removes the elements of lr from l  *)
+Fixpoint diff {T} {eqd:Deq T} (lr:list T) (l:list T) : list T :=
+  match lr with
+    | [] => l
+    | h::t => diff t (remove h l)
+  end.
+
 Lemma remove_trivial :
   forall T x eq,
   forall l : list T,
     (! LIn x l)
-      -> remove eq x l = l.
+      -> @remove T eq x l = l.
 Proof.
   induction l as [| a l]; simpl; intro H; sp.
+  rewrite decide_decideP.
   cases_if as Heq.
   destruct H. left. auto.
   f_equal.
@@ -83,35 +109,29 @@ Proof.
   introv Hlin. apply H. auto.
 Qed.
 
-(** l \ lr -- removes the elements of lr from l  *)
-Fixpoint diff {T} (eqd:Deq T) (lr:list T) (l:list T) : list T :=
-  match lr with
-    | [] => l
-    | h::t => diff eqd t (remove eqd h l)
-  end.
-
 Lemma diff_nil :
-  forall T eq, forall l : list T, diff eq l [] = [].
+  forall T eq, forall l : list T, @diff T eq l [] = [].
 Proof.
   induction l; simpl; auto.
 Qed.
 
 Hint Rewrite diff_nil.
 
-Lemma in_remove :
-  forall T x y eq, forall l : list T,
-    LIn x (remove eq y l) <=> (~ x = y) # LIn x l.
+Typeclasses eauto := 2.
+Lemma in_remove {T:Type} `{Deq T}:
+  forall  x y, forall l : list T,
+    LIn x (remove y l) <=> (~ x = y) # LIn x l.
 Proof.
   induction l; simpl.
-  split; sp.
-  remember (eq y a); destruct s; subst; allsimpl; allrw IHl; split; sp; subst; sp.
+  split; sp. rewrite decide_decideP.
+  cases_if; subst; allsimpl; allrw IHl; split; sp; subst; sp.
 Qed.
 
 Lemma in_diff :
   forall T,
   forall l1 l2 : list T,
   forall x eq,
-    LIn x (diff eq l1 l2)
+    LIn x (@diff T eq l1 l2)
     <=>
     (LIn x l2  # (! LIn x l1)).
 Proof.
@@ -120,41 +140,48 @@ Proof.
   trw IHl1; trw in_remove; split; sp; auto.
 Qed.
 
-Lemma remove_app :
-  forall T eq x,
+Lemma remove_app {T:Type} `{Deq T}:
+  forall x,
   forall l1 l2 : list T,
-    remove eq x (l1 ++ l2) = remove eq x l1 ++ remove eq x l2.
+    remove x (l1 ++ l2) = remove x l1 ++ remove x l2.
 Proof.
-  induction l1; simpl; sp.
-  destruct (eq x a); subst; rewrite IHl1; auto.
+  induction l1; simpl; sp. repeat rewrite decide_decideP.
+  cases_if; subst; rewrite IHl1; auto.
 Qed.
 
-Lemma remove_comm :
-  forall T eq,
+(* Move *)
+
+Lemma deq_refl {T:Type} `{Deq T} : forall (x:T), (decide (x=x)) = true.
+Proof.
+  intros.
+  rewrite Decidable_complete; auto.
+Qed.
+
+Lemma deqP_refl {T:Type} `{Deq T} : forall (x:T), (decideP (x=x)) = left  eq_refl.
+Proof.
+  intros. destruct (decideP (x = x)); try discriminate.
+- f_equal. apply Eqdep_dec.UIP_dec.
+  intros. apply decideP; auto.
+- sp.
+Qed.
+
+Hint Rewrite (fun T d => @deq_refl T d) (fun T d => @deqP_refl T d) : SquiggleLazyEq.
+
+Lemma remove_comm {T:Type} `{Deq T} :
   forall l : list T,
   forall x y,
-    remove eq x (remove eq y l) = remove eq y (remove eq x l).
+    remove x (remove  y l) = remove  y (remove  x l).
 Proof.
   induction l; simpl; sp.
-  destruct (eq y a); subst; destruct (eq x a); subst; simpl; auto.
-  destruct (eq a a).
-  rewrite IHl; auto.
-  provefalse; apply n0; auto.
-  destruct (eq a a).
-  rewrite IHl; auto.
-  provefalse; apply n0; auto.
-  destruct (eq x a); auto.
-  provefalse; apply n0; auto.
-  destruct (eq y a); auto.
-  provefalse; apply n; auto.
-  rewrite IHl; auto.
+  repeat rewrite decide_decideP.
+  repeat (cases_if; subst; simpl in *; auto; autorewrite with SquiggleLazyEq; try congruence;
+   repeat rewrite decide_decideP).
 Qed.
 
-Lemma diff_remove :
-  forall T eq,
+Lemma diff_remove {T:Type} {eq:Deq T} :
   forall l1 l2 : list T,
   forall x,
-    diff eq l1 (remove eq x l2) = remove eq x (diff eq l1 l2).
+    @diff T eq l1 (@remove T eq x l2) = @remove _ eq x (@diff _ eq l1 l2).
 Proof.
   induction l1; simpl; sp.
   repeat (rewrite IHl1).
@@ -164,7 +191,7 @@ Qed.
 Lemma diff_comm :
   forall T eq,
   forall l1 l2 l3 : list T,
-    diff eq l1 (diff eq l2 l3) = diff eq l2 (diff eq l1 l3).
+    @diff _ eq l1 (@diff _ eq l2 l3) = @diff _ eq l2 (@diff _ eq l1 l3).
 Proof.
   induction l1; simpl; sp.
   rewrite <- diff_remove.
@@ -174,7 +201,7 @@ Qed.
 Lemma diff_app_r :
   forall T eq,
   forall l1 l2 l3 : list T,
-    diff eq l1 (l2 ++ l3) = diff eq l1 l2 ++ diff eq l1 l3.
+    @diff _ eq l1 (l2 ++ l3) = @diff _ eq l1 l2 ++ @diff _ eq l1 l3.
 Proof.
   induction l1; simpl; sp.
   rewrite remove_app.
@@ -184,7 +211,7 @@ Qed.
 Lemma diff_app_l :
   forall T eq,
   forall l1 l2 l3 : list T,
-    diff eq l1 (diff eq l2 l3) = diff eq (l1 ++ l2) l3.
+    @diff _ eq l1 (@diff _ eq l2 l3) = @diff _ eq (l1 ++ l2) l3.
 Proof.
   induction l1; simpl; sp.
   repeat (rewrite diff_remove).
@@ -194,20 +221,20 @@ Qed.
 Lemma remove_repeat :
   forall T eq x,
   forall l : list T,
-    remove eq x l = remove eq x (remove eq x l).
+    @remove T eq x l = @remove T eq x (@remove T eq x l).
 Proof.
-  induction l; simpl; sp.
-  destruct (eq x a); subst; auto.
-  simpl.
-  destruct (eq x a).
-  provefalse; apply n; auto.
+  induction l; simpl; sp. repeat rewrite decide_decideP.
+  repeat cases_if; auto. simpl.
+  repeat rewrite decide_decideP.
+  repeat cases_if;  simpl; auto.
+  provefalse; apply H; auto.
   rewrite <- IHl; auto.
 Qed.
 
 Lemma diff_repeat :
   forall T eq,
   forall l1 l2 : list T,
-    diff eq l1 l2 = diff eq l1 (diff eq l1 l2).
+    @diff _ eq l1 l2 = @diff _ eq l1 (@diff _ eq l1 l2).
 Proof.
   induction l1; simpl; sp.
   repeat (rewrite diff_remove).
@@ -220,7 +247,7 @@ Lemma remove_dup :
   forall l1 l2 : list T,
   forall x,
     LIn x l1
-    -> diff eq l1 l2 = remove eq x (diff eq l1 l2).
+    -> @diff _ eq l1 l2 = @remove T eq x (@diff _ eq l1 l2).
 Proof.
   induction l1; simpl; sp; subst.
   rewrite diff_remove.
@@ -231,7 +258,7 @@ Lemma diff_move :
   forall T eq,
   forall l1 l2 l3 : list T,
   forall x,
-    diff eq (l1 ++ x :: l2) l3 = diff eq (x :: l1 ++ l2) l3.
+    @diff _ eq (l1 ++ x :: l2) l3 = @diff _ eq (x :: l1 ++ l2) l3.
 Proof.
   induction l1; simpl; sp.
   rewrite IHl1; simpl.
@@ -243,7 +270,7 @@ Lemma diff_dup :
   forall l1 l2 l3 : list T,
   forall x,
     LIn x (l1 ++ l2)
-    -> diff eq (l1 ++ l2) l3 = diff eq (l1 ++ x :: l2) l3.
+    -> @diff _ eq (l1 ++ l2) l3 = @diff _ eq (l1 ++ x :: l2) l3.
 Proof.
   induction l1; simpl; sp; subst.
   rewrite diff_remove.
@@ -275,7 +302,7 @@ Lemma diff_dup2 :
   forall l1 l2 l3 : list T,
   forall x,
     LIn x l1
-    -> diff eq (l1 ++ l2) l3 = diff eq (l1 ++ x :: l2) l3.
+    -> @diff _ eq (l1 ++ l2) l3 = @diff _ eq (l1 ++ x :: l2) l3.
 Proof.
   intros; apply diff_dup.
   apply in_app_iff; left; auto.
@@ -297,15 +324,16 @@ Qed.
 
 Hint Rewrite null_nil_iff.
 
+Hint Resolve decideP : SquiggleLazyEq.
 Lemma null_diff :
   forall T,
   forall eq : Deq T,
   forall l1 l2 : list T,
-    null (diff eq l1 l2) <=> forall x, LIn x l2 -> LIn x l1.
+    null (@diff _ eq l1 l2) <=> forall x, LIn x l2 -> LIn x l1.
 Proof.
   induction l1; simpl; sp.
   trw IHl1; sp; split; sp.
-  assert ({a = x} + {a <> x}) by auto; sp.
+  assert ({a = x} + {a <> x}) by auto with SquiggleLazyEq; sp.
   right; apply_hyp.
   trw in_remove; sp.
   alltrewrite in_remove; sp.
@@ -366,7 +394,7 @@ Proof.
 Qed.
 
 Definition subsetb {T} (eq : Deq T) (l1 l2 : list T) : bool :=
-  nullb (diff eq l2 l1).
+  nullb (@diff _ eq l2 l1).
 
 Definition eqsetb {T} (eq : Deq T) (l1 l2 : list T) : bool :=
   subsetb eq l1 l2 && subsetb eq l2 l1.
@@ -399,30 +427,39 @@ Fixpoint beq_list {A} (eq : Deq A) (l1 l2 : list A) : bool :=
     | [], [] => true
     | [], _ => false
     | _, [] => false
-    | x :: xs, y :: ys => if eq x y then beq_list eq xs ys else false
+    | x :: xs, y :: ys => if (decide (x=y)) then beq_list eq xs ys else false
   end.
-
-Lemma beq_list_refl :
-  forall A eq,
-  forall l : list A,
-    beq_list eq l l = true.
-Proof.
-  induction l; simpl; sp.
-  destruct (eq a a); auto.
-Qed.
 
 Lemma assert_beq_list :
   forall A eq,
   forall l1 l2 : list A,
     assert (beq_list eq l1 l2) <=> l1 = l2.
 Proof.
-  induction l1; destruct l2; simpl; split; sp; try (complete (inversion H)).
-  destruct (eq a a0); subst.
+  unfold assert.
+  induction l1; destruct l2; simpl; repeat rewrite decide_decideP;
+     split; sp; try (complete (inversion H)).
+  destruct (decideP (a=a0)); subst; sp.
   f_equal. apply IHl1; auto. 
-  inversion H.
-  inversion H; subst.
-  destruct (eq a0 a0); subst; sp.
-  apply IHl1; sp.
+  inversion H. subst.
+  autorewrite with SquiggleLazyEq.
+  rewrite  IHl1. refl.
+Qed.
+
+Global Instance deq_list {A:Type} `{Deq A} : Deq (list A).
+Proof.
+  intros l1 l2.  exists (beq_list _ l1 l2).
+  apply assert_beq_list.
+Defined.
+
+Typeclasses eauto :=6.
+Lemma beq_list_refl :
+  forall A eq,
+  forall l : list A,
+    beq_list eq l l = true.
+Proof.
+  induction l; simpl; sp.
+  autorewrite with SquiggleLazyEq.
+  auto.
 Qed.
 
 Lemma eq_lists :
@@ -462,28 +499,27 @@ Fixpoint memberb' {A} (eq : Deq A) (x : A) (l : list A) : {  LIn x l } + { !  LI
 Fixpoint memberb {A : Type} (eq : Deq A) (x : A) (l : list A) : bool :=
   match l with
     | [] => false
-    | y :: ys => if eq y x then true else memberb eq x ys
+    | y :: ys => if decide (y=x) then true else memberb eq x ys
   end.
 
 Theorem assert_memberb :
   forall {T:Type} {eq : Deq T} (a:T) (l: list T),
     assert (memberb eq a l) <=>  LIn a l.
-Proof.
+Proof with (repeat rewrite decide_decideP).
   intros. induction l. simpl.
   try (unfold assert; repeat split; intros Hf; auto ; inversion Hf).
-  simpl. destruct (eq a0 a) as [Heq | Hneq]. subst. unfold assert; repeat split; auto.
+  simpl ... cases_if. subst. unfold assert; repeat split; auto.
   repeat split; intros Hlr. right. apply IHl; auto.
-  destruct Hlr as [Heq  | Hin].  apply Hneq in Heq. contradiction.
-  apply IHl; auto.
+  destruct Hlr as [Heq  | Hin]; tauto.
 Qed.
 
 Lemma memberb_app :
   forall A eq x,
   forall l1 l2 : list A,
     memberb eq x (l1 ++ l2) = memberb eq x l1 || memberb eq x l2.
-Proof.
-  induction l1; simpl; sp.
-  destruct (eq a x); sp.
+Proof with (repeat rewrite decide_decideP).
+  induction l1; simpl; sp ...
+  destruct (decideP (a = x)); sp.
 Qed.
 
 Lemma in_app_deq :
@@ -499,24 +535,25 @@ Qed.
 Lemma diff_cons_r :
   forall A eq x,
   forall l1 l2 : list A,
-    diff eq l1 (x :: l2)
+    @diff _ eq l1 (x :: l2)
     = if memberb eq x l1
-      then diff eq l1 l2
-      else x :: diff eq l1 l2.
-Proof.
-  induction l1; simpl; sp.
-  destruct (eq a x); subst; auto.
+      then @diff _ eq l1 l2
+      else x :: @diff _ eq l1 l2.
+Proof with (repeat rewrite decide_decideP).
+  induction l1; simpl; sp...
+  destruct (decideP (a=x)); subst; auto.
 Qed.
 
 Lemma diff_cons_r_ni :
   forall A eq x,
   forall l1 l2 : list A,
-    !LIn x l2 -> diff eq (x :: l1) l2 = diff eq l1 l2.
-Proof.
+    !LIn x l2 -> @diff _ eq (x :: l1) l2 = @diff _ eq l1 l2.
+Proof with (repeat rewrite decide_decideP).
   induction l1; simpl; sp.
-  induction l2; allsimpl; allrw not_over_or; sp.
-  destruct (eq x a); try subst; sp.
+  induction l2; allsimpl; allrw not_over_or; sp...
+  destruct (decideP (x=a)); try subst; sp ;
   allrw; sp.
+  Locate remove_trivial.
   rw (remove_trivial A x); sp.
 Qed.
 
@@ -806,7 +843,7 @@ Lemma null_diff_subset :
   forall T,
   forall eq : Deq T,
   forall l1 l2 : list T,
-    null (diff eq l1 l2) <=> subset l2 l1.
+    null (@diff _ eq l1 l2) <=> subset l2 l1.
 Proof.
   sp; apply null_diff; unfold subset; split; sp.
 Qed.
@@ -1057,6 +1094,13 @@ Proof.
   trw app_subset; split; sp; subst; sp; alltrewrite IHl; sp.
 Qed.
 
+Global Instance in_deqq {A:Type} `{Deq A} (x:A) l: Decidable (LIn x l).
+Proof.
+  intros.
+  exists (memberb _ x l).
+  apply assert_memberb.
+Defined.
+
 Lemma in_deq :
   forall A,
   forall eq : Deq A,
@@ -1065,14 +1109,14 @@ Lemma in_deq :
      LIn x l + !LIn x l.
 Proof.
   induction l; simpl; sp; try (complete (right; sp)).
-  destruct (eq a x); subst; sp.
+  destruct (decideP (a=x)); subst; sp.
   right; sp.
 Defined.
 
 Lemma subset_diff :
   forall A eq,
   forall l1 l2 l3 : list A,
-    subset (diff eq l1 l2) l3
+    subset (@diff _ eq l1 l2) l3
     <=>
     subset l2 (l3 ++ l1).
 Proof.
@@ -1170,7 +1214,7 @@ Qed.
 Lemma disjoint_iff_diff :
   forall T eq,
   forall l1 l2 : list T,
-    disjoint l2 l1 <=> diff eq l1 l2 = l2.
+    disjoint l2 l1 <=> @diff _ eq l1 l2 = l2.
 Proof.
   induction l1; simpl; sp.
   trw disjoint_cons_r.
@@ -1295,32 +1339,22 @@ Proof.
   rw disjoint_sym; sp.
 Qed.
 
+
 Lemma disjoint_remove_l :
   forall A eq x,
   forall l1 l2 : list A,
-    disjoint (remove eq x l1) l2 <=> disjoint l1 (remove eq x l2).
+    disjoint (@remove _ eq x l1) l2 <=> disjoint l1 (@remove _ eq x l2).
 Proof.
-  induction l1 as [| ? l IHl1] ; simpl; sp; split; sp.
-  trw disjoint_cons_l; sp.
-  trw_rev IHl1.
-  destruct (eq x a); subst; auto.
-  alltrewrite disjoint_cons_l; sp.
-  destruct (eq x a); subst; auto.
-  alltrewrite in_remove; sp.
-  alltrewrite disjoint_cons_l; sp.
-  alltrewrite in_remove; sp.
-  alltrewrite disjoint_cons_l; sp.
-  destruct (eq x a); subst; auto.
-  trw IHl1; auto.
-  alltrewrite disjoint_cons_l; sp.
-  trw IHl1; auto.
-  allrw in_remove; sp.
+  intros. 
+  unfold disjoint.
+  setoid_rewrite in_remove.
+  firstorder.
 Qed.
 
 Lemma disjoint_diff_l :
   forall A eq,
   forall l1 l2 l3 : list A,
-    disjoint (diff eq l1 l2) l3 <=> disjoint l2 (diff eq l1 l3).
+    disjoint (@diff _ eq l1 l2) l3 <=> disjoint l2 (@diff _ eq l1 l3).
 Proof.
   induction l1; simpl; sp.
   trw IHl1.
@@ -1904,19 +1938,20 @@ Tactic Notation "cases_if_sum"  simple_intropattern(newname) :=
 
 Lemma map_remove_commute: forall {A B : Type} (eqa : Deq A)
 (eqb : Deq B) (f: A->B) (r: A) (lvi: list A) (fi : injective_fun f),
-  map f (remove eqa r lvi)
-  = remove eqb (f r) (map f lvi).
+  map f (@remove _ eqa r lvi)
+  = @remove _ eqb (f r) (map f lvi).
 Proof.
   intros. induction lvi; auto.
- simpl. symmetry. cases_if as Ha; cases_if as Hb; subst; sp.
+ simpl. symmetry. repeat rewrite decide_decideP. simpl.
+  cases_if as Ha; cases_if as Hb; subst; sp.
  - apply fi in Ha. subst; sp.
  - simpl. f_equal; auto.
 Qed.
 
 Lemma map_diff_commute: forall {A B : Type} (eqa : Deq A)
 (eqb : Deq B) (f: A->B) (lvr lvi: list A) (fi : injective_fun f),
-  map f (diff eqa lvr lvi)
-  = diff eqb (map f lvr) (map f lvi).
+  map f (@diff _ eqa lvr lvi)
+  = @diff _ eqb (map f lvr) (map f lvi).
 Proof.
   induction lvr as [| ? lvr IHlvr]; intros; try(repeat (rewrite diff_nil)); auto;[].
   simpl. rewrite IHlvr; auto.  f_equal; auto.
@@ -2003,7 +2038,7 @@ Lemma first_index {A: Type} (l: list A) (a:A) (deq : Deq A):
      [+] (! (LIn a l)).
 Proof.
   induction l as [| h l Hind]; [right;sp;fail|].
-  destruct (deq h a); subst; allsimpl;[left ; exists 0; sp; omega | ].
+  destruct (decideP (h=a)); subst; allsimpl;[left ; exists 0; sp; omega | ].
   dorn Hind. 
   + exrepnd. left. exists (S n0). split; auto; try omega; split; auto.
      introv Hlt. destruct m; auto. apply Hind0; omega.
@@ -2279,14 +2314,6 @@ Proof.
   f_equal. sp.
 Qed.
 
-Lemma deq_list {A} (deq : Deq A): Deq (list A).
-Proof.
-  intro lx.
-  induction lx as [| x lx Hind]; intro ly;
-  destruct ly as [| y ly];sp;[right|right |];sp;[].
-  destruct (Hind ly); destruct (deq x y); subst; sp; right; introv Heq;
-  inverts Heq; sp.
-Qed.
 Hint Resolve deq_list.
 
 Ltac get_element_type listtype :=
@@ -2577,4 +2604,132 @@ Proof.
   - inverts Hf. exists 0. split; auto. omega.
   - apply_clear IHt1 in Hf. exrepnd. exists (S n).
     split; auto. omega. 
+Qed.
+
+Lemma iff_t_iff : forall A B : Prop, A <-> B <-> (A <=> B).
+Proof.
+  firstorder.
+Qed.
+
+
+Lemma eqsetv_prop {A}:
+  forall (vs1 vs2 : list A),
+    eq_set vs1 vs2 <=> forall x, LIn x vs1 <=> LIn x vs2.
+Proof.
+  sp.
+  unfold subset.  firstorder.
+Qed.
+
+Lemma eqsetv_sym {A} :
+  forall (s1 s2 : list A), eq_set s1 s2 <=> eq_set s2 s1.
+Proof.
+  introv. unfold eq_set. tauto.
+Qed.
+
+Lemma eqsetv_disjoint {A}:
+  forall (s1 s2 s3 : list A),
+    eq_set s1 s2
+    -> disjoint s1 s3
+    -> disjoint s2 s3.
+Proof.
+   unfold disjoint, subset.
+   firstorder.
+Qed.
+
+
+
+Lemma eqsetv_trans {A}: forall (lva lvb lvc : list A),
+  eq_set lva lvb
+  -> eq_set lvb lvc
+  -> eq_set lva lvc.
+Proof.
+  introv He1 He2.
+  rewrite (eqsetv_prop) in *.
+  split; intro Hin;
+  repeat (try(apply He1 in Hin); try(apply He2 in Hin); auto).
+Qed.
+
+Lemma eq_vars_sym {A}: forall (lv1 lv2 : list A),
+  eq_set lv1 lv2 -> eq_set lv2 lv1.
+Proof.
+  introv. rewrite eqsetv_prop. rewrite eqsetv_prop.
+  intros X x. rw X.
+  dtiffs2. split; auto.
+Qed.
+
+Notation lremove := diff.
+
+Section RWInstances.
+(** contents of this section will work only when [univ] := Prop. Coq does (yet) not support rewriting
+with relations in Type *)
+Global Instance equivEqsetv {A}: Equivalence (@eq_set A).
+Proof.
+  constructor; eauto using eqsetv_trans, eq_vars_sym.
+  constructor; unfold subset; tauto.
+Qed.
+
+Require Import Morphisms.
+
+Global Instance properEqsetvLin {A} : Proper (eq ==> eq_set ==> iff ) (@LIn A).
+Proof.
+  intros ? ? ? ? ? ?. apply iff_t_iff. subst. apply eqsetv_prop; assumption.
+Qed.
+
+Global Instance properEqsetvNull {A} : Proper (eq_set ==> iff ) (@null A).
+Proof.
+  intros ? ? H. unfold null. split; intros; [rewrite <- H| rewrite H]; eauto.
+Qed.
+
+Global Instance properEqsetvApp {A}: Proper (eq_set ==> eq_set ==> eq_set ) (@app A).
+Proof.
+  intros ? ? H1 ? ? H2. apply eqsetv_prop. setoid_rewrite in_app_iff.
+  setoid_rewrite H1. setoid_rewrite H2. tauto.
+Qed.
+
+Global Instance properEqsetvRemove {A:Type} `{Deq A}: Proper (eq_set ==> eq_set ==> eq_set) (@lremove A _).
+Proof.
+  intros ? ? H1 ? ? H2. apply eqsetv_prop.
+  setoid_rewrite in_diff.
+  setoid_rewrite H1. setoid_rewrite H2. tauto.
+Qed.
+
+Global Instance properEqsetvSubsetv {A} : Proper (eq_set ==> eq_set ==> iff ) (@subset A).
+Proof.
+  intros ? ? ? ? ? Heq.  subst. apply iff_t_iff.  unfold subset.
+  repeat setoid_rewrite Heq. setoid_rewrite H. reflexivity.
+Qed.
+
+Global Instance transSubsetv {A}: Transitive (@subset A).
+Proof.
+  intros ? ? ?. apply subset_trans.
+Qed.
+
+Global Instance properDisjoint {A} : Proper (eq_set ==> eq_set ==> iff ) (@disjoint A).
+Proof.
+  intros ? ? ? ? ? Heq.  subst. apply iff_t_iff.  unfold disjoint.
+  repeat setoid_rewrite Heq. setoid_rewrite H. reflexivity.
+Qed.
+
+End RWInstances.
+
+Lemma subsetvAppLR {A} : forall a b c d,
+  subset a c
+  -> subset b d
+  -> @subset A (a++b) (c++d).
+Proof.
+  intros ? ? ? ? H1s H2s.
+  apply app_subset.
+  split; eauto using subset_app_l, subset_app_r.
+Qed.
+
+Lemma eqset_flat_maps
+     : forall (A B : Type) (f g : A -> list B) (l : list A),
+       (forall x : A, LIn x l -> eq_set (f x) (g x))
+         -> eq_set (flat_map f l)  (flat_map g l).
+Proof.
+  induction l; intros; simpl; [refl|].
+  rewrite H;[| sp].
+  simpl in *.
+  rewrite IHl;[| spc].
+  refl.
 Qed.
