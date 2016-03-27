@@ -2,14 +2,16 @@
 Require Export Recdef.
 Require Export Eqdep_dec.
 Require Export opid.
-Require Export variables.
+Require Export varInterface.
+
 
 Section terms.
-Context {gts : GenericTermSig}.
-Inductive NTerm : Set :=
+Context {NVar VarClass} `{VarType NVar VarClass} {gts : GenericTermSig}.
+
+Inductive NTerm : Type :=
 | vterm: NVar -> NTerm
 | oterm: Opid -> list BTerm -> NTerm
-with BTerm : Set :=
+with BTerm : Type :=
 | bterm: (list NVar) -> NTerm -> BTerm.
 
 (*
@@ -182,29 +184,31 @@ https://coq.inria.fr/bugs/show_bug.cgi?id=3343
    *) 
 
 (* --- variables --- *)
-Fixpoint free_vars  {gts : GenericTermSig} 
-  (t:NTerm) : list NVar :=
+Fixpoint free_vars {NVar VarClass} `{VarType NVar VarClass} {gts : GenericTermSig}  
+  (t:NTerm) {struct t}: list NVar :=
   match t with
   | vterm v => [v]
-  | oterm op bts => flat_map free_vars_bterm  bts
+  | oterm op bts => flat_map (@free_vars_bterm NVar _ _ _ _)  bts
   end
- with free_vars_bterm {gts : GenericTermSig} (bt : BTerm ) :=
+ with free_vars_bterm {NVar VarClass} `{VarType NVar VarClass} {gts : GenericTermSig}  (bt : BTerm)
+  {struct bt} : list NVar :=
   match bt with
   | bterm  lv nt => remove_nvars lv (free_vars nt)
   end.
 
-Fixpoint bound_vars {gts : GenericTermSig} (t : NTerm) : list NVar :=
+Fixpoint bound_vars {NVar VarClass} `{VarType NVar VarClass} {gts : GenericTermSig} (t : NTerm) : list NVar :=
   match t with
   | vterm v => []
-  | oterm op bts => flat_map bound_vars_bterm  bts
+  | oterm op bts => flat_map (@bound_vars_bterm NVar VarClass _ _ _ _)  bts
   end
- with bound_vars_bterm {gts : GenericTermSig} (bt : BTerm ) :=
+ with bound_vars_bterm {NVar VarClass} `{VarType NVar VarClass} {gts : GenericTermSig} {gts : GenericTermSig} (bt : BTerm ) 
+  :list NVar :=
   match bt with
   | bterm lv nt => lv ++ bound_vars nt
   end.
 
 Section termsCont.
-Context {gts : GenericTermSig}.
+Context {NVar VarClass} `{VarType NVar VarClass} {gts : GenericTermSig}.
 Definition all_vars t := free_vars t ++ bound_vars t.
 
 Definition closed (t : NTerm) := free_vars t = [].

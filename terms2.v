@@ -11,10 +11,13 @@ Require Export terms.
     reduce the verbosity of some of our later definitions
 *)
 
+
 Section terms2Generic.
 
-Context {gts : GenericTermSig}.
+Context {NVar VarClass} `{VarType NVar VarClass} {gts : GenericTermSig}.
 
+
+Typeclasses eauto := 1000.
 Definition nobnd (f:NTerm) := bterm [] f.
 
 
