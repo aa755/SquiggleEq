@@ -3,9 +3,11 @@ Require Import Coq.Classes.DecidableClass.
 
 
 
-Class Deq T := deceq :> forall (a b:T), Decidable (a=b).
-
 Require Import list.
+
+(* get rid of it eventually *)
+Notation subsetv := subset (only parsing).
+
 
 Class VarType (T:Type) (ClassType : Type)  `{Deq T} := {
 
@@ -1143,4 +1145,93 @@ Hint Rewrite <- (fun T D => @beq_var_refl T D) : SquiggleLazyEq.
 
 Hint Rewrite (fun T D => @memvar_singleton T D) (fun T D => @memvar_fresh_var T D) : SquiggleLazyEq.
 
+(* Remove : neve add anything to core DB *)
+Hint Immediate deq_nvar.
+Hint Rewrite (fun T D => @remove_nvars_nil_l T D) (fun T D => @remove_nvars_nil_r T D) : SquiggleLazyEq.
+(* Hint Constructors issorted. *)
+Hint Immediate eqsetv_refl.
+Hint Immediate subsetv_refl.
+(* Hint Immediate fresh_var_nil. *)
+Hint Immediate subset_nil_l.
+Hint Rewrite (fun A => @subsetv_nil_l_iff A).
+Hint Resolve eqsetv_trans eq_vars_sym eqsetv_refl eqsetv_remove_nvar eqsetv_remove_nvars eqsetv_app: eqsetv.
 
+Tactic Notation "prove_subsetv" ident(h) :=
+  let v := fresh "v" in
+  let x := fresh "x" in
+    rewrite subsetv_prop in h;
+  rewrite subsetv_prop;
+  intros v x;
+  apply h in x.
+Ltac provesv :=
+  match goal with
+    | [ H : subset ?v ?vs1 |- subset ?v ?vs2 ] =>
+        let v := fresh "v" in
+        let x := fresh "x" in
+        let y := fresh "y" in
+          rewrite subsetv_prop in H;
+        rewrite subsetv_prop;
+        intros v x;
+        applydup H in x as y
+  end.
+
+
+Ltac inj0_step :=
+  match goal with
+    | [ H : (_, _) = (_, _)     |- _ ] => apply pair_inj in H; repd; subst; GC
+    | [ H : S _ = S _           |- _ ] => apply S_inj    in H; repd; subst; GC
+    | [ H : S _ < S _           |- _ ] => apply S_lt_inj in H; repd; subst; GC
+    | [ H : snoc _ _ = snoc _ _ |- _ ] => apply snoc_inj in H; repd; subst; GC
+  end.
+
+Ltac inj0 := repeat inj0_step.
+
+(*
+Ltac inj :=
+  repeat match goal with
+             [ H : _ |- _ ] =>
+             (apply pair_inj in H
+              || apply S_inj in H
+              || apply S_lt_inj in H
+              || apply snoc_inj in H);
+               repd; subst; GC
+         end; try (complete sp).
+*)
+
+Ltac inj := inj0; try (complete auto); try (complete sp).
+
+Ltac cpx :=
+  repeat match goal with
+           (* false hypothesis *)
+           | [ H : [] = snoc _ _ |- _ ] =>
+             complete (apply nil_snoc_false in H; sp)
+           | [ H : snoc _ _ = [] |- _ ] =>
+             complete (symmetry in H; apply nil_snoc_false in H; sp)
+
+           (* simplifications *)
+           | [ H : _ :: _ = _ :: _ |- _ ] => inversion H; subst; GC
+
+           | [ H : 0 = length _ |- _ ] =>
+             symmetry in H; trw_h length0 H; subst
+           | [ H : length _ = 0 |- _ ] =>
+             trw_h length0 H; subst
+
+           | [ H : 1 = length _ |- _ ] =>
+             symmetry in H; trw_h length1 H; exrepd; subst
+           | [ H : length _ = 1 |- _ ] =>
+             trw_h length1 H; exrepd; subst
+
+           | [ H : [_] = snoc _ _ |- _ ] =>
+             symmetry in H; trw_h snoc1 H; repd; subst
+           | [ H : snoc _ _ = [_] |- _ ] =>
+             trw_h snoc1 H; repd; subst
+
+           | [ H : context[length (snoc _ _)] |- _ ] =>
+             rewrite length_snoc in H
+         end;
+  inj;
+  try (complete (allsimpl; sp)).
+  
+  Ltac sp3 :=
+  (repeat match goal with
+  | [ H: _ <=> _ |- _ ] => destruct H end); spc. 
