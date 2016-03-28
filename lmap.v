@@ -28,17 +28,17 @@ Require Export list.
 
 
 (** generalization of Substitution*)
-Definition lmap (A B: Set ): Set := list (A * B).
+Definition lmap (A B: Type ): Type := list (A * B).
 
 Lemma lmap_find :
-  forall {A B: Set}
+  forall {A B: Type}
          (eqdec: Deq A) (sub: lmap A B) (a : A) ,
     { b: B & LIn (a,b) sub}
     + !(LIn a (fst (split sub))).
 Proof.
    induction sub as [| (a', b') sub Hind]; intro a.
    - right.  sp.
-   - destruct (eqdec a' a) as [Hc|Hc]; subst.
+   - destruct (decideP (a'= a)) as [Hc|Hc]; subst.
       + left. exists b'. left; refl.
       + destruct (Hind a) as [Hl | Hr]; exrepnd ;[left | right].
           * exists b. right; auto.
@@ -46,10 +46,10 @@ Proof.
               dorn Hf; sp.
 Defined.
 
-Definition dom_lmap {A B: Set} (sub : lmap A B) : list A := map (fun x => fst x) sub.
+Definition dom_lmap {A B: Type} (sub : lmap A B) : list A := map (fun x => fst x) sub.
 
 (**same as above, but the impelemtation is guaranteed to return the first match*)
-Lemma lmap_find_first: forall {A B: Set}
+Lemma lmap_find_first: forall {A B: Type}
   (eqdec: Deq A) (sub: lmap A B) (a : A) ,
     { b: B & {n:nat & n < length sub
             # nth n sub (a,b) = (a,b)
@@ -58,7 +58,7 @@ Lemma lmap_find_first: forall {A B: Set}
 Proof.
    induction sub as [| (a', b') sub Hind]; intro a.
    - right.  sp.
-   - destruct (eqdec a' a) as [Hc|Hc]; subst.
+   - destruct (decideP (a'=a)) as [Hc|Hc]; subst.
       + left. exists b'. exists 0. split; simpl; auto. apply  lt_0_Sn.
         split; auto. introv Hm; inverts Hm.
       + destruct (Hind a) as [Hl | Hr]; exrepnd ;[left | right].

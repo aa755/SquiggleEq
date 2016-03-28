@@ -62,11 +62,20 @@ Definition Substitution   : Set := list (NVar # NTerm).
 ]]
  *)
 Section SubstGeneric.
-Context {gts : GenericTermSig}.
+
+Context {NVar VarClass} {deqnvar : Deq NVar} {varclass: @VarType NVar VarClass deqnvar} {gts : GenericTermSig}.
+Notation NTerm := (@NTerm NVar).
+Notation BTerm := (@BTerm NVar).
+Notation WTerm := (@WTerm NVar).
+Notation CTerm := (@CTerm NVar).
+Notation oterm := (@oterm NVar gts).
+Notation bterm := (@bterm NVar gts).
+Notation vterm := (@vterm NVar gts).
+
 (* begin hide *)
-Definition Substitution   : Set := lmap NVar NTerm.
-Definition WfSubstitution : Set := lmap NVar WTerm.
-Definition CSubstitution  : Set := lmap NVar  CTerm.
+Definition Substitution   : Type := lmap NVar NTerm.
+Definition WfSubstitution : Type := lmap NVar WTerm.
+Definition CSubstitution  : Type := lmap NVar  CTerm.
 (* end hide *)
 
 (** % \noindent %
@@ -111,7 +120,7 @@ Definition crange (sub : CSubstitution) : list CTerm := map (fun x => snd x) sub
 Lemma deq_in_sub :
   forall v t (sub : Substitution),
     LIn (v,t) sub + !LIn (v,t) sub.
-Proof using.
+Proof using deqnvar.
   introv.
   apply in_deq; sp.
   apply deq_prod; sp; try (apply deq_nvar); try (apply deq_nterm).
@@ -121,7 +130,7 @@ Definition sub_range_sat (sub: Substitution) (P: NTerm -> [univ]) :=
   forall v t, LIn (v,t) sub -> P t.
 
 Definition sub_range_satb (sub: Substitution) (P: NTerm -> [univ]) :=
-  forall t, assert (memberb deq_nterm t (range sub)) -> P t.
+  forall t, assert (memberb _ t (range sub)) -> P t.
 
 Lemma in_range :
   forall t sub, LIn t (range sub) -> {v : NVar $ LIn (v,t) sub}.
@@ -133,23 +142,24 @@ Qed.
 
 Lemma in_range_t :
   forall t sub, LIn t (range sub) -> {v : NVar & LIn (v,t) sub}.
-Proof using.
+Proof using deqnvar.
   introv i.
-  rw <- (@assert_memberb NTerm deq_nterm) in i.
+  rw <- (@assert_memberb NTerm _) in i.
   induction sub; allsimpl; sp; allsimpl.
   unfold assert in i; sp.
-  destruct (deq_nterm a t); subst; sp.
+  rewrite decide_decideP in i.
+  destruct (decideP (a=t)); subst; sp.
   exists a0; sp.
   exists v; sp.
 Qed.
 
 Lemma sub_range_sat_implies_b :
   forall sub P, sub_range_sat sub P -> sub_range_satb sub P.
-Proof using.
+Proof using deqnvar.
   unfold sub_range_sat, sub_range_satb; introv s a.
-  rw (@assert_memberb NTerm deq_nterm) in a.
+  rw (@assert_memberb NTerm _) in a.
   allapply in_range_t; sp.
-  discover; sp.
+  discover; sp. eapply s; eauto.
 Qed.
 
 Lemma sub_range_sat_implies :
@@ -210,14 +220,13 @@ Proof using. sp.
 Qed.
 
 Lemma beq_deq : forall T v1 v2 (ct cf:T) ,
-  (if (beq_var v1 v2)  then ct else cf) = (if (deq_nvar v1 v2)  then ct else cf).
-  intros. cases_if as Hb; auto; cases_if as Hd ; auto; subst.
-  apply not_eq_beq_var_false in Hd. rewrite Hd in Hb; sp. 
-  rewrite <- beq_var_refl in Hb. sp.
+  (if (beq_var v1 v2)  then ct else cf) = (if (decideP (v1=v2))  then ct else cf).
+Proof.
+  intros. apply decide_decideP.
 Qed.
 
 
-Definition lmap_apply {A : Set} (eqdec: Deq A) (sub: lmap A A) (a:A): A :=
+Definition lmap_apply {A : Type} (eqdec: Deq A) (sub: lmap A A) (a:A): A :=
   match lmap_find eqdec sub a with
     | inl (existT _ a' _) =>  a'
     | inr _ => a
@@ -236,14 +245,16 @@ Definition proj_as_option {A Q: Type} {P : A->Type} (a': {a : A & (P a)} + Q)
     |  inr _ => None
   end.
 
+Hint Rewrite deqP_refl.
 Lemma sub_lmap_find: forall sub v, sub_find sub v =
         proj_as_option (lmap_find deq_nvar sub v).
 Proof using.
   induction sub as [| a]; intros ; auto; simpl. 
-  destruct a. rewrite beq_deq. 
-  cases_if; subst; auto.
+  destruct a. rewrite beq_deq. simpl.
+  destruct (decideP (n = v));
+  subst; autorewrite with SquiggleLazyEq; simpl in *; auto.
   rewrite IHsub. destruct ((lmap_find deq_nvar sub v)); simpl;
-  try(destruct s; simpl); auto.  
+  try(destruct s; simpl); auto. 
 Qed.
 
 
@@ -251,8 +262,9 @@ Lemma sub_lmap_find_first: forall sub v, sub_find sub v =
         proj_as_option (lmap_find_first deq_nvar sub v).
 Proof using.
   induction sub as [| a]; intros ; auto; simpl. 
-  destruct a. rewrite beq_deq. 
-  cases_if; subst; auto.
+  destruct a. rewrite beq_deq.  simpl in *.
+  destruct (decideP (n = v));
+  simpl; subst; autorewrite with SquiggleLazyEq;  subst; auto.
   rewrite IHsub. destruct ((lmap_find_first deq_nvar sub v)); simpl;
   exrepnd; auto.  
 Qed.
@@ -581,7 +593,7 @@ Lemma cover_vars_upto_snoc_weak :
 Proof using.
   introv cv.
   allunfold cover_vars_upto.
-  rewrite assert_sub_vars in *.
+  rewrite assert_sub_vars in cv.
   intros. discover.
   allrw in_app_iff; sp.
   allrw dom_csub_snoc; allsimpl.
@@ -669,7 +681,7 @@ Proof using.
 Qed.
 
 
-Definition CSubOver (vs : list NVar) : Set :=
+Definition CSubOver (vs : list NVar) : Type :=
   { s : CSubstitution | over_vars vs s }.
 
 Definition csubo2csub (vs : list NVar) (sub : CSubOver vs) : CSubstitution :=
@@ -704,7 +716,7 @@ Lemma in_dom_sub_exists :
     LIn v (dom_sub sub)
     -> {t : NTerm $ sub_find sub v = Some t}.
 Proof using.
-  induction sub; simpl; sp; allsimpl; subst; boolvar.
+  induction sub; simpl; sp; allsimpl; subst; simpl; boolvar.
   exists a; sp.
   exists a; sp.
   exists t; sp.
@@ -1282,7 +1294,8 @@ Ltac clear_irr :=
              assert (H2 = H1) by apply isprog_proof_irrelevance; subst
          end.
 
-Fixpoint ssubst_aux {gts : GenericTermSig} (nt : NTerm) (sub : Substitution) : NTerm :=
+Fixpoint ssubst_aux {NVar} `{Deq NVar} {gts : GenericTermSig} (nt : NTerm) (sub : Substitution) 
+  : (@NTerm NVar gts):=
   match nt with
   | vterm var =>
       match sub_find sub var with
@@ -1291,7 +1304,8 @@ Fixpoint ssubst_aux {gts : GenericTermSig} (nt : NTerm) (sub : Substitution) : N
       end
   | oterm op bts => oterm op (map (fun t => ssubst_bterm_aux t sub) bts)
   end
- with ssubst_bterm_aux {gts : GenericTermSig} (bt : BTerm) (sub : Substitution) : BTerm :=
+ with ssubst_bterm_aux {NVar} `{Deq NVar} {gts : GenericTermSig} (bt : BTerm) (sub : Substitution) 
+  : (@BTerm NVar gts):=
   match bt with
   | bterm lv nt => bterm lv (ssubst_aux nt (sub_filter sub lv))
   end.
@@ -1307,37 +1321,23 @@ Fixpoint ssubst_aux {gts : GenericTermSig} (nt : NTerm) (sub : Substitution) : N
 *)
 
 
-Fixpoint change_bvars_alpha {gts : GenericTermSig} (lv : list NVar ) (t : NTerm) :=
+Fixpoint change_bvars_alpha {NVar VarClass : Type} `{VarType NVar VarClass} {gts : GenericTermSig} (lv : list NVar ) (t : (@NTerm NVar gts)) 
+: (@NTerm NVar gts) :=
 match t with
 | vterm v => vterm v
-| oterm o lbt => oterm o (map (change_bvars_alphabt lv) lbt)
+| oterm o lbt => oterm o (map (@change_bvars_alphabt NVar _ _ _ _ lv) lbt)
 end
-with change_bvars_alphabt {gts : GenericTermSig} lv bt:=
+with change_bvars_alphabt {NVar VarClass : Type} `{VarType NVar VarClass}  {gts : GenericTermSig} lv 
+(bt: @BTerm NVar gts) 
+: (@BTerm NVar gts):=
 match bt with
 | bterm blv bnt => 
-    let bnt' := change_bvars_alpha lv bnt in
+    let bnt' := @change_bvars_alpha NVar _ _ _ _  lv bnt in
     match (fresh_vars (length blv) (lv++(all_vars bnt'))) with
     | existT _ lvn _ => bterm lvn (ssubst_aux bnt' (var_ren blv lvn))
     end
 end.
 
-Fixpoint ssubst_vs {gts : GenericTermSig} (vars : list NVar) (t : NTerm) (sub : Substitution) : NTerm :=
-  (*if nullb sub then t else*)
-  match t with
-  | vterm var =>
-      match sub_find sub var with
-      | Some t => t
-      | None => t
-      end
-  | oterm op bts => oterm op (map (fun t => ssubst_vs_bterm vars t sub) bts)
-  end
- with ssubst_vs_bterm {gts : GenericTermSig} (vars : list NVar) (bt : BTerm) (sub : Substitution) : BTerm :=
-  match bt with
-  | bterm lv nt =>
-    let (x,s) := bvar_renamings_subst lv nt sub in
-    let (vs,ren) := x in
-      bterm vs (ssubst_vs (vars ++ vs) nt (ren ++ s))
-  end.
 
 (** % \noindent \\* %
   When we define alpha equality in the next section, we prove that
@@ -1347,13 +1347,22 @@ Finally, here is the function that safely perfoms
 
 *)
 
-Class FreeVars (T:Type) := freevars : T -> list NVar.
+Class FreeVars (T V:Type) := freevars : T -> list V.
 
 Section SubstGeneric2.
-Context {gts : GenericTermSig}.
-Global Instance FreeVarsNTerm : FreeVars NTerm := free_vars.
-Global Instance FreeVarsBTerm : FreeVars BTerm := free_vars_bterm.
-Global Instance FreeVarsSub : FreeVars Substitution := 
+Context {NVar VarClass} {deqnvar : Deq NVar} {varclass: @VarType NVar VarClass deqnvar} {gts : GenericTermSig}.
+Notation NTerm := (@NTerm NVar).
+Notation BTerm := (@BTerm NVar).
+Notation WTerm := (@WTerm NVar).
+Notation CTerm := (@CTerm NVar).
+Notation Substitution := (@Substitution NVar).
+
+(*Notation oterm := (@oterm NVar gts).
+Notation bterm := (@bterm NVar gts).
+Notation vterm := (@vterm NVar gts). *)
+Global Instance FreeVarsNTerm : FreeVars NTerm NVar := free_vars.
+Global Instance FreeVarsBTerm : FreeVars BTerm NVar := free_vars_bterm.
+Global Instance FreeVarsSub : FreeVars Substitution NVar := 
   fun s => flat_map free_vars (range s).
 
 (*
@@ -1366,7 +1375,7 @@ Definition ssubst  (t : NTerm) (sub : Substitution) : NTerm :=
 
 Fixpoint ssubst  (t : NTerm) (sub : Substitution) : NTerm :=
 match t with
-| vterm var =>
+| terms.vterm var =>
     match sub_find sub var with
     | Some st => st
     | None => t
@@ -1658,7 +1667,7 @@ Proof using.
 Qed.
 
 Theorem dom_range_is_split_snd :
-  forall sub, range sub = snd (split sub).
+  forall (sub: Substitution), range sub = snd (split sub).
 Proof using.
   induction sub; auto. allsimpl.
   destruct (split sub) as [lv lnt].
@@ -1667,7 +1676,7 @@ Proof using.
 Qed.
 
 Theorem dom_range_combine :
-  forall lv lnt,
+  forall lv (lnt : list NTerm),
     length lv = length lnt
     -> range (combine lv lnt) = lnt.
 Proof using.
@@ -1675,19 +1684,19 @@ Proof using.
   rewrite combine_split; auto.
 Qed.
 
-Lemma sub_eta : forall sub,
+Lemma sub_eta : forall (sub : Substitution),
   sub = combine (dom_sub sub) (range sub).
 Proof using.
   induction sub as [| (v,t) Hind]; auto;simpl;congruence.
 Qed.
 
-Lemma sub_eta_length : forall sub,
+Lemma sub_eta_length : forall (sub : Substitution),
   length (dom_sub sub) = length (range sub).
 Proof using.
   induction sub as [| (v,t) Hind]; auto;simpl;congruence.
 Qed.
 
-Lemma in_sub_eta : forall sub v t,
+Lemma in_sub_eta : forall (sub : Substitution) v t,
   LIn (v,t) sub -> (LIn v (dom_sub sub)) # (LIn t (range sub)).
 Proof using.
   introns HH.
@@ -1727,7 +1736,7 @@ Qed.
 
 Lemma range_var_ren : forall lvi lvo,
   length lvi=length lvo 
-  -> range (var_ren lvi lvo) = map vterm lvo.
+  -> range (var_ren lvi lvo) = map (@vterm NVar gts) lvo.
 Proof using.
   induction lvi as [|? ? Hind]; introv Hlen; allsimpl; destruct lvo; inverts Hlen;sp;[];simpl.
   f_equal. apply Hind; sp.
@@ -1748,7 +1757,7 @@ Proof using.  intros. rw range_var_ren;sp. apply  flat_map_bound_var_vterm.
 Qed.
 
 Theorem dom_sub_is_split_snd :
-  forall sub, dom_sub sub = fst (split sub).
+  forall (sub : Substitution), dom_sub sub = fst (split sub).
 Proof using.
  induction sub; auto. allsimpl. 
  destruct (split sub) as [lv lnt].
@@ -1757,7 +1766,7 @@ Proof using.
 Qed.
 
 Theorem dom_sub_combine :
-  forall lv lnt,
+  forall lv (lnt: list NTerm),
     length lv = length lnt
     -> dom_sub (combine lv lnt) = lv.
 Proof using.
@@ -1768,7 +1777,7 @@ Proof using.
 Qed.
 
 Theorem dom_sub_combine_le :
-  forall lv lnt,
+  forall lv (lnt: list NTerm),
     length lv <= length lnt
     -> dom_sub (combine lv lnt) = lv.
 Proof using.
@@ -2757,7 +2766,7 @@ Proof using.
     rw Heqo; auto.
     rw sub_find_none_iff in Heqo.
     assert (! LIn n (dom_sub (sub1 ++ sub2))) as nin
-      by (rw dom_sub_app; rw in_app_iff; intro; sp).
+      by (rewrite dom_sub_app; rewrite in_app_iff; intro; sp).
     rw <- sub_find_none_iff in nin.
     rw nin; auto.
 
@@ -4194,19 +4203,19 @@ Proof using.
   induction sub; simpl; sp.
 Qed.
 
+Hint Extern 1 (DecidableClass.decide ?T ?D (?v = ?v)) =>  rewrite deq_refl.
 Lemma sub_keep_first_singleton_r_some :
   forall sub v t,
     sub_find sub v = Some t
     -> sub_keep_first sub [v] = [(v,t)].
-Proof using.
+Proof with (autorewrite with SquiggleLazyEq) using.
   induction sub; simpl; sp.
   rewrite remove_nvar_cons.
-  rewrite memvar_singleton.
   rewrite remove_nvar_nil.
-  destruct (eq_var_dec a0 v); subst.
+  destruct (eq_var_dec a0 v); subst; autorewrite with SquiggleLazyEq.
   allrw <- beq_var_refl.
-  inversion H; subst.
-  rewrite sub_keep_first_nil_r; auto.
+  inversion H; subst. rewrite sub_keep_first_nil_r. refl.
+  
   rw not_eq_beq_var_false; auto.
   rw not_eq_beq_var_false in H; auto.
 Qed.
@@ -4307,7 +4316,7 @@ Lemma eqsetv_free_vars_disjoint_aux :
   forall t : NTerm,
   forall sub : Substitution,
     (forall v u, LIn (v, u) sub -> disjoint (free_vars u) (bound_vars t))
-    -> eqsetv (free_vars (ssubst_aux t sub))
+    -> eq_set (free_vars (ssubst_aux t sub))
               (remove_nvars (dom_sub sub) (free_vars t)
                ++ sub_free_vars (sub_keep_first sub (free_vars t))).
 Proof using.
@@ -4497,7 +4506,7 @@ Proof using.
 Qed.
 
 
-Lemma sub_app_sat_iff :  forall P sub1 sub2,
+Lemma sub_app_sat_iff :  forall P (sub1 sub2: Substitution),
   (sub_range_sat  sub1 P
     # sub_range_sat  sub2 P)
   <=> sub_range_sat (sub1 ++ sub2) P.
@@ -5074,7 +5083,7 @@ Proof using.
 Defined.
 
 
-Lemma in_combine_vars_vterm: forall lvi lvo u v ,
+Lemma in_combine_vars_vterm: forall lvi lvo (u v: NVar) ,
   LIn (u,v) (combine lvi lvo) -> LIn (u, vterm v) (var_ren lvi lvo).
 Proof using.
   introv X.   assert (injective_fun (fun x:NVar => x))  as Hi by (introv;auto).
@@ -5625,7 +5634,7 @@ Proof using.
 Qed.
 
 
-Lemma wf_sub_vars : forall lvi lvo ,wf_sub (var_ren lvi lvo).
+Lemma wf_sub_vars : forall (lvi lvo : list NVar) ,wf_sub (var_ren lvi lvo).
 Proof using.
   introv Hin. apply in_var_ren in Hin; exrepnd; subst.
   constructor.
@@ -6034,7 +6043,7 @@ Proof using.
       allsimpl. disjoint_reasoningv.
 Qed.
 
-Lemma range_app: forall s1 s2, range (s1++s2) =
+Lemma range_app: forall (s1 s2 : Substitution), range (s1++s2) =
   (range s1) ++ (range s2).
 Proof using.
   introv. unfold range. rw map_app.
@@ -6173,7 +6182,7 @@ Proof using.
   induction x as [|(v1,t1) subl1 Hind];  allsimpl;sp.
 Qed.
 
-Lemma sub_range_sat_nil : forall P, sub_range_sat [] P.
+Lemma sub_range_sat_nil : forall (P: NTerm -> Prop), sub_range_sat [] P.
 Proof using.
   unfold sub_range_sat. introv HH.
   inverts HH.
@@ -6193,7 +6202,7 @@ Qed.
 
 Lemma cover_vars_upto_csub_filter_disjoint :
   forall t s vs1 vs2,
-    eqsetv vs1 vs2
+    eq_set vs1 vs2
     -> disjoint (free_vars t) vs1
     -> (cover_vars_upto t (csub_filter s vs1) vs2
         <=> cover_vars t s).
@@ -6484,7 +6493,7 @@ Proof using.
 Qed.
 
 
-Lemma sub_range_sat_cons: forall h t P,
+Lemma sub_range_sat_cons: forall h t (P : NTerm-> Prop),
   sub_range_sat (h::t) P  <=> (P (snd h) # sub_range_sat t P).
 Proof using.
   intros. rw cons_as_app. rw <- sub_app_sat_iff.
@@ -6574,11 +6583,13 @@ Proof using.
   induction s; introv disj; sp; allsimpl.
   allrw disjoint_cons_r; repnd.
   discover; allrw.
-  boolvar; sp.
+  boolvar; cpx.
+  auto.
 Qed.
+
 Lemma eqsetv_sub_keep_first :
   forall sub la lb,
-    eqsetv la lb
+    eq_set la lb
     -> (sub_keep_first sub la) = (sub_keep_first sub lb).
 Proof using.
   induction sub as [| (v,t) sub Hind]; introv Heq;auto.
@@ -6837,8 +6848,8 @@ Qed.
 (* end hide*)
 End SubstGeneric2.
 
-Lemma sub_find_some_map {gtsi gtso : GenericTermSig}
- (f : @NTerm gtsi -> @NTerm gtso) v (sub : @Substitution gtsi) (t: @NTerm gtsi) :
+Lemma sub_find_some_map {NVar} `{Deq NVar} {gtsi gtso : GenericTermSig}
+ (f : @NTerm NVar gtsi -> @NTerm NVar gtso) v (sub : @Substitution NVar gtsi) (t: @NTerm NVar gtsi) :
  sub_find sub v = Some t
  -> sub_find (map_sub_range f sub) v = Some (f t).
 Proof using.
@@ -6847,8 +6858,8 @@ Proof using.
   inverts Heq. auto.
 Qed.
 
-Lemma sub_find_none_map {gtsi gtso : GenericTermSig}
- (f : @NTerm gtsi -> @NTerm gtso) v (sub : @Substitution gtsi) :
+Lemma sub_find_none_map {NVar} `{Deq NVar} {gtsi gtso : GenericTermSig}
+(f : @NTerm NVar gtsi -> @NTerm NVar gtso) v (sub : @Substitution NVar gtsi) :
  sub_find sub v = None
  -> sub_find (map_sub_range f sub) v = None.
 Proof using.

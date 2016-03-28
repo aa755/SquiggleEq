@@ -795,6 +795,27 @@ Proof using.
   allrw isprog_eq; unfold isprogram in *; repnd; allrw nt_wf_eq; sp.
 Qed.
 
+(* Move, try to delete*)
+Lemma beq_var_true :
+  forall (i1 i2 : NVar),
+    true = beq_var i1 i2 -> i1 = i2.
+Proof.
+  intros ? ? H. unfold  beq_var in H.
+  symmetry in H. apply DecidableClass.Decidable_sound in H.
+  auto.
+Qed.
+
+
+
+(* Move, try to delete*)
+Lemma beq_var_false :
+  forall (i1 i2 : NVar),
+    false = beq_var i1 i2 -> i1 <> i2.
+Proof.
+  sp; symmetry in H.
+  apply DecidableClass.Decidable_complete_alt in H.
+  auto.
+Qed.
 End terms3Generic.
 
 Ltac irr_step :=
@@ -867,27 +888,7 @@ Ltac fold_terms_step :=
 Ltac fold_terms := repeat fold_terms_step.
 
 
-(* Move, try to delete*)
-Lemma beq_var_true :
-  forall i1 i2,
-    true = beq_var i1 i2 -> i1 = i2.
-Proof.
-  intros ? ? H. unfold  beq_var in H.
-  symmetry in H. apply DecidableClass.Decidable_sound in H.
-  auto.
-Qed.
 
-
-
-(* Move, try to delete*)
-Lemma beq_var_false :
-  forall i1 i2,
-    false = beq_var i1 i2 -> i1 <> i2.
-Proof.
-  sp; symmetry in H.
-  apply DecidableClass.Decidable_complete_alt in H.
-  auto.
-Qed.
 
 Ltac boolvar_step :=
   match goal with
