@@ -28,9 +28,9 @@ be the bottleneck*)
 
   freshCorrect: forall  (n:nat) (oc: option ClassType)  (avoid : list T) (original : list T), 
     let lf:= (freshVars  n oc avoid original) in
-      no_repeats lf 
-      /\ length lf = n
+      (no_repeats lf 
       /\ disjoint lf avoid
+      /\ length lf = n)
       /\ (forall c, oc = Some c -> forall v, In v lf -> varClass v = c); 
 }.
 
@@ -1113,7 +1113,7 @@ Qed.
 Definition fresh_var (lx : list NVar) : NVar.
 Proof.
   pose proof (freshCorrect 1 None lx []) as Hfr. simpl in Hfr.
-  apply proj2, proj1 in Hfr.
+  apply  proj1, proj2, proj2 in Hfr.
   apply (listHead (freshVars 1 None lx [])).
   rewrite Hfr. constructor.
 Defined.
