@@ -1215,9 +1215,8 @@ with change_bvars_alphabt {NVar VarClass : Type} `{VarType NVar VarClass}  {gts 
 match bt with
 | bterm blv bnt => 
     let bnt' := @change_bvars_alpha NVar _ _ _ _  lv bnt in
-    match (fresh_vars (length blv) (lv++(all_vars bnt'))) with
-    | existT _ lvn _ => bterm lvn (ssubst_aux bnt' (var_ren blv lvn))
-    end
+    let lvn := (freshVars (length blv) (option_map varClass (head blv)) (lv++(all_vars bnt')) blv) in
+         bterm lvn (ssubst_aux bnt' (var_ren blv lvn))
 end.
 
 
