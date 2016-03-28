@@ -14,11 +14,11 @@ Require Export terms.
 
 Section terms2Generic.
 
-Context {NVar VarClass} `{VarType NVar VarClass} {gts : GenericTermSig}.
+Context {NVar VarClass} {deqnvar : Deq NVar} {varclass: @VarType NVar VarClass deqnvar} {gts : GenericTermSig}.
+Notation NTerm := (@NTerm NVar).
+Notation BTerm := (@BTerm NVar).
 
-
-Typeclasses eauto := 1000.
-Definition nobnd (f:NTerm) := bterm [] f.
+Definition nobnd (f:NTerm) : BTerm := bterm [] f.
 
 
 (** %\noindent \\*% We define similar abstractions for other [Opid]s.
@@ -47,51 +47,12 @@ Definition mk_esquash (R : NTerm) :=
 (* Picks a variable that is not in the set of free variables of a given term *)
 Definition newvar (t : NTerm) := fresh_var (free_vars t).
 
+(* Delete. use flat_map instead *)
 Fixpoint free_vars_list terms :=
   match terms with
     | [] => []
     | t :: ts => free_vars t ++ free_vars_list ts
   end.
-
-Definition newvarlst (ts : list NTerm) := fresh_var (free_vars_list ts).
-
-Definition newvars (n : nat) (ts : list NTerm) :=
-  fresh_distinct_vars n (free_vars_list ts).
-
-Definition newvars2 terms :=
-  let v1 := newvarlst terms in
-  let v2 := newvarlst (terms ++ [mk_var v1]) in
-    (v1, v2).
-
-Definition newvars3 terms :=
-  let v1 := newvarlst terms in
-  let v2 := newvarlst (terms ++ [mk_var v1]) in
-  let v3 := newvarlst (terms ++ [mk_var v1, mk_var v2]) in
-    (v1, v2, v3).
-
-Definition newvars4 terms :=
-  let v1 := newvarlst terms in
-  let v2 := newvarlst (terms ++ [mk_var v1]) in
-  let v3 := newvarlst (terms ++ [mk_var v1, mk_var v2]) in
-  let v4 := newvarlst (terms ++ [mk_var v1, mk_var v2, mk_var v3]) in
-    (v1, v2, v3, v4).
-
-Definition newvars5 terms :=
-  let v1 := newvarlst terms in
-  let v2 := newvarlst (terms ++ [mk_var v1]) in
-  let v3 := newvarlst (terms ++ [mk_var v1, mk_var v2]) in
-  let v4 := newvarlst (terms ++ [mk_var v1, mk_var v2, mk_var v3]) in
-  let v5 := newvarlst (terms ++ [mk_var v1, mk_var v2, mk_var v3, mk_var v4]) in
-    (v1, v2, v3, v4, v5).
-
-Definition newvars6 terms :=
-  let v1 := newvarlst terms in
-  let v2 := newvarlst (terms ++ [mk_var v1]) in
-  let v3 := newvarlst (terms ++ [mk_var v1, mk_var v2]) in
-  let v4 := newvarlst (terms ++ [mk_var v1, mk_var v2, mk_var v3]) in
-  let v5 := newvarlst (terms ++ [mk_var v1, mk_var v2, mk_var v3, mk_var v4]) in
-  let v6 := newvarlst (terms ++ [mk_var v1, mk_var v2, mk_var v3, mk_var v4, mk_var v5]) in
-    (v1, v2, v3, v4, v5, v6).
 
 
 
@@ -113,31 +74,33 @@ Fixpoint depth (t : NTerm) : nat :=
 End terms2Generic.
 
 
-Fixpoint size {gts : GenericTermSig} (t : NTerm) : nat :=
+Fixpoint size {NVar:Type} {gts : GenericTermSig} (t : @NTerm NVar gts) : nat :=
   match t with
   | vterm _ => 1
-  | oterm op bterms => S (addl (map size_bterm bterms))
+  | oterm op bterms => S (addl (map (@size_bterm NVar _) bterms))
   end
- with size_bterm {gts : GenericTermSig} (bt: BTerm) :=
+ with size_bterm {NVar:Type} {gts : GenericTermSig} (bt: @BTerm NVar gts) :=
   match bt with
-  | bterm lv nt => size nt
+  | bterm lv nt => @size NVar _ nt
   end.
 
-Fixpoint wft {gts : GenericTermSig} (t : NTerm) : bool :=
+Fixpoint wft {NVar:Type}  {gts : GenericTermSig} (t : @NTerm NVar gts) : bool :=
   match t with
     | vterm _ => true
     | oterm o bts =>
-      andb (beq_list eq_nat_dec (map (num_bvars) bts) (OpBindings o))
+      andb (beq_list deq_nat (map (@num_bvars NVar _) bts) (OpBindings o))
            (ball (map wftb bts))
   end
-with wftb {gts : GenericTermSig} (bt : BTerm) : bool :=
+with wftb {NVar:Type}  {gts : GenericTermSig} (bt : @BTerm NVar gts) : bool :=
   match bt with
     | bterm vars t => wft t
   end.
 
 Section terms3Generic.
 
-Context {gts : GenericTermSig}.
+Context {NVar VarClass} {deqnvar : Deq NVar} {varclass: @VarType NVar VarClass deqnvar} {gts : GenericTermSig}.
+Notation NTerm := (@NTerm NVar).
+Notation BTerm := (@BTerm NVar).
 
 (* ------ INDUCTION ON TERMS ------ *)
 
@@ -273,7 +236,7 @@ Tactic Notation "nterm_ind1s" ident(h) "as" simple_intropattern(I)  ident(c) :=
 
 
 Lemma num_bvars_on_bterm :
-  forall l n,
+  forall l (n : NTerm),
     num_bvars (bterm l n) = length l.
 Proof using.
   unfold num_bvars; simpl; sp.
@@ -281,9 +244,9 @@ Qed.
 
 
 
-Definition wf_term t := wft t = true.
+Definition wf_term (t : NTerm) := wft t = true.
 
-Definition wf_bterm bt := wftb bt = true.
+Definition wf_bterm (bt : BTerm) := wftb bt = true.
 
 Lemma wf_term_proof_irrelevance :
   forall t,
@@ -346,7 +309,7 @@ Proof using.
       discover; sp. firstorder.
 
     + SCase "<-"; sp.
-      remember (beq_list eq_nat_dec (map num_bvars lbt) (OpBindings o)).
+      remember (beq_list deq_nat (map num_bvars lbt) (OpBindings o)).
       destruct b; allsimpl; sp.
       alltrewrite ball_true.
       constructor; sp.
@@ -361,10 +324,12 @@ Proof using.
       remember (OpBindings o).
       clear Heql.
       revert l Heqb.
+Local Opaque deq_nat.
       induction lbt; allsimpl.
       destruct l; allsimpl; sp.
       destruct l; allsimpl; sp.
-      destruct (eq_nat_dec (num_bvars a) n); subst; sp.
+      rewrite decide_decideP in Heqb.
+      destruct (decideP (num_bvars a = n)); subst; sp.
       apply cons_eq.
       apply IHlbt; sp.
       apply ind with (lv := lv); sp.
@@ -446,7 +411,7 @@ Qed.
 Lemma closed_nt0 : forall o nt, closed (oterm o [bterm [] nt]) -> closed nt.
 Proof using.
   intros. unfold closed in H. simpl in H. apply app_eq_nil in H. repnd.
-  clears_last. rewrite remove_var_nil in H0. auto.
+  clears_last. unfold closed. assumption.
 Qed.
 
 Lemma closed_null_free_vars :
@@ -671,7 +636,7 @@ Proof using.
 Qed.
 
 Theorem nt_wf_ot_implies :
-  forall lv o nt1 bts,
+  forall lv o (nt1 : NTerm) bts,
     nt_wf (oterm o  bts)
     -> LIn (bterm lv nt1) bts
     -> nt_wf nt1.
@@ -688,8 +653,10 @@ Proof using.
   allapply fresh_var_not_in; sp.
 Qed.
 
+
+(*
 Lemma newvar_not_in_free_vars :
-  forall t,
+  forall (t: NTerm),
     ! LIn nvarx (free_vars t)
     -> newvar t = nvarx.
 Proof using.
@@ -710,7 +677,7 @@ Proof using.
   unfold closed in H0.
   rewrite H0; sp.
 Qed.
-
+*)
 
 
 (** A value is a program with a canonical operator *)
@@ -900,6 +867,28 @@ Ltac fold_terms_step :=
 Ltac fold_terms := repeat fold_terms_step.
 
 
+(* Move, try to delete*)
+Lemma beq_var_true :
+  forall i1 i2,
+    true = beq_var i1 i2 -> i1 = i2.
+Proof.
+  intros ? ? H. unfold  beq_var in H.
+  symmetry in H. apply DecidableClass.Decidable_sound in H.
+  auto.
+Qed.
+
+
+
+(* Move, try to delete*)
+Lemma beq_var_false :
+  forall i1 i2,
+    false = beq_var i1 i2 -> i1 <> i2.
+Proof.
+  sp; symmetry in H.
+  apply DecidableClass.Decidable_complete_alt in H.
+  auto.
+Qed.
+
 Ltac boolvar_step :=
   match goal with
     | [ |- context[beq_var ?v ?v] ] => rw <- beq_var_refl
@@ -979,7 +968,9 @@ Ltac d_isnoncan H :=
 
 Section terms4Generic.
 
-Context {gts : GenericTermSig}.
+Context {NVar VarClass} {deqnvar : Deq NVar} {varclass: @VarType NVar VarClass deqnvar} {gts : GenericTermSig}.
+Notation NTerm := (@NTerm NVar).
+Notation BTerm := (@BTerm NVar).
 
 Lemma cterm_eq :
   forall t u,
@@ -1021,7 +1012,7 @@ Definition mk_cterm (t : NTerm) (p : isprogram t) :=
 
 Definition mk_ct (t : NTerm) (p : isprog t) := exist isprog t p.
 
-Definition mk_wterm (t : NTerm) (p : wf_term t) := exist wf_term t p.
+Definition mk_wterm (t : NTerm) (p : wf_term t) := exist (@wf_term NVar _) t p.
 
 Definition mk_wterm' (t : NTerm) (p : nt_wf t) :=
   exist wf_term t (nt_wf_implies t p).
@@ -1184,7 +1175,7 @@ Proof using.
 Qed.
 
 Theorem ntbf_wf :
-  forall nt, (bt_wf (bterm [] nt)) -> nt_wf nt.
+  forall (nt : NTerm) , (bt_wf (bterm [] nt)) -> nt_wf nt.
 Proof using.
   introv Hin. inverts Hin. auto.
 Qed.
@@ -1203,9 +1194,9 @@ Theorem is_program_ot_bts0 :
     -> OpBindings o = [0]
     -> isprogram (oterm o [bterm [] nt]).
 Proof using.
-  introv Hpr Hop. unfold isprogram in *. repnd.
-  split;auto. unfold closed. simpl.
-  rewrite app_nil_r. rewrite remove_var_nil. sp.
+  introv Hpr Hop. unfold isprogram, closed in *; simpl; repnd.
+  split;auto. autorewrite with list. auto.
+
   constructor; sp; allsimpl; sp; subst; sp.
 Qed.
 
@@ -1217,7 +1208,7 @@ Theorem is_program_ot_nth_nobnd :
 Proof using. intros ? ? ? Hisp Hin. apply isprogram_ot_iff in Hisp. repnd.
   apply Hisp in Hin. inverts Hin as Hclose Hbf. inverts Hbf.
   unfold closed_bt in Hclose. simpl in Hclose.
-  rewrite remove_var_nil in Hclose. split; auto.
+  split; auto.
 Qed.
 
 Theorem is_program_ot_fst_nobnd :
@@ -1245,9 +1236,9 @@ Theorem is_program_ot_subst1 :
 Proof using. intros ? ? ?  ? Hisp Hispst. unfold isprogram.
     unfold closed. simpl.
     inverts Hisp as Hclos Hisp. unfold closed in Hclos. simpl in Hclos.
-    apply app_eq_nil in Hclos. repnd.  rewrite remove_var_nil in Hclos0.
+    apply app_eq_nil in Hclos. repnd. 
     inverts Hispst as Hclosst Hispst. unfold closed in Hclosst.
-    rewrite remove_var_nil. rewrite Hclosst. rewrite Hclos. split;auto.
+    rewrite Hclosst. rewrite Hclos. split;auto.
     invertsn Hisp. constructor;auto.
     intros ? Hin. inverts Hin. constructor; auto.
     apply Hisp. right; auto.
@@ -1285,7 +1276,7 @@ Qed.
 
 Lemma combine_vars_map_sp :
   forall vars,
-    combine vars (map vterm vars) = map (fun v => (v, vterm v)) vars.
+    combine vars (map (@vterm NVar gts) vars) = map (fun v => (v, vterm v)) vars.
 Proof using.
   induction vars; simpl; sp.
   rewrite IHvars; sp.
@@ -1325,7 +1316,7 @@ Proof using. introv. sp_iff Case; introv H.
 Qed.
 
 (**useful for rewriting in complicated formulae*)
-Theorem bt_wf_iff: forall lv nt, bt_wf (bterm lv nt)
+Theorem bt_wf_iff: forall lv (nt : NTerm), bt_wf (bterm lv nt)
     <=> nt_wf nt.
 Proof using. sp_iff Case; introv H.
   Case "->". inverts H as Hwf;  auto.
@@ -1335,15 +1326,6 @@ Qed.
 
 Definition nvarxbt := bterm [] (vterm nvarx) .
 
-Lemma wf_cvterm :
-  forall vs : list NVar,
-  forall t : CVTerm vs,
-    wf_term (get_cvterm vs t).
-Proof using.
-  destruct t; simpl.
-  rw isprog_vars_eq in i; sp.
-  rw wf_term_eq; sp.
-Qed.
 
 Lemma isprogram_get_cterm :
   forall a, isprogram (get_cterm a).
@@ -1357,10 +1339,15 @@ Lemma oterm_eq :
   forall o1 o2 l1 l2,
     o1 = o2
     -> l1 = l2
-    -> oterm o1 l1 = oterm o2 l2.
+    -> (@oterm NVar gts) o1 l1 = oterm o2 l2.
 Proof using.
   sp; allrw; sp.
 Qed.
+
+Notation oterm := (@oterm NVar gts).
+Notation bterm := (@bterm NVar gts).
+Notation vterm := (@vterm NVar gts).
+
 
 Lemma bterm_eq :
   forall l1 l2 n1 n2,
@@ -1405,14 +1392,14 @@ Proof using.
   exact vterm_inj.
 Qed.
 
-Lemma deq_nterm : Deq NTerm.
-Proof using.
-  intros ?.
-  nterm_ind1 x as [v1 | o1 lbt1 Hind] Case; intros.
+Global Instance deq_nterm : DeqSumbool NTerm.
+Proof using deqnvar.
+  intros x.
+  nterm_ind1 x as [v1 | o1 lbt1 Hind] Case; intros y.
 
   - Case "vterm".
     destruct y as [v2 | o lbt2]; [  | right; intro Hc; inverts Hc].
-    destruct (deq_nvar v1 v2); subst;
+    destruct (decideP (v1=v2)); subst;
     [ left; auto; fail
     | right; intro Hc; inverts Hc; sp
     ].
@@ -1432,7 +1419,7 @@ Proof using.
       [ | introv Hin; apply Hind with (lv:=lv); eauto; right; auto].
     intro bdec.
     destruct (bdec lbt2); subst; [  | right; intro Hc; inverts Hc;sp;fail ].
-    destruct (list_eq_dec deq_nvar lv1 lv2);
+    destruct (decideP (lv1=lv2));
       subst; [ | right; intro Hc; inverts Hc;sp;fail ].
     destruct (Hind nt1 lv2 (injL(eq_refl _) ) nt2); subst;
     [left; auto |  right; intro Hc; inverts Hc;sp ].
@@ -1451,7 +1438,7 @@ Qed.
 Lemma map_removevars:
 forall lvi lvr,
   map vterm (remove_nvars lvi lvr)
-  = diff deq_nterm (map vterm lvi) (map vterm lvr).
+  = @lremove _ _ (map vterm lvi) (map vterm lvr).
 Proof using.
   intros. apply map_diff_commute.
   introv Hc. inverts Hc. auto.
@@ -1525,12 +1512,12 @@ Qed.
 Definition selectnt (n:nat) (lnt : list NTerm): NTerm :=
   nth n lnt (vterm nvarx).
 
-Lemma deq_bterm : Deq BTerm.
-Proof using.
+Lemma deq_bterm : DeqSumbool BTerm.
+Proof using deqnvar.
   intros btx bty. destruct btx as [lvx ntx].
   destruct bty as [lvy nty].
   destruct (deq_nterm ntx nty);
-  destruct (deq_list deq_nvar lvx lvy); subst;sp;
+  destruct (decideP (lvx=lvy)); subst;sp;
   right; introv Heq;
   inverts Heq; cpx.
 Qed.
@@ -1664,13 +1651,6 @@ Proof using.
   intros. simpl. auto.
 Qed.
 
-Lemma nvarx_nvary : nvarx <> nvary.
-Proof using.
-  allunfold nvarx.
-  allunfold nvary.
-  introv Hinc.
-  inverts Hinc.
-Qed.
 
 
 Lemma noncan_not_value : forall e,
@@ -1697,76 +1677,6 @@ Proof using.
   eauto with slow.  
 Qed.
 
-
-Lemma newvars5_prop :
-  forall v1 v2 v3 v4 v5 terms,
-    (v1, v2, v3, v4, v5) = newvars5 terms
-    -> !LIn v1 (free_vars_list terms)
-       # !LIn v2 (free_vars_list terms ++ [v1])
-       # !LIn v3 (free_vars_list terms ++ [v1, v2])
-       # !LIn v4 (free_vars_list terms ++ [v1, v2, v3])
-       # !LIn v5 (free_vars_list terms ++ [v1, v2, v3, v4]).
-Proof using.
-  introv eq.
-  unfold newvars5 in eq; cpx.
-  unfold newvarlst; simpl; allrw free_vars_list_app; simpl.
-  dands; apply fresh_var_not_in.
-Qed.
-
-Lemma newvars5_prop2 :
-  forall v1 v2 v3 v4 v5 terms,
-    (v1, v2, v3, v4, v5) = newvars5 terms
-    -> !LIn v1 (free_vars_list terms)
-       # !LIn v2 (free_vars_list terms)
-       # !LIn v3 (free_vars_list terms)
-       # !LIn v4 (free_vars_list terms)
-       # !LIn v5 (free_vars_list terms)
-       # !v1 = v2
-       # !v1 = v3
-       # !v1 = v4
-       # !v1 = v5
-       # !v2 = v3
-       # !v2 = v4
-       # !v2 = v5
-       # !v3 = v4
-       # !v3 = v5
-       # !v4 = v5.
-Proof using.
-  introv eq.
-  apply newvars5_prop in eq; repnd.
-  allrw in_app_iff; allsimpl.
-  repeat (apply not_over_or in eq; repnd).
-  repeat (apply not_over_or in eq1; repnd).
-  repeat (apply not_over_or in eq2; repnd).
-  repeat (apply not_over_or in eq3; repnd).
-  sp.
-Qed.
-
-Lemma newvars2_prop :
-  forall v1 v2 terms,
-    (v1, v2) = newvars2 terms
-    -> !LIn v1 (free_vars_list terms)
-       # !LIn v2 (free_vars_list terms ++ [v1]).
-Proof using.
-  introv eq.
-  unfold newvars2 in eq; cpx.
-  unfold newvarlst; simpl; allrw free_vars_list_app; simpl.
-  dands; apply fresh_var_not_in.
-Qed.
-
-Lemma newvars2_prop2 :
-  forall v1 v2 terms,
-    (v1, v2) = newvars2 terms
-    -> !LIn v1 (free_vars_list terms)
-       # !LIn v2 (free_vars_list terms)
-       # !v1 = v2.
-Proof using.
-  introv eq.
-  apply newvars2_prop in eq; repnd.
-  allrw in_app_iff; allsimpl.
-  repeat (apply not_over_or in eq; repnd).
-  sp.
-Qed.
 
 
 Lemma closed_implies:
@@ -1854,10 +1764,18 @@ Require Import Coq.Program.Basics.
 
 Open Scope program_scope.
 
-
-Lemma flat_map_vterm : forall gts lv,
+Lemma flat_map_bterm_nil : forall gts lnt,
 flat_map free_vars_bterm
-  (map ((@bterm gts) [] ∘ vterm) lv) = lv.
+  (map ((@terms.bterm NVar gts) []) lnt) = 
+flat_map free_vars lnt.
+Proof.
+  induction lnt; auto.
+  simpl. f_equal; auto.
+Qed.
+
+Lemma flat_map_vterm : forall gts (lv: list NVar),
+flat_map free_vars_bterm
+  (map ((@terms.bterm NVar gts) [] ∘ terms.vterm) lv) = lv.
 Proof using.
   induction lv; auto.
   simpl. f_equal; auto.
@@ -1871,7 +1789,7 @@ subsetv (flat_map free_vars_bterm lbt) lv
 -> subsetv (free_vars n) (l ++ lv).
 Proof using.
   intros ? ? ? ? Hin Hs.
-  rewrite subsetv_flat_map in Hs.
+  rewrite subset_flat_map in Hs.
   rewrite subsetv_prop.
   apply_clear Hs in Hin.
   simpl in Hin.
@@ -1896,11 +1814,17 @@ Proof using.
   apply Hin0.
 Qed.
 
+
+Lemma size_pos : forall (t:NTerm), 
+  0<(size t).
+Proof.
+  intros. destruct t; simpl; omega.
+Qed.
+
 End terms4Generic.
 
 
 Hint Resolve isprogram_ot_if_eauto : slow.
-Hint Immediate nvarx_nvary : slow.
 Hint Immediate isprogram_get_cterm.
 Hint Resolve isprog_implies : isprog.
 Hint Extern 100 (LIn _ _) => complete (simpl; sp) : isprog.
@@ -1968,16 +1892,6 @@ illFormedCase :=
  (try reflexivity; try (simpl;rewrite flat_map_vterm; reflexivity)).
 
 
-(* Move *)
-
-Lemma flat_map_bterm_nil : forall gts lnt,
-flat_map free_vars_bterm
-  (map ((@bterm gts) []) lnt) = 
-flat_map free_vars lnt.
-Proof.
-  induction lnt; auto.
-  simpl. f_equal; auto.
-Qed.
 
 
 (* Move *)
@@ -2004,21 +1918,8 @@ Hint Rewrite remove_nvars_cons_r : SquiggleLazyEq2.
 Hint Rewrite
   <- beq_var_refl : SquiggleLazyEq.
 
-Lemma fresh_var_not_eq : forall lv v, 
-  LIn v lv
-  -> ~(v = (fresh_var lv)).
-Proof.
-  intros.
-  pose proof (fresh_var_not_in lv).
-  intros Hc.
-  subst. tauto. 
-Qed.
 
-Lemma size_pos : forall {gts} t, 
-  0<(@size gts t).
-Proof.
-  intros. destruct t; simpl; omega.
-Qed.
+
 
 Hint Rewrite remove_var_nil remove_nvars_nil_r:  SquiggleLazyEq.
 

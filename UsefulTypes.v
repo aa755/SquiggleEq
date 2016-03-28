@@ -98,12 +98,20 @@ Qed.
 
 Class Deq T := deceq :> forall (a b:T), Decidable (a=b).
 
-Definition DeqAsSumbool {T:Type} `{Deq T} : forall (x y : T), {x = y} + {x <> y}.
+Class DecidableSumbool (P:Prop) := decSumbool : {P} + {!P}.
+
+Global Instance  decAsSumbool {P:Prop} `{DecidableSumbool P} : Decidable P.
 Proof.
-  intros ? ?.
-  apply decideP. auto.
+  destruct H;[exists true | exists false]; try tauto.
+  split; congruence.
 Defined.
 
+Class DeqSumbool T := deceqSumbool :> forall (a b:T), DecidableSumbool (a=b).
+
+Global Instance  deqAsSumbool {T:Type} `{DeqSumbool T} : Deq T.
+Proof.
+   intros ? ?.  eauto with typeclass_instances.
+Defined.
 
 Global Instance deq_prod {A B : Type} `{Deq A} `{Deq B}
  : Deq (A*B).
@@ -113,6 +121,12 @@ Proof using.
   rewrite Decidable_spec.
   split; intros Hyp; auto; inversion Hyp; auto.
   congruence.
+Defined.
+
+Global Instance deq_nat  : Deq nat.
+Proof using.
+  intros x y. exists (beq_nat x y).
+  apply Nat.eqb_eq.
 Defined.
 
 Definition assert (b : bool) : Prop := b = true.

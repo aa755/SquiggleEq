@@ -1139,6 +1139,27 @@ Proof.
   simpl in *. tauto.
 Qed.
 
+Definition nvarx : NVar := fresh_var [].
+Definition nvary : NVar := fresh_var [nvarx].
+Definition nvarz : NVar := fresh_var [nvarx, nvary].
+
+Lemma fresh_var_not_eq : forall lv v, 
+  LIn v lv
+  -> ~(v = (fresh_var lv)).
+Proof.
+  intros.
+  pose proof (fresh_var_not_in lv).
+  intros Hc.
+  subst. tauto. 
+Qed.
+
+Lemma nvarx_nvary : nvarx <> nvary.
+Proof using.
+  allunfold nvary.
+  apply fresh_var_not_eq.
+  sp.
+Qed.
+
 End Vars.
 
 Hint Rewrite <- (fun T D => @beq_var_refl T D) : SquiggleLazyEq.
@@ -1235,3 +1256,12 @@ Ltac cpx :=
   Ltac sp3 :=
   (repeat match goal with
   | [ H: _ <=> _ |- _ ] => destruct H end); spc. 
+
+
+Hint Immediate nvarx_nvary : slow.
+
+Tactic Notation "simpl_vlist" :=
+       repeat (progress (try (allrewrite remove_var_nil);
+                         try (allapply app_eq_nil);repnd;
+                         try (allrewrite app_nil_r);
+                         try (allrewrite null_iff_nil))).
