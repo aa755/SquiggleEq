@@ -1160,6 +1160,35 @@ Proof using.
   sp.
 Qed.
 
+(* Move, try to delete*)
+Lemma beq_var_true :
+  forall (i1 i2 : NVar),
+    true = beq_var i1 i2 -> i1 = i2.
+Proof.
+  intros ? ? Hs. unfold  beq_var in Hs.
+  symmetry in Hs. apply DecidableClass.Decidable_sound in Hs.
+  auto.
+Qed.
+
+
+
+(* Move, try to delete*)
+Lemma beq_var_false :
+  forall (i1 i2 : NVar),
+    false = beq_var i1 i2 -> i1 <> i2.
+Proof.
+  sp. symmetry in H1. 
+  apply DecidableClass.Decidable_complete_alt in H1.
+  auto.
+Qed.
+
+Theorem beq_var_false_not_eq : forall i1 i2,
+  beq_var i1 i2 = false -> i1 <> i2.
+Proof.
+ intros. symmetry in H1.
+ apply beq_var_false. auto.
+Qed.
+
 End Vars.
 
 Hint Rewrite <- (fun T D => @beq_var_refl T D) : SquiggleLazyEq.
@@ -1265,3 +1294,5 @@ Tactic Notation "simpl_vlist" :=
                          try (allapply app_eq_nil);repnd;
                          try (allrewrite app_nil_r);
                          try (allrewrite null_iff_nil))).
+                         
+Notation beq_var_eq := beq_var_true.
