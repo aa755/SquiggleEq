@@ -214,6 +214,7 @@ Section termsCont.
 Context {NVar VarClass} `{VarType NVar VarClass} {gts : GenericTermSig}.
 Definition all_vars t := free_vars t ++ bound_vars t.
 
+
 Definition closed (t : NTerm) := free_vars t = [].
 (* Howe's T_0(L) *)
 Definition isprogram (t : NTerm) := closed t # nt_wf t.

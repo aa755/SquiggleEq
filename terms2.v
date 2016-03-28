@@ -1802,6 +1802,17 @@ Proof.
   intros. destruct t; simpl; omega.
 Qed.
 
+Definition preservesVarclass (ta tb : NTerm) :Prop :=
+forall vc,
+varsOfClass (all_vars ta) vc
+-> varsOfClass (all_vars tb) vc.
+
+Definition preservesVarclassBT (ta tb : BTerm) :Prop :=
+forall vc,
+varsOfClass (all_vars_bt ta) vc
+-> varsOfClass (all_vars_bt tb) vc.
+
+
 End terms4Generic.
 
 

@@ -34,6 +34,7 @@ be the bottleneck*)
       /\ (forall c, oc = Some c -> forall v, In v lf -> varClass v = c); 
 }.
 
+
 Ltac addFreshVarsSpec :=
 let tac n vc lva lvs :=
   let H := fresh "HfreshVars" in
@@ -42,7 +43,6 @@ match goal with
 [ |- context [freshVars ?n ?vc ?lva ?lvs]] => tac n vc lva lvs
 |[ H: context [freshVars ?n ?vc ?lva ?lvs] |- _] => tac n vc lva lvs
 end.
-
 
 Require Import list.
 
@@ -1189,7 +1189,27 @@ Proof.
  apply beq_var_false. auto.
 Qed.
 
+Definition varsOfClass (lv:list NVar) (vc : VClass) : Prop :=
+  forall v, LIn v lv -> varClass v = vc.
+
+Definition freshReplacements (blv lva : list NVar) :=
+(freshVars (length blv) (option_map varClass (head blv)) lva blv). 
+
+
+
 End Vars.
+
+(* this is closer to the way things worked, and hence useful in reviving old proofs*)
+Ltac addFreshVarsSpec2 vn pp :=
+unfold freshReplacements in *;
+let tac n vc lva lvs :=
+  (pose proof (freshCorrect n vc lva lvs) as pp; simpl in pp;
+  apply proj1 in pp;
+  remember (freshVars n vc lva lvs) as vn) in
+match goal with
+[ |- context [freshVars ?n ?vc ?lva ?lvs]] => tac n vc lva lvs
+|[ H: context [freshVars ?n ?vc ?lva ?lvs] |- _] => tac n vc lva lvs
+end. 
 
 Hint Rewrite <- (fun T D => @beq_var_refl T D) : SquiggleLazyEq.
 
@@ -1288,6 +1308,8 @@ Ltac cpx :=
 
 
 Hint Immediate nvarx_nvary : slow.
+
+
 
 Tactic Notation "simpl_vlist" :=
        repeat (progress (try (allrewrite remove_var_nil);

@@ -42,7 +42,6 @@ Notation Substitution := (@Substitution NVar).
     are invariant under renaming of variables. Alpha equality
     helps us express this property. We define it as follows:
  *)
-
 Inductive alpha_eq : NTerm -> NTerm -> [univ] :=
   | al_vterm : forall v,  alpha_eq (vterm v) (vterm v)
   | al_oterm : forall (op: Opid) (lbt1 lbt2 : list BTerm),
@@ -682,15 +681,6 @@ Proof using.
    +  introv Hin Hinc. rename t into vv.
       allsimpl. subst.
       simpl in *.
-Ltac addFreshVarsSpec2 vn pp :=
-let tac n vc lva lvs :=
-  (pose proof (freshCorrect n vc lva lvs) as pp; simpl in pp;
-  apply proj1 in pp;
-  remember (freshVars n vc lva lvs) as vn) in
-match goal with
-[ |- context [freshVars ?n ?vc ?lva ?lvs]] => tac n vc lva lvs
-|[ H: context [freshVars ?n ?vc ?lva ?lvs] |- _] => tac n vc lva lvs
-end.
        addFreshVarsSpec2 vn pp.
       exrepnd. allsimpl.
       duplicate Hin.
@@ -734,9 +724,14 @@ end.
     eauto.
 Qed.
 
-Definition change_bvars_alpha_spec := fun nt lv => (fst (change_bvars_alpha_spec_aux lv)) nt.
+Definition change_bvars_alpha_spec: forall (nt : NTerm) (lv : list NVar),
+       disjoint lv (bound_vars (change_bvars_alpha lv nt)) # alpha_eq nt (change_bvars_alpha lv nt)
+ := fun nt lv => (fst (change_bvars_alpha_spec_aux lv)) nt.
 
-Definition change_bvars_alphabt_spec := fun lv => snd (change_bvars_alpha_spec_aux lv).
+Definition change_bvars_alphabt_spec 
+: forall (lv : list NVar) (bt : BTerm),
+       disjoint lv (bound_vars_bterm (change_bvars_alphabt lv bt)) # alpha_eq_bterm bt (change_bvars_alphabt lv bt)
+:= fun lv => snd (change_bvars_alpha_spec_aux lv).
 
 (* begin hide *)
 Ltac add_changebvar_spec cb Hn:=
@@ -1256,7 +1251,7 @@ Proof using.
   unfold compose. apply Hind.
   apply selectbt_in. assumption.
 - intros ? ? Hind. destruct lv as [| v lv].
-  + simpl. addFreshVarsSpec2 lvn hfr. repnd. dlist_len_name lvn lv.
+  + simpl. unfold freshReplacements in *. simpl. addFreshVarsSpec2 lvn hfr. repnd. dlist_len_name lvn lv.
     simpl. unfold var_ren. simpl.
     autorewrite with SquiggleLazyEq.
     rewrite ssubst_aux_nil.
