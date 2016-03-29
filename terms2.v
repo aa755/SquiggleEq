@@ -1812,6 +1812,41 @@ forall vc,
 varsOfClass (all_vars_bt ta) vc
 -> varsOfClass (all_vars_bt tb) vc.
 
+Lemma subsetAllVarsLbt : forall o lbt bt, 
+  LIn bt lbt -> subset (all_vars_bt bt) (all_vars (oterm o lbt)).
+Proof.
+  intros ? ? ? Hin.
+  unfold all_vars. simpl.
+  rewrite <- flat_map_fapp.
+  unfold all_vars_bt.
+  eapply subset_trans;
+    [|apply subset_flat_map_r; apply Hin].
+  apply subset_refl.
+Qed.
+
+Lemma varsOfClassOT : forall o lbt c,
+  varsOfClass (all_vars (oterm o lbt)) c
+  -> forall bt, LIn bt lbt -> varsOfClass (all_vars_bt bt) c.
+Proof.
+  intros ? ? ? Hv ? Hin ? Hinn.
+  apply Hv. revert Hinn.
+  apply subsetAllVarsLbt.
+  assumption.
+Qed.
+
+Definition allvars_bterm : forall lv nt,
+  eq_set 
+    (all_vars_bt (bterm lv nt))
+    (lv ++ all_vars nt).
+Proof.
+  intros ? ?. apply eqsetv_prop.
+  intro. unfold all_vars, all_vars_bt.
+  simpl.
+  repeat rewrite in_app_iff.
+  repeat rewrite in_remove_nvars.
+  destruct (decideP (LIn x lv)); (* firstorder does not know about decidability *)
+  firstorder.
+Qed.
 
 End terms4Generic.
 

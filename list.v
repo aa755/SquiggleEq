@@ -2690,6 +2690,24 @@ Qed.
 
 Notation lremove := diff.
 
+Lemma subset_flat_map_r {A B:Type} (f: A-> list B): forall la a,
+  LIn a la-> subset (f a) (flat_map f la).
+Proof.
+  intros ? ? Hin1 ? Hin2.
+  apply in_flat_map; eauto.
+Qed.
+
+Global Instance subsetRefl {A} : Reflexive (@subset A).
+Proof.
+   eauto.
+Qed.
+
+Global Instance subsetTrans {A} : Transitive (@subset A).
+Proof.
+   intros ? ? ? ? ?. eapply subset_trans; eauto.
+Qed.
+
+
 Section RWInstances.
 (** contents of this section will work only when [univ] := Prop. Coq does (yet) not support rewriting
 with relations in Type *)
