@@ -26,6 +26,7 @@
 
 Require Export substitution.
 
+
 Section AlphaGeneric.
 Context {NVar VarClass} {deqnvar : Deq NVar} {varclass: @VarType NVar VarClass deqnvar} {gts : GenericTermSig}.
 Notation NTerm := (@NTerm NVar).
@@ -242,8 +243,8 @@ Proof using.
       apply_clear Hin.
       repeat(rw in_app_iff).
       repeat(rw in_app_iff in Hc).
-      rewrite boundvars_ssubst_aux_vars in Hc;auto;[| disjoint_reasoningv;fail].
-      rewrite boundvars_ssubst_aux_vars in Hc;auto;[| disjoint_reasoningv;fail].
+      rewrite boundvars_ssubst_aux_vars in Hc;auto.
+      rewrite boundvars_ssubst_aux_vars in Hc;auto.
       repeat(dorn Hc); auto; [|];
       apply free_vars_ssubst_aux in Hc;try(apply wf_sub_vars);try(apply disjoint_bv_vars;disjoint_reasoningv);
          [|];
@@ -253,10 +254,9 @@ Proof using.
       Focus 2. rewrite ssubst_aux_allvars_preserves_size; [ omega |]. apply allvars_combine; fail.  
         Focus 2.
           introv Hin Hc.
+          rewrite boundvars_ssubst_aux_vars in Hc; auto.
           rewrite boundvars_ssubst_aux_vars in Hc; auto;
-           [|repeat(rw disjoint_app_r in Ha1);sp].
-          rewrite boundvars_ssubst_aux_vars in Hc; auto;
-           [|congruence|repeat(rw disjoint_app_r in Ha1);sp].
+           [|congruence].
           apply in_app_iff in Hc; auto.
           dorn Hc; [apply Hdis0 in Hin|apply Hdis in Hin];sp; fail.
 
@@ -400,10 +400,9 @@ Proof using.
         Focus 2. rewrite ssubst_aux_allvars_preserves_size; [ omega |]. apply allvars_combine; fail.
         Focus 2.
           introv Hin Hc.
+          rewrite boundvars_ssubst_aux_vars in Hc; auto.
           rewrite boundvars_ssubst_aux_vars in Hc; auto;
-           [|repeat(rw disjoint_app_r in Ha1);sp].
-          rewrite boundvars_ssubst_aux_vars in Hc; auto;
-           [|congruence|repeat(rw disjoint_app_r in Ha1);sp].
+           [|congruence].
           apply in_app_iff in Hc; auto.
           dorn Hc; [apply Hdis0 in Hin|apply Hdis in Hin];sp; fail.
 
@@ -479,7 +478,6 @@ rw <- X2X0.
       setoid_rewrite disjoint_sub_as_flat_map.
       rewrite flat_map_free_var_vars_range;spc.
       apply disjoint_sym. apply disjoint_bound_vars_ssubst_aux.
-      rewrite flat_map_free_var_vars_range;spc. disjoint_reasoningv.
       rewrite flat_map_bound_var_vars_range;spc. simpl_vlist. disjoint_reasoningv;fail.
 
 
@@ -504,7 +502,6 @@ rw <- X2X0.
       setoid_rewrite disjoint_sub_as_flat_map.
       rewrite flat_map_free_var_vars_range;spc.
       apply disjoint_sym. apply disjoint_bound_vars_ssubst_aux.
-      rewrite flat_map_free_var_vars_range;spc. disjoint_reasoningv.
       rewrite flat_map_bound_var_vars_range;spc. simpl_vlist. disjoint_reasoningv.
 
   apply alpha_eq3_sym.
@@ -525,7 +522,7 @@ Proof using.
   inverts Hal as Ha1 Ha2 Ha3 Ha4 Ha5.
   apply (alpha_eq3_change_avoidvars _ (lv4++lv++lva)) in Ha5.
   apply alpha3_ssubst_aux_allvars_congr2 in Ha5;[| congruence | ].
-  Focus 2. rewrite boundvars_ssubst_aux_vars; [|congruence|disjoint_reasoningv].
+  Focus 2. rewrite boundvars_ssubst_aux_vars; [|congruence].
       rewrite boundvars_ssubst_aux_vars;disjoint_reasoningv.
   rewrite ssubst_aux_nest_vars_same in Ha5;auto;
     [| congruence| disjoint_reasoningv| disjoint_reasoningv].
@@ -594,7 +591,7 @@ Definition alphaeqbtw (t1 t2: BTerm) := (bt_wf t1) # (bt_wf t2)
 Theorem alphaeqbtw_refl: forall b, bt_wf b -> alphaeqbtw b b.
 Proof using. intros. destruct b. split; auto; split; auto.
     apply alphaeqbt_refl. 
-Qed. 
+Qed.
 
 
 
@@ -676,7 +673,7 @@ Proof using.
       pose proof (selectbt_in2 n lbt Hlt) as XX; exrepnd.
       destruct bt as [blv bnt]. rewrite XX0.
       apply Hind. auto.
-    
+
 - intros blv bnt Hnt. split.
    +  introv Hin Hinc. rename t into vv.
       allsimpl. subst.
@@ -686,7 +683,7 @@ Proof using.
       duplicate Hin.
       repnd.
       apply Hnt0 in Hin0.
-      setoid_rewrite boundvars_ssubst_aux_vars in Hinc; sp; [|disjoint_reasoningv].
+      setoid_rewrite boundvars_ssubst_aux_vars in Hinc; sp.
       apply disjoint_sym  in pp1.
       apply disjoint_app_l in pp1. repnd. apply pp2 in Hin.
       apply in_app_iff in Hinc.
@@ -732,6 +729,45 @@ Definition change_bvars_alphabt_spec
 : forall (lv : list NVar) (bt : BTerm),
        disjoint lv (bound_vars_bterm (change_bvars_alphabt lv bt)) # alpha_eq_bterm bt (change_bvars_alphabt lv bt)
 := fun lv => snd (change_bvars_alpha_spec_aux lv).
+
+Lemma change_bvars_alpha_spec_varclass: forall lv vc,
+  (forall nt, varsOfClass (bound_vars nt) vc 
+      -> varsOfClass (bound_vars (change_bvars_alpha lv nt)) vc)
+  * 
+  (forall bt, varsOfClass (bound_vars_bterm bt) vc 
+      -> varsOfClass (bound_vars_bterm (change_bvars_alphabt lv bt)) vc).
+Proof using.
+  intros. apply NTerm_BTerm_ind;
+    [intro v; simpl; unfold preservesVarclass; tauto| |].
+  - intros ? ? Hind. simpl.  unfold varsOfClass, lforall.
+    rewrite flat_map_map.
+    intros Hin v.
+    rewrite in_flat_map.
+    setoid_rewrite in_flat_map in Hin.
+    intros Hinc.
+    exrepnd.
+    eapply Hind; [apply Hinc1| | apply Hinc0].
+    intros vv Hincc.
+    apply Hin. eexists; eauto.
+
+- intros blv bnt Hnt.
+  simpl. repeat rewrite varsOfClassApp.
+  introv Hin. repnd.
+  split;[apply freshReplacementsSameClass; assumption|].
+  intros ? Hinn.
+  apply boundvars_ssubst_aux_subset in Hinn.
+  rewrite flat_map_bound_var_vars_range in Hinn;
+      [| autorewrite with SquiggleLazyEq; refl].
+  autorewrite with list in Hinn.
+  unfold varsOfClass, lforall in *.
+  eauto.
+Qed.
+
+(*
+Lemma change_bvars_alpha_spec_varclass: forall lv vc,
+  (forall nt, varsOfClass (bound_vars nt) vc 
+      -> varsOfClass (bound_vars (change_bvars_alpha lv nt)) vc)
+*)
 
 (* begin hide *)
 Ltac add_changebvar_spec cb Hn:=

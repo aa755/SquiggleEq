@@ -1190,12 +1190,63 @@ Proof.
 Qed.
 
 Definition varsOfClass (lv:list NVar) (vc : VClass) : Prop :=
-  forall v, LIn v lv -> varClass v = vc.
+  lforall (fun v => varClass v = vc) lv.
 
 Definition freshReplacements (blv lva : list NVar) :=
-(freshVars (length blv) (option_map varClass (head blv)) lva blv). 
+  (freshVars (length blv) (option_map varClass (head blv)) lva blv).
+
+Lemma freshVars0 : forall vc lva lvs, freshVars 0 vc lva lvs = [].
+Proof using.
+  intros.
+  addFreshVarsSpec.
+  repnd.
+  destruct (freshVars 0 vc lva lvs);[| inverts HfreshVars0].
+  refl.
+Qed.
+
+(* for auto rewriting *)
+Lemma freshVarsLen : forall n vc lva lvs, length (freshVars n vc lva lvs) = n.
+Proof using.
+  intros.
+  addFreshVarsSpec.
+  tauto.
+Qed.
+
+Lemma freshRepsLen : forall lva lvs, length (freshReplacements lvs lva) = length lvs.
+Proof using.
+  intros.
+  apply freshVarsLen.
+Qed.
 
 
+Lemma  varsOfClassApp : forall (lv1 lv2 :list NVar) (vc : VClass),
+varsOfClass (lv1++lv2) vc
+<-> ((varsOfClass lv1 vc) # (varsOfClass lv2 vc)).
+Proof using.
+  unfold varsOfClass, lforall.
+  setoid_rewrite in_app_iff.
+  firstorder.
+Qed.
+
+Lemma  varsOfClassNil : forall (vc : VClass),
+varsOfClass [] vc.
+Proof using.
+  unfold varsOfClass, lforall. simpl. tauto.
+Qed.
+
+Lemma freshReplacementsSameClass : forall (blv lva : list NVar) vc, 
+  varsOfClass blv vc -> varsOfClass (freshReplacements blv lva) vc.
+Proof using.
+  intros ? ? ? Hvc.
+  unfold freshReplacements.
+  addFreshVarsSpec.
+  repnd.
+  destruct blv as [|v blv]; simpl in *;[rewrite freshVars0; apply varsOfClassNil |].
+  simpl.
+  intros ? Hin. apply HfreshVars; eauto.
+  f_equal. apply Hvc.
+  simpl. auto.
+Qed.
 
 End Vars.
 
@@ -1309,6 +1360,14 @@ Ltac cpx :=
 
 Hint Immediate nvarx_nvary : slow.
 
+Hint Rewrite (@freshVars0) : SquiggleLazyEq.
+
+Hint Immediate varsOfClassNil : SquiggleLazyEq.
+
+
+Hint Rewrite (@freshVarsLen) : SquiggleLazyEq.
+
+Hint Rewrite (@freshRepsLen) : SquiggleLazyEq.
 
 
 Tactic Notation "simpl_vlist" :=

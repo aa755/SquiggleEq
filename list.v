@@ -2168,10 +2168,10 @@ Definition not_in_prefix {A: Type} (la : list A) (a:A) (n:nat) :=
                      m < n -> nth m la a <> a).
 
   
- Definition lforall {A:Type} (P: A-> Type) (l:list A) :=
+ Definition lforall {A:Type} (P: A-> [univ]) (l:list A) :=
   forall a:A, LIn a l -> P a.
 
-Lemma implies_lforall : forall {A:Type} (P Q: A->Type),
+Lemma implies_lforall : forall {A:Type} (P Q: A->[univ]),
   (forall (a b :A), P a -> Q a)
    -> forall l,  lforall P l-> lforall Q l.
 Proof.

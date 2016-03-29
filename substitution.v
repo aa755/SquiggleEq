@@ -1193,8 +1193,6 @@ Fixpoint ssubst_aux {NVar} `{Deq NVar} {gts : GenericTermSig} (nt : NTerm) (sub 
   end.
 
 
-
-
 (** % \noindent \\* % 
   To define the actual substitution function, we just have to pre-process [t]
   such that its bound variables have been renamed to avoid
@@ -1217,7 +1215,7 @@ match bt with
     let bnt' := @change_bvars_alpha NVar _ _ _ _  lv bnt in
     let lvn := freshReplacements blv (lv++(all_vars bnt')) in
          bterm lvn (ssubst_aux bnt' (var_ren blv lvn))
-end.
+end. 
 
 
 (** % \noindent \\* %
@@ -5022,13 +5020,12 @@ Qed.
     
 Lemma boundvars_ssubst_aux:
   forall nt sub v,
-  disjoint_bv_sub nt sub
-  -> LIn v (bound_vars (ssubst_aux nt sub))
+  LIn v (bound_vars (ssubst_aux nt sub))
   -> LIn v (bound_vars nt)[+]
       {v' : NVar $
       {t : NTerm $ sub_find sub v' =Some t # LIn v' (free_vars nt) # LIn v (bound_vars t)}}.
 Proof using.
-  nterm_ind1s nt as [v | o lbt Hind] Case; introv  Hdis Hin; auto.
+  nterm_ind1s nt as [v | o lbt Hind] Case; introv Hin; auto.
   - Case "vterm". allsimpl. right. 
     allsimpl. dsub_find sn; cpx;[].
     exists v sns. split; auto.
@@ -5041,8 +5038,7 @@ Proof using.
     simpl in Hin. apply in_app_iff in Hin. dorn Hin.
     + left. apply lin_flat_map. eexists; split; eauto. simpl. apply in_app_iff.
       left; sp.
-    + apply Hind with (lv:=lv) (nt:=nt) in Hin; cpx;
-        [|eapply disjoint_bv_sub_ot; eauto].
+    + apply Hind with (lv:=lv) (nt:=nt) in Hin; cpx.
       dorn Hin.
       * left. simpl. apply lin_flat_map. eexists; split; eauto. simpl. 
         apply in_app_iff. right. auto.
@@ -5052,40 +5048,49 @@ Proof using.
         simpl. apply in_remove_nvars. split; auto.
 Qed.
 
+Lemma boundvars_ssubst_aux_subset:
+  forall nt sub,
+  subset (bound_vars (ssubst_aux nt sub)) ((bound_vars nt) ++ flat_map bound_vars (range sub)).
+Proof using.
+  intros ? ? ? Hin.
+  apply boundvars_ssubst_aux in Hin.
+  apply in_app_iff. eauto.
+  rewrite in_flat_map.
+  dorn Hin;[left;tauto| right].
+  exrepnd. apply sub_find_some, in_sub_eta in Hin0.
+  repnd.
+  eexists; split; eauto.
+Qed.
+
 Lemma boundvars_ssubst:
   forall nt sub v,
-  disjoint_bv_sub nt sub
+  disjoint_bv_sub nt sub  
   -> LIn v (bound_vars (ssubst nt sub))
   -> LIn v (bound_vars nt)[+]
       {v' : NVar $
       {t : NTerm $ sub_find sub v' =Some t # LIn v' (free_vars nt) # LIn v (bound_vars t)}}.
 Proof using.
-  introv Hd. change_to_ssubst_aux8. intros.
-  apply boundvars_ssubst_aux;try(sp;fail);
-  try(rw disjoint_sub_as_flat_map;disjoint_reasoning).
+  introv Hd. change_to_ssubst_aux8. intros. 
+  apply boundvars_ssubst_aux;try(sp;fail).
 Qed.
 
 
 Lemma boundvars_ssubst_aux_vars:
   forall nt lvi lvo,
   length lvi = length lvo
-  -> disjoint lvo (bound_vars nt)
   -> bound_vars (ssubst_aux nt (var_ren lvi lvo))
      = bound_vars nt.
 Proof using.
-  nterm_ind1s nt as [v | o lbt Hind] Case; introv Hl Hdis; auto.
+  nterm_ind1s nt as [v | o lbt Hind] Case; introv Hl; auto.
   - Case "vterm". simpl. rewrite sub_lmap_find. 
     destruct (lmap_find deq_nvar (var_ren lvi lvo) v) as [s1s| n1n];auto; exrepnd.
     allsimpl. apply in_var_ren in s1s0. exrepnd. subst. auto.
   - Case "oterm". simpl. rewrite flat_map_map.
     apply eq_flat_maps. intros bt Hin. destruct bt as [lv nt].
     unfold compose. simpl. 
-    eapply disjoint_lbt_bt2 in Hdis; eauto. repnd.
-    + simpl. f_equal. pose proof (allvars_sub_filter lvi lvo lv) as X1X.
-      apply get_sub_dom_vars_eta in X1X. exrepnd.
-      rewrite X1X0. eapply Hind; eauto.
-      eapply disjoint_sub_filter_vars_r  with (ld:= (bound_vars nt)) in X1X0
-      ; eauto. 
+    simpl. f_equal. pose proof (allvars_sub_filter lvi lvo lv) as X1X.
+    apply get_sub_dom_vars_eta in X1X. exrepnd.
+    rewrite X1X0. eapply Hind; eauto.
 Qed.
 
 
@@ -5100,7 +5105,6 @@ Proof using.
   intros. change_to_ssubst_aux4.
   apply boundvars_ssubst_aux_vars;try(sp;fail);
   try(rw disjoint_sub_as_flat_map;disjoint_reasoningv).
-
 Qed.
 
 Lemma boundvars_ssubst_vars2:
@@ -5115,7 +5119,6 @@ Proof using.
   exrepnd. GC. revert Hd. intro Hd. allrw XX0.
   spcls.
   apply boundvars_ssubst_aux_vars;try(sp;fail).
-  disjoint_reasoning.
 Qed.
 
 Lemma disjoint_bound_vars_ssubst:
@@ -5138,14 +5141,12 @@ Proof using.
 Qed.
 Lemma disjoint_bound_vars_ssubst_aux:
   forall (nt : NTerm) (sub : Substitution) lvdr,
-  disjoint (flat_map free_vars (range sub)) (bound_vars nt)  
-  -> disjoint (bound_vars nt ++ (flat_map bound_vars (range sub))) lvdr
+  disjoint (bound_vars nt ++ (flat_map bound_vars (range sub))) lvdr
   -> disjoint (bound_vars (ssubst_aux nt sub)) lvdr.
 Proof using.
-  introv H1dis H2dis.
+  introv H2dis.
   introv Hin Hc.
-  apply boundvars_ssubst_aux in Hin;
-    [|unfold disjoint_bv_sub;rw disjoint_sub_as_flat_map;sp];[].
+  apply boundvars_ssubst_aux in Hin.
   apply disjoint_app_l in H2dis; repnd.
   dorn Hin.
   - apply H2dis0 in Hin. sp.
