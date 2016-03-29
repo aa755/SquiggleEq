@@ -730,6 +730,8 @@ Definition change_bvars_alphabt_spec
        disjoint lv (bound_vars_bterm (change_bvars_alphabt lv bt)) # alpha_eq_bterm bt (change_bvars_alphabt lv bt)
 := fun lv => snd (change_bvars_alpha_spec_aux lv).
 
+
+
 Lemma change_bvars_alpha_spec_varclass: forall lv vc,
   (forall nt, varsOfClass (bound_vars nt) vc 
       -> varsOfClass (bound_vars (change_bvars_alpha lv nt)) vc)
@@ -739,27 +741,19 @@ Lemma change_bvars_alpha_spec_varclass: forall lv vc,
 Proof using.
   intros. apply NTerm_BTerm_ind;
     [intro v; simpl; unfold preservesVarclass; tauto| |].
-  - intros ? ? Hind. simpl.  unfold varsOfClass, lforall.
+  - intros ? ? Hind. simpl.
     rewrite flat_map_map.
-    intros Hin v.
-    rewrite in_flat_map.
-    setoid_rewrite in_flat_map in Hin.
-    intros Hinc.
-    exrepnd.
-    eapply Hind; [apply Hinc1| | apply Hinc0].
-    intros vv Hincc.
-    apply Hin. eexists; eauto.
-
+    apply lforall_flatmap.
+    exact Hind.
 - intros blv bnt Hnt.
   simpl. repeat rewrite varsOfClassApp.
   introv Hin. repnd.
   split;[apply freshReplacementsSameClass; assumption|].
-  intros ? Hinn.
-  apply boundvars_ssubst_aux_subset in Hinn.
-  rewrite flat_map_bound_var_vars_range in Hinn;
+  eapply lforall_subset;[apply boundvars_ssubst_aux_subset|].
+  rewrite flat_map_bound_var_vars_range;
       [| autorewrite with SquiggleLazyEq; refl].
-  autorewrite with list in Hinn.
-  unfold varsOfClass, lforall in *.
+  autorewrite with list.
+  unfold varsOfClass in *.
   eauto.
 Qed.
 
@@ -1313,8 +1307,8 @@ Proof using.
     
 Qed.
 
-Print Assumptions ssubst_ssubst_aux_alpha_nb.
 (*
+Print Assumptions ssubst_ssubst_aux_alpha_nb.
 Section Variables:
 gts : GenericTermSig
 *)
@@ -2180,8 +2174,81 @@ Proof using.
 Qed.
 
 
+Lemma ssubst_boundvars_varclass_nb: forall (vc : VarClass) (sub: Substitution),
+ (varsOfClass (flat_map bound_vars (range sub)) vc)
+ -> 
+ (forall nt : NTerm, varsOfClass (bound_vars nt) vc -> varsOfClass (bound_vars (ssubst nt sub)) vc) *
+ (forall bt : BTerm,
+   varsOfClass (bound_vars_bterm bt) vc -> varsOfClass (bound_vars_bterm (ssubst_bterm bt sub)) vc).
+Proof using.
+  simpl. intros ? ? Hvc. apply NTerm_BTerm_ind.
+- intro. rewrite ssubst_vterm. intros Hv.
+  eapply lforall_subset;
+    [apply boundvars_ssubst_aux_subset|].
+  simpl in *. exact Hvc.
 
+- intros ? ? Hind.
+  simpl. fold ssubst_bterm.
+  rewrite flat_map_map.
+  apply lforall_flatmap.
+  exact Hind.
 
+- intros ? ? Hind. destruct lv as [| v lv];
+    [simpl; fold ssubst; assumption|].
+  unfold ssubst_bterm. remember (v :: lv) as lvv.
+  subst lvv. generalize (v :: lv). intro lvv.
+  Local Opaque ssubst_bterm_aux change_bvars_alphabt.
+  simpl.
+  cases_ifn Hd; clear Hd; intros Hin;
+    (eapply lforall_subset;[apply boundvars_ssubst_bterm_aux_subset|]);
+    setoid_rewrite varsOfClassApp; simpl;
+    repeat rewrite varsOfClassApp;
+    repeat rewrite varsOfClassApp in Hin; [tauto|].
+ 
+  split;[|assumption].
+  apply change_bvars_alpha_spec_varclass.
+  simpl.
+  repeat rewrite varsOfClassApp.
+  assumption.
+  Local Transparent ssubst_bterm_aux change_bvars_alphabt.
+Qed.
+
+Lemma ssubst_allvars_varclass_nb: forall
+ (vc : VarClass) (sub: Substitution) nt,
+ (varsOfClass (all_vars nt ++ (flat_map all_vars (range sub))) vc)
+ -> varsOfClass (all_vars (ssubst nt sub)) vc.
+Proof using.
+  intros ? ? ?.
+  unfold all_vars.
+  repeat rewrite varsOfClassApp.
+  unfold varsOfClass.
+  rewrite flat_map_fapp.
+  rewrite eqsetv_free_vars_disjoint.
+  rewrite lforallApp.
+  intros Hin.
+  repnd.
+  split;[|apply ssubst_boundvars_varclass_nb; assumption].
+  apply lforallApp.
+  split.
+- eapply lforall_subset.
+  apply subsetv_remove_nvars.
+  apply subset_app_r.
+  apply subset_refl.
+  assumption.
+- intros ? Hinn.
+  apply Hin1.
+  revert Hinn. clear.
+  intros. apply in_sub_free_vars in Hinn.
+  exrepnd.
+  apply in_sub_keep_first in Hinn0.
+  repnd.
+  apply sub_find_some in Hinn2.
+  setoid_rewrite flat_map_map.
+  apply in_flat_map.
+  eexists.
+  split;[apply Hinn2|].
+  unfold compose. simpl. assumption.
+Qed.
 
 Lemma change_bvars_alpha_wspec_ot:
   forall lv (o : Opid) (lbt : list BTerm) , 

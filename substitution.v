@@ -5015,38 +5015,58 @@ Proof using.
     apply Hin0 in Hin1. sp.
 Qed.
 
+Lemma boundvars_ssubst_aux_nb vv :
+  (forall nt sub,
+  LIn vv (bound_vars (ssubst_aux nt sub))
+  -> LIn vv (bound_vars nt)[+]
+      {v' : NVar $
+      {t : NTerm $ sub_find sub v' =Some t # LIn v' (free_vars nt) # LIn vv (bound_vars t)}})
+  *
+  (forall bt sub,
+  LIn vv (bound_vars_bterm (ssubst_bterm_aux bt sub))
+  -> LIn vv (bound_vars_bterm bt)[+]
+      {v' : NVar $
+      {t : NTerm $ sub_find sub v' =Some t # LIn v' (free_vars_bterm bt) # LIn vv (bound_vars t)}})
+  .
+Proof using.
+  apply NTerm_BTerm_ind.
+  - simpl. intros v ? Hin. right. 
+    dsub_find sn; cpx;[].
+    exists v sns. split; auto.
 
+  - simpl. intros _ ? Hind ? Hin.
+    rewrite flat_map_map in Hin. 
+    rw lin_flat_map in Hin. 
+    destruct Hin as [bt Hin]. unfold compose in Hin.
+    repnd.
+    eapply Hind in Hin; eauto.
+    repeat rewrite in_flat_map.
+    setoid_rewrite in_flat_map. 
+    dorn Hin;[left|exrepnd;right]; eexists; try eexists; try split; eauto.
+  - simpl. intros ? ? Hind ? Hin. rewrite in_app_iff in *.
+    dorn Hin;[ auto |].
+    apply Hind in Hin; cpx.
+    dorn Hin;[ auto | right].
+    exrepnd. rw sub_find_sub_filter_some in Hin0.
+    repnd. eexists; eauto. eexists; dands; eauto.
+    apply in_remove_nvars. split; auto.
+Qed.
 
     
-Lemma boundvars_ssubst_aux:
+Lemma boundvars_ssubst_aux :
   forall nt sub v,
   LIn v (bound_vars (ssubst_aux nt sub))
   -> LIn v (bound_vars nt)[+]
       {v' : NVar $
       {t : NTerm $ sub_find sub v' =Some t # LIn v' (free_vars nt) # LIn v (bound_vars t)}}.
 Proof using.
-  nterm_ind1s nt as [v | o lbt Hind] Case; introv Hin; auto.
-  - Case "vterm". allsimpl. right. 
-    allsimpl. dsub_find sn; cpx;[].
-    exists v sns. split; auto.
-
-  - Case "oterm". simpl. 
-    simpl in Hin. rw lin_flat_map in Hin. 
-    destruct Hin as [bt' Hin]. repnd. apply in_map_iff in Hin0. 
-    destruct Hin0 as [bt Hin0]. repnd. subst. destruct bt as [lv nt]. 
-    simpl in Hin. 
-    simpl in Hin. apply in_app_iff in Hin. dorn Hin.
-    + left. apply lin_flat_map. eexists; split; eauto. simpl. apply in_app_iff.
-      left; sp.
-    + apply Hind with (lv:=lv) (nt:=nt) in Hin; cpx.
-      dorn Hin.
-      * left. simpl. apply lin_flat_map. eexists; split; eauto. simpl. 
-        apply in_app_iff. right. auto.
-      * exrepnd. right. rw sub_find_sub_filter_some in Hin0.
-        repnd. eexists; eauto. eexists; dands; eauto.
-        apply lin_flat_map. eexists; split; eauto;[].
-        simpl. apply in_remove_nvars. split; auto.
+  intros.
+  apply boundvars_ssubst_aux_nb. auto.
 Qed.
+
+Definition boundvars_ssubst_bterm_aux :=
+(fun vv => snd (boundvars_ssubst_aux_nb vv)).
+
 
 Lemma boundvars_ssubst_aux_subset:
   forall nt sub,
@@ -5054,6 +5074,21 @@ Lemma boundvars_ssubst_aux_subset:
 Proof using.
   intros ? ? ? Hin.
   apply boundvars_ssubst_aux in Hin.
+  apply in_app_iff. eauto.
+  rewrite in_flat_map.
+  dorn Hin;[left;tauto| right].
+  exrepnd. apply sub_find_some, in_sub_eta in Hin0.
+  repnd.
+  eexists; split; eauto.
+Qed.
+
+Lemma boundvars_ssubst_bterm_aux_subset:
+  forall bt sub,
+  subset (bound_vars_bterm (ssubst_bterm_aux bt sub)) 
+         ((bound_vars_bterm bt) ++ flat_map bound_vars (range sub)).
+Proof using.
+  intros ? ? ? Hin.
+  apply boundvars_ssubst_bterm_aux in Hin.
   apply in_app_iff. eauto.
   rewrite in_flat_map.
   dorn Hin;[left;tauto| right].

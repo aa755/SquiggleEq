@@ -2178,6 +2178,37 @@ Proof.
   unfold lforall. sp.
 Defined.
 
+Lemma lforall_subset : forall {A:Type} (P: A->[univ]) (la lb : list A),
+ subset la lb
+ -> lforall P lb
+ -> lforall P la.
+Proof.
+  unfold lforall, subset.
+  firstorder.
+Qed.
+
+(* for an application, see alphaeq.change_bvars_alpha_spec_varclass *)
+Lemma lforall_flatmap : forall {A B :Type} (P: B->[univ]) (fa fb : A -> list B) (la: list A),
+ (forall a, LIn a la -> lforall P (fa a) -> lforall P (fb a) )
+ -> lforall P (flat_map fa la)
+ -> lforall P (flat_map fb la).
+Proof.
+  unfold lforall, subset.
+  setoid_rewrite in_flat_map.
+  intros.
+  firstorder.
+  eauto.
+Qed.
+
+Lemma  lforallApp : forall {A:Type} (lv1 lv2 :list A) P,
+lforall P (lv1++lv2)
+<-> ((lforall P lv1) # (lforall P lv2)).
+Proof using.
+  unfold lforall.
+  setoid_rewrite in_app_iff.
+  firstorder.
+Qed.
+
 Lemma combine_eq : forall {A B: Type} 
   (l1a l2a: list A) (l1b l2b: list B),
   combine l1a l1b = combine l2a l2b
@@ -2702,6 +2733,26 @@ Qed.
 Global Instance transSubsetv {A}: Transitive (@subset A).
 Proof.
   intros ? ? ?. apply subset_trans.
+Qed.
+
+(* TODO : generalize over P*)
+Global Instance properEqsetvlforall {A} P : Proper (eq_set ==> iff ) (@lforall A P).
+Proof.
+  intros ? ? Heq. unfold lforall. setoid_rewrite Heq.
+  refl.
+Qed.
+
+Lemma flat_map_fapp:
+  forall {A B : Type} (f g : A -> list B) (l : list A), 
+  eq_set
+    (flat_map (fun x => (f x) ++ (g x)) l)
+    ((flat_map f l) ++ (flat_map g l)).
+Proof.
+  intros.
+  apply eqsetv_prop. repeat setoid_rewrite in_app_iff.
+  repeat setoid_rewrite in_flat_map.
+  setoid_rewrite in_app_iff. 
+  firstorder.
 Qed.
 
 Global Instance properDisjoint {A} : Proper (eq_set ==> eq_set ==> iff ) (@disjoint A).
