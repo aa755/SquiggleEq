@@ -1176,7 +1176,7 @@ Qed.
 Lemma beq_var_false :
   forall (i1 i2 : NVar),
     false = beq_var i1 i2 -> i1 <> i2.
-Proof.
+Proof using.
   sp. symmetry in H1. 
   apply DecidableClass.Decidable_complete_alt in H1.
   auto.
@@ -1184,13 +1184,30 @@ Qed.
 
 Theorem beq_var_false_not_eq : forall i1 i2,
   beq_var i1 i2 = false -> i1 <> i2.
-Proof.
+Proof using.
  intros. symmetry in H1.
  apply beq_var_false. auto.
 Qed.
 
 Definition varsOfClass (lv:list NVar) (vc : VClass) : Prop :=
   lforall (fun v => varClass v = vc) lv.
+
+Lemma varsOfClassFreshDisjoint : forall (vca vcb : VClass),
+vca <> vcb
+-> forall lv, 
+    varsOfClass lv vca
+   -> forall n lva lvs, disjoint (freshVars n (Some vcb) lva lvs) lv.
+Proof using.
+  intros ? ? Hn ? Hvc ? ? ?.
+  addFreshVarsSpec.
+  repnd.
+  intros ? Hin.
+  eapply HfreshVars in Hin;[| refl].
+  intro Hc.
+  apply Hvc in Hc.
+  congruence.
+Qed.
+
 
 Definition freshReplacements (blv lva : list NVar) :=
   (freshVars (length blv) (option_map varClass (head blv)) lva blv).
@@ -1249,6 +1266,8 @@ Proof using.
 Qed.
 
 End Vars.
+
+
 
 (* this is closer to the way things worked, and hence useful in reviving old proofs*)
 Ltac addFreshVarsSpec2 vn pp :=
@@ -1377,3 +1396,18 @@ Tactic Notation "simpl_vlist" :=
                          try (allrewrite null_iff_nil))).
                          
 Notation beq_var_eq := beq_var_true.
+
+Section Vars2Class.
+Context {NVar : Type} `{VarType NVar bool}.
+
+
+Lemma varsOfClassFreshDisjointBool : forall n lva lvs lv, 
+    varsOfClass lv true
+    -> disjoint (freshVars n (Some false) lva lvs) lv.
+Proof using.
+  intros. eapply varsOfClassFreshDisjoint; eauto.
+  discriminate.
+Qed.
+
+
+End Vars2Class.
