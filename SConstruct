@@ -13,7 +13,8 @@ while nodes:
   node = nodes.pop()
   b = os.path.basename(node)
   if (node.endswith('.v')
-   and not node.endswith('universe-type.v')):
+   and not node.endswith('universe-type.v')
+   and not node.endswith('variables.v')):
     vs += [File(node)]
   if os.path.isdir(node):
     dirs += [node]
