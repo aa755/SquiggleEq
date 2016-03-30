@@ -202,9 +202,9 @@ Fixpoint free_vars {NVar} `{Deq NVar} {gts : GenericTermSig}
 Fixpoint bound_vars {NVar} `{Deq NVar} {gts : GenericTermSig} (t : NTerm) : list NVar :=
   match t with
   | vterm v => []
-  | oterm op bts => flat_map (@bound_vars_bterm NVar _ _ _)  bts
+  | oterm op bts => flat_map (@bound_vars_bterm NVar _ _)  bts
   end
- with bound_vars_bterm {NVar} `{Deq NVar} {gts : GenericTermSig} {gts : GenericTermSig} (bt : BTerm ) 
+ with bound_vars_bterm {NVar} `{Deq NVar} {gts : GenericTermSig} (bt : BTerm ) 
   :list NVar :=
   match bt with
   | bterm lv nt => lv ++ bound_vars nt
