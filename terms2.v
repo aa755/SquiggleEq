@@ -1427,11 +1427,14 @@ Qed.
 
 Definition all_vars_bt bt := free_vars_bterm bt ++ bound_vars_bterm bt.
 
-Lemma all_vars_ot : forall o lbt, all_vars (oterm o lbt) =
-  flat_map all_vars_bt lbt.
+Lemma all_vars_ot : forall o lbt, 
+  eq_set
+    (all_vars (oterm o lbt))
+    (flat_map all_vars_bt lbt).
 Proof using.
   intros. unfold all_vars. simpl. unfold all_vars_bt.
-Abort. (** they are only equal as bags*)
+  rewrite <- flat_map_fapp. refl.
+Qed.
 
 
 Theorem nil_remove_nvars_iff: forall l1 l2 : list NVar,
@@ -1816,8 +1819,7 @@ Lemma subsetAllVarsLbt : forall o lbt bt,
   LIn bt lbt -> subset (all_vars_bt bt) (all_vars (oterm o lbt)).
 Proof.
   intros ? ? ? Hin.
-  unfold all_vars. simpl.
-  rewrite <- flat_map_fapp.
+  rewrite all_vars_ot.
   unfold all_vars_bt.
   eapply subset_trans;
     [|apply subset_flat_map_r; apply Hin].
