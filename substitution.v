@@ -6983,6 +6983,8 @@ match T with
   [change_to_ssubst_aux8; sp  | rewrite H in Hyp ]
 end.
 
-Hint Rewrite (fun gtsi gtso  => @dom_sub_map_range gtsi gtso) : SquiggleLazyEq.
-Hint Rewrite (fun gts => @ssubst_aux_nil gts): SquiggleLazyEq.
-Hint Rewrite (@dom_sub_map_range) : SquiggleLazyEq.
+Hint Rewrite @dom_sub_map_range : SquiggleLazyEq.
+Hint Rewrite @ssubst_aux_nil: SquiggleLazyEq.
+Hint Rewrite @dom_sub_map_range : SquiggleLazyEq.
+
+Hint Immediate @allvars_combine : SquiggleLazyEq.
