@@ -1284,7 +1284,6 @@ Proof using.
   + simpl. unfold freshReplacements in *. simpl. addFreshVarsSpec2 lvn hfr. repnd. dlist_len_name lvn lv.
     simpl. unfold var_ren. simpl.
     autorewrite with SquiggleLazyEq.
-    rewrite ssubst_aux_nil.
     apply alphaeqbt_nilv2.
     assumption.
   + unfold ssubst_bterm. remember (v :: lv) as lvv.
@@ -3645,35 +3644,6 @@ match goal with
 end.
 *)
 
-Ltac failifnil v :=
-match v with
-| [] => fail 1
-| _ => idtac
-end.
-
-Ltac disjoint_reasoning2 :=
-match goal with
-| [  |- disjoint _ (_ ++ _) ] => apply disjoint_app_r;split
-| [  |- disjoint (_ ++ _) _ ] => apply disjoint_app_l;split
-| [  |- disjoint _ (_ :: (_ :: _)) ] => apply disjoint_cons_r;split
-| [  |- disjoint (_ :: (_ :: _)) _ ] => apply disjoint_cons_l;split
-| [  |- disjoint _ (_ :: ?v) ] => failifnil v;apply disjoint_cons_r;split
-| [  |- disjoint (_ :: ?v) _ ] => failifnil v;apply disjoint_cons_l;split
-| [  |- disjoint _ _ ] => (sp;fail  || apply disjoint_sym; sp;fail)
-(** important to leave it the way it was .. so that repeat progress won't loop*)
-| [ H: disjoint _ (_ ++ _) |- _ ] => apply disjoint_app_r in H;sp
-| [ H: disjoint (_ ++ _) _ |- _ ] => apply disjoint_app_l in H;sp
-| [ H: disjoint _ (_ :: (_ :: _)) |- _ ] => apply disjoint_cons_r in H;sp
-| [ H: disjoint (_ :: (_ :: _)) _ |- _ ] => apply disjoint_cons_l in H;sp
-| [ H: disjoint _ (_ :: ?v) |- _ ] => failifnil v;apply disjoint_cons_r in H;sp
-| [ H: disjoint (_ :: ?v) _ |- _ ] => failifnil v;apply disjoint_cons_l in H;sp
-| [ H: !(disjoint  _ []) |- _ ] => provefalse; apply H; apply disjoint_nil_r
-| [ H: !(disjoint  [] _) |- _ ] => provefalse; apply H; apply disjoint_nil_l
-| [ H: (disjoint  _ []) |- _ ] => clear H
-| [ H: (disjoint  [] _) |- _ ] => clear H
-|[H: ! (LIn _ _) |- _] => apply disjoint_singleton_l in H
-|[|- ! (LIn _ _)] => apply disjoint_singleton_l
-end.
 
 Lemma ssubst_trivial_disjoint_dom:
   forall (t : NTerm) (sub : Substitution),
@@ -3977,35 +3947,3 @@ dlist_len_name btlv btlv;  try dnumvbars H btt
 | map num_bvars ?lbt = [] => 
 destruct lbt;[ clear H | inverts H]
 end.
-
-Ltac failifnil v :=
-match v with
-| [] => fail 1
-| _ => idtac
-end.
-Ltac disjoint_reasoning2 :=
-match goal with
-| [  |- disjoint _ (_ ++ _) ] => apply disjoint_app_r;split
-| [  |- disjoint (_ ++ _) _ ] => apply disjoint_app_l;split
-| [  |- disjoint _ (_ :: (_ :: _)) ] => apply disjoint_cons_r;split
-| [  |- disjoint (_ :: (_ :: _)) _ ] => apply disjoint_cons_l;split
-| [  |- disjoint _ (_ :: ?v) ] => failifnil v;apply disjoint_cons_r;split
-| [  |- disjoint (_ :: ?v) _ ] => failifnil v;apply disjoint_cons_l;split
-| [  |- disjoint _ _ ] => (sp;fail  || apply disjoint_sym; sp;fail)
-(** important to leave it the way it was .. so that repeat progress won't loop*)
-| [ H: disjoint _ (_ ++ _) |- _ ] => apply disjoint_app_r in H;sp
-| [ H: disjoint (_ ++ _) _ |- _ ] => apply disjoint_app_l in H;sp
-| [ H: disjoint _ (_ :: (_ :: _)) |- _ ] => apply disjoint_cons_r in H;sp
-| [ H: disjoint (_ :: (_ :: _)) _ |- _ ] => apply disjoint_cons_l in H;sp
-| [ H: disjoint _ (_ :: ?v) |- _ ] => failifnil v;apply disjoint_cons_r in H;sp
-| [ H: disjoint (_ :: ?v) _ |- _ ] => failifnil v;apply disjoint_cons_l in H;sp
-| [ H: !(disjoint  _ []) |- _ ] => provefalse; apply H; apply disjoint_nil_r
-| [ H: !(disjoint  [] _) |- _ ] => provefalse; apply H; apply disjoint_nil_l
-| [ H: (disjoint  _ []) |- _ ] => clear H
-| [ H: (disjoint  [] _) |- _ ] => clear H
-|[H: ! (LIn _ _) |- _] => apply disjoint_singleton_l in H
-|[|- ! (LIn _ _)] => apply disjoint_singleton_l
-end.
-
-Tactic Notation "disjoint_reasoningv2" :=
-  (unfold all_vars in *); repeat( progress disjoint_reasoning2).

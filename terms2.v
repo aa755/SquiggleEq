@@ -1850,7 +1850,76 @@ Proof.
   firstorder.
 Qed.
 
+
+Lemma flat_map_free_var_vterm: forall lv:list NVar, flat_map free_vars (map vterm lv)=lv.
+Proof using.
+  induction lv;sp;simpl;f_equal;sp.
+Qed.
+
+Lemma flat_map_bound_var_vterm: forall lv:list NVar, flat_map bound_vars (map vterm lv)=[].
+Proof using.
+  induction lv;sp;simpl;f_equal;sp.
+Qed.
+
+Lemma size_subterm4 :
+     forall  (lb : list (BTerm)) (nt : NTerm) (lv : list NVar),
+       LIn (bterm lv nt) lb -> size nt < S (addl (map size_bterm lb)).
+Proof using.
+  induction lb; auto; simpl; try tauto;[].
+  intros ? ? Hin. dorn Hin.
+- subst. simpl. omega.
+- apply IHlb in Hin. omega.
+Qed.
+
+
+Lemma subsetAllVarsLbt2 : forall lbt lv (nt : NTerm), 
+  LIn (bterm lv nt) lbt -> subset (all_vars nt) (flat_map all_vars_bt lbt).
+Proof using.
+  intros.
+  eapply subset_trans;
+    [|eapply subset_flat_map_r; eauto].
+  rewrite allvars_bterm.
+  apply subset_app_l.
+  refl.
+Qed.
+
+Lemma subsetAllVarsLbt3 : forall (lbt : list BTerm) (lv : list NVar) (nt : NTerm), 
+  LIn (bterm lv nt) lbt -> subset lv (flat_map bound_vars_bterm lbt).
+Proof using.
+  intros.
+  eapply subset_trans;
+    [|eapply subset_flat_map_r; eauto].
+  apply subset_app_r.
+  refl.
+Qed.
+
 End terms4Generic.
+
+Ltac  varsOfClassSimpl :=
+repeat match goal with
+[ H: varsOfClass (all_vars (oterm ?o ?lbt)) true |- _ ] =>
+  specialize (varsOfClassOT _ _ _ H); clear H; intro H;
+  repeat match goal with
+  | [HH : LIn _ lbt |- _] => apply (fun lin => (conj lin (H _ lin))) in HH
+  end; repnd;
+repeat match goal with
+[H:context [varsOfClass (all_vars_bt (bterm _ _)) true] |- _]
+  => setoid_rewrite allvars_bterm in H (* if it fails, continuing may cause a loop *)
+end;
+repeat rewrite @varsOfClassApp in *
+end.
+
+
+
+
+(* Move *)
+Hint Rewrite @flat_map_bterm_nil @flat_map_free_var_vterm
+  remove_nvars_eq : SquiggleLazyEq.
+
+
+Hint Rewrite @all_vars_ot @allvars_bterm : allvarsSimpl.
+
+Hint Rewrite @all_vars_ot @allvars_bterm @varsOfClassApp : SquiggleLazyEq.
 
 
 Hint Resolve isprogram_ot_if_eauto : slow.
@@ -1946,6 +2015,45 @@ Hint Rewrite remove_nvars_cons_r : SquiggleLazyEq2.
 
 Hint Rewrite
   <- beq_var_refl : SquiggleLazyEq.
+
+Ltac disjoint_flat_allv :=
+repeat match goal with
+[ Hdis : disjoint ?lv (flat_map all_vars_bt ?lbt) ,
+  Hin : LIn _ ?lbt |- _]
+  => rewrite disjoint_flat_map_r in Hdis; specialize (Hdis _ Hin); unfold all_vars_bt in Hdis;
+  simpl in Hdis
+end.
+
+
+Ltac disjoint_reasoning2 :=
+match goal with
+| [  |- disjoint _ (_ ++ _) ] => apply disjoint_app_r;split
+| [  |- disjoint (_ ++ _) _ ] => apply disjoint_app_l;split
+| [  |- disjoint _ (_ :: (_ :: _)) ] => apply disjoint_cons_r;split
+| [  |- disjoint (_ :: (_ :: _)) _ ] => apply disjoint_cons_l;split
+| [  |- disjoint _ (_ :: ?v) ] => notNil v;apply disjoint_cons_r;split
+| [  |- disjoint (_ :: ?v) _ ] => notNil v;apply disjoint_cons_l;split
+| [  |- disjoint _ _ ] => (sp;fail  || apply disjoint_sym; sp;fail)
+(** important to leave it the way it was .. so that repeat progress won't loop*)
+| [ H: disjoint _ (_ ++ _) |- _ ] => apply disjoint_app_r in H;sp
+| [ H: disjoint (_ ++ _) _ |- _ ] => apply disjoint_app_l in H;sp
+| [ H: disjoint _ (_ :: (_ :: _)) |- _ ] => apply disjoint_cons_r in H;sp
+| [ H: disjoint (_ :: (_ :: _)) _ |- _ ] => apply disjoint_cons_l in H;sp
+| [ H: disjoint _ (_ :: ?v) |- _ ] => notNil v;apply disjoint_cons_r in H;sp
+| [ H: disjoint (_ :: ?v) _ |- _ ] => notNil v;apply disjoint_cons_l in H;sp
+| [ H: !(disjoint  _ []) |- _ ] => provefalse; apply H; apply disjoint_nil_r
+| [ H: !(disjoint  [] _) |- _ ] => provefalse; apply H; apply disjoint_nil_l
+| [ H: (disjoint  _ []) |- _ ] => clear H
+| [ H: (disjoint  [] _) |- _ ] => clear H
+|[H: ! (LIn _ _) |- _] => apply disjoint_singleton_l in H
+|[|- ! (LIn _ _)] => apply disjoint_singleton_l
+end.
+
+Tactic Notation "disjoint_reasoningv2" :=
+  (unfold all_vars in *); repeat( progress disjoint_reasoning2).
+  
+Ltac disjoint_flat2 :=
+disjoint_reasoning2; disjoint_flat_allv;disjoint_reasoningv2.
 
 
 

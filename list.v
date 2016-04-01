@@ -2802,3 +2802,50 @@ Proof.
   rewrite IHl;[| spc].
   refl.
 Qed.
+
+Lemma disjoint_sym_eauto
+     : forall (T : Type) (l1 l2 : list T), disjoint l1 l2 -> disjoint l2 l1.
+Proof using.
+  intros. apply disjoint_sym. assumption.
+Qed.
+
+Lemma eqset_app_comm : forall {A} (a b: list A),
+eq_set (a++b) (b++a).
+Proof using.
+  intros ? ? ?. rewrite eqsetv_prop. intro. repeat rewrite in_app_iff.
+  tauto.
+Qed.
+
+Global Instance properNil {A}: Proper (eq_set ==> iff) (@eq (list A) nil).
+Proof using. 
+  intros ? ? H. rewrite eqsetv_prop in H.
+  split; intros Hh; subst; simpl in H; firstorder;[destruct y | destruct x]; simpl in *;
+   try tauto; specialize (H a); try tauto.
+Qed.
+
+Lemma subsetv_nil_r {A}:
+  forall vs,
+    @subset A vs [] <=> vs = [].
+Proof.
+  introv; split; intro k; allrw; sp.
+  unfold subset in *.
+  apply null_iff_nil.
+  unfold null; introv i.
+  discover; sp.
+Qed.
+
+Hint Rewrite @subsetv_nil_r : SquiggleLazyEq.
+
+Lemma disjoint_neq {A} {a b : A} :
+  disjoint [a] [b]
+  -> a <> b.
+Proof using.
+  intros Hd.
+  intros Hc.
+  subst.
+  repeat disjoint_reasoning.
+  simpl in *.
+  tauto.
+Qed.
+
+

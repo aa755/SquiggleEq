@@ -831,3 +831,8 @@ Ltac move_term_to_top t :=
         assert t as H1 by trivial;
         clear h
   end.
+Ltac notNil lv :=
+match lv with
+| [] => fail 1
+| _ => idtac
+end.

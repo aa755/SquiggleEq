@@ -1044,16 +1044,6 @@ Proof.
   allsimpl; sp; subst; sp.
 Qed.
 
-Lemma subsetv_nil_r {A}:
-  forall vs,
-    @subsetv A vs [] <=> vs = [].
-Proof.
-  introv; split; intro k; allrw; sp.
-  unfold subset in *.
-  apply null_iff_nil.
-  unfold null; introv i.
-  discover; sp. firstorder. 
-Qed.
 
 Lemma eq_var_iff :
   forall v : NVar, v = v <=> True.
@@ -1265,6 +1255,56 @@ Proof using.
   simpl. auto.
 Qed.
 
+Require Import Morphisms.
+Global Instance varsOfClassProper : Proper (eq_set ==> eq ==> iff ) (varsOfClass).
+Proof using.
+  intros ? ? Heq ? ? ?. unfold varsOfClass. rewrite Heq. subst. refl.
+Qed.
+
+Hint Rewrite @remove_nvars_nil_l @remove_nvars_nil_r : SquiggleLazyEq.
+
+Lemma remove_nvars_cons_r2:
+  forall  (l : list NVar) (v : NVar) (vars : list NVar),
+  remove_nvars l (v :: vars) = (remove_nvars l [v]) ++ (remove_nvars l vars).
+Proof using.
+  intros. rewrite remove_nvars_cons_r.
+  rewrite cons_as_app.
+  rewrite remove_nvars_cons_r.
+  cases_if; simpl; autorewrite with SquiggleLazyEq; auto.
+Qed.
+
+(* for rewriting selectively *)
+Lemma remove_nvars_nops
+     : forall l1 l2 :  NVar, disjoint [l2] [l1] -> remove_nvars [l1] [l2] = [l2].
+Proof using.
+  intros. apply remove_nvars_nop. assumption.
+Qed.
+
+Lemma varsOfClassSubset : forall  (la lb : list NVar), 
+  subset la lb -> forall c, varsOfClass lb c -> varsOfClass la c.
+Proof using.
+  intros ? ? Hs ?.
+  apply lforall_subset.
+  assumption.
+Qed.
+
+Hint Rewrite @memvar_singleton @memvar_fresh_var : SquiggleLazyEq.
+
+Hint Rewrite <- @beq_var_refl : SquiggleLazyEq.
+
+
+Lemma remove_nvars_cons_r_same:
+  forall  (v : NVar) (vars : list NVar),
+  remove_nvars [v] (v :: vars) =
+   remove_nvars [v] vars.
+Proof using.
+  intros.
+  rewrite remove_nvars_cons_r.
+  autorewrite with SquiggleLazyEq.
+  refl.
+Qed.
+
+
 End Vars.
 
 
@@ -1279,21 +1319,32 @@ let tac n vc lva lvs :=
 match goal with
 [ |- context [freshVars ?n ?vc ?lva ?lvs]] => tac n vc lva lvs
 |[ H: context [freshVars ?n ?vc ?lva ?lvs] |- _] => tac n vc lva lvs
-end. 
+end.
 
-Hint Rewrite <- (fun T D => @beq_var_refl T D) : SquiggleLazyEq.
 
-Hint Rewrite (fun T D => @memvar_singleton T D) (fun T D => @memvar_fresh_var T D) : SquiggleLazyEq.
+
+Ltac remove_nvars_r_simpl :=
+repeat match goal with
+[ |- context[remove_nvars _ (?h::?tl)]] =>
+    notNil tl; setoid_rewrite (@remove_nvars_cons_r2 _ _ _ h tl)  
+|[ H: context[remove_nvars _ (?h::?tl)] |- _ ] =>
+    notNil tl; setoid_rewrite (@remove_nvars_cons_r2 _ _ _ h tl) in H  
+end.
+
+Hint Rewrite <- @beq_var_refl : SquiggleLazyEq.
+
+Hint Rewrite @memvar_singleton @memvar_fresh_var : SquiggleLazyEq.
 
 (* Remove : neve add anything to core DB *)
-Hint Immediate deq_nvar.
-Hint Rewrite (fun T D => @remove_nvars_nil_l T D) (fun T D => @remove_nvars_nil_r T D) : SquiggleLazyEq.
+Hint Immediate @deq_nvar.
+Hint Rewrite @remove_nvars_nil_l @remove_nvars_nil_r : SquiggleLazyEq.
+
 (* Hint Constructors issorted. *)
 Hint Immediate eqsetv_refl.
 Hint Immediate subsetv_refl.
 (* Hint Immediate fresh_var_nil. *)
 Hint Immediate subset_nil_l.
-Hint Rewrite (fun A => @subsetv_nil_l_iff A).
+Hint Rewrite  @subsetv_nil_l_iff.
 Hint Resolve eqsetv_trans eq_vars_sym eqsetv_refl eqsetv_remove_nvar eqsetv_remove_nvars eqsetv_app: eqsetv.
 
 Tactic Notation "prove_subsetv" ident(h) :=
@@ -1388,6 +1439,11 @@ Hint Rewrite (@freshVarsLen) : SquiggleLazyEq.
 
 Hint Rewrite (@freshRepsLen) : SquiggleLazyEq.
 
+Hint Rewrite (fun T D l1 l2 => @remove_nvars_app_r T D l1 l1 l2) : SquiggleLazyEq.
+Hint Rewrite @remove_nvars_app_r : SquiggleLazyEq2.
+
+Hint Rewrite @remove_nvars_cons_r_same @remove_nvars_eq: SquiggleLazyEq.
+
 
 Tactic Notation "simpl_vlist" :=
        repeat (progress (try (allrewrite remove_var_nil);
@@ -1396,6 +1452,9 @@ Tactic Notation "simpl_vlist" :=
                          try (allrewrite null_iff_nil))).
                          
 Notation beq_var_eq := beq_var_true.
+
+Hint Rewrite remove_nvars_cons_r_same : SquiggleLazyEq.
+
 
 Section Vars2Class.
 Context {NVar : Type} `{VarType NVar bool}.

@@ -1532,17 +1532,6 @@ Proof using.
     apply Hdis in Hin. sp.
 Qed.
 
-
-Lemma flat_map_free_var_vterm: forall lv, flat_map free_vars (map vterm lv)=lv.
-Proof using.
-  induction lv;sp;simpl;f_equal;sp.
-Qed.
-
-Lemma flat_map_bound_var_vterm: forall lv, flat_map bound_vars (map vterm lv)=[].
-Proof using.
-  induction lv;sp;simpl;f_equal;sp.
-Qed.
-
 Lemma range_var_ren : forall lvi lvo,
   length lvi=length lvo 
   -> range (var_ren lvi lvo) = map (@vterm NVar gts) lvo.
@@ -6995,3 +6984,5 @@ match T with
 end.
 
 Hint Rewrite (fun gtsi gtso  => @dom_sub_map_range gtsi gtso) : SquiggleLazyEq.
+Hint Rewrite (fun gts => @ssubst_aux_nil gts): SquiggleLazyEq.
+Hint Rewrite (@dom_sub_map_range) : SquiggleLazyEq.
