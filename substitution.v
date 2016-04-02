@@ -7017,3 +7017,5 @@ Hint Rewrite @ssubst_aux_nil: SquiggleLazyEq.
 Hint Rewrite @dom_sub_map_range : SquiggleLazyEq.
 
 Hint Immediate @allvars_combine : SquiggleLazyEq.
+
+Hint Resolve sub_filter_subset : subset.

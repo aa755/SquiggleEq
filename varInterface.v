@@ -1455,6 +1455,8 @@ Notation beq_var_eq := beq_var_true.
 
 Hint Rewrite remove_nvars_cons_r_same : SquiggleLazyEq.
 
+Hint Resolve varsOfClassSubset : subset.
+
 
 Section Vars2Class.
 Context {NVar : Type} `{VarType NVar bool}.

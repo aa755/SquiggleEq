@@ -188,12 +188,18 @@ Tactic Notation "thin_last" :=
   match goal with H: ?T |- _ => clear H end.
 
 Ltac apply' H1 H2 :=
-  let H3 := fresh in (
-    (pose proof (H1 H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
-    (pose proof (H1 _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
-    (pose proof (H1 _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
-    (pose proof (H1 _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
-    (pose proof (H1 _ _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3)).
+  let H3 := fresh in
+  (pose proof (H1 H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ _ _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ _ _ _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ _ _ _ _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ _ _ _ _ _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3).
 
 Ltac build_and_rewrite H :=
   let T := type of H in

@@ -3932,7 +3932,6 @@ match goal with
     destruct (fresh_vars n lv) as [lvn Hfr]
 end.
 
-(* Move *)
 Ltac dnumvbars H btt :=
 match type of H with
 map num_bvars ?lbt = ?h::?t =>
@@ -3947,3 +3946,16 @@ dlist_len_name btlv btlv;  try dnumvbars H btt
 | map num_bvars ?lbt = [] => 
 destruct lbt;[ clear H | inverts H]
 end.
+
+Ltac noRepDis2 :=
+autorewrite with SquiggleLazyEq;
+(repeat match goal with
+[H: no_repeats [] |- _] => clear H
+|[H: ! (LIn _ _) |- _] => apply disjoint_singleton_l in H
+|[|- ! (LIn _ _)] => apply disjoint_singleton_l
+|[H: no_repeats (_::_) |- _] =>
+  let Hnrd := fresh "Hnrd" in
+  apply no_repeats_as_disjoint in H;
+  destruct H as [Hnrd H]
+end); disjoint_reasoningv; 
+repeat rewrite in_single_iff in *; subst; try tauto.

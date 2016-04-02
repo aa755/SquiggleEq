@@ -2771,6 +2771,27 @@ Proof.
   apply H2; auto.
 Qed.
 
+Lemma  flat_map_monotone:
+  forall (A B : Type) (f : A -> list B) (la lb : list A),
+  subset la lb -> subset (flat_map f la) (flat_map f lb).
+Proof.
+  intros.
+  rewrite subset_flat_map.
+  intros ? Hin.
+  apply subset_flat_map_r.
+  auto.
+Qed.
+
+Lemma  map_monotone:
+  forall (A B : Type) (f : A -> B) (la lb : list A),
+  subset la lb -> subset (map f la) (map f lb).
+Proof.
+  intros.
+  unfold subset in *.
+  setoid_rewrite in_map_iff.
+  firstorder.
+Qed.
+
 Lemma flat_map_fapp:
   forall {A B : Type} (f g : A -> list B) (l : list A), 
   eq_set
@@ -2831,6 +2852,39 @@ Proof using.
   split; intros Hh; subst; simpl in H; firstorder;[destruct y | destruct x]; simpl in *;
    try tauto; specialize (H a); try tauto.
 Qed.
+Require Import Coq.Classes.Morphisms.
+
+SearchAbout ((?A -> ?B)-> (?A -> ?B) -> Prop).
+
+(* allows rewriting in maps using functional extensionality *)
+Global Instance properMapExt {A B}: Proper ((eq ==> eq) ==>  eq  ==> eq) (@map A B).
+Proof.
+  intros ? ? H1 ? ? H2. subst. apply eq_maps.
+  auto.
+Qed.
+
+(* maps on lists interpreted as bags *)
+Global Instance properEquivMap {A B}: Proper ((eq ==> eq) ==>  eq_set  ==> eq_set) (@map A B).
+Proof.
+  intros f g H1 ? ? H2.
+  apply eqsetv_prop.
+  setoid_rewrite in_map_iff.
+  intros.
+  setoid_rewrite H2.
+  firstorder; subst; eexists; split;  eauto; try apply H1.
+  symmetry. apply H1. auto. 
+Qed.
+
+(* flat_maps on lists interpreted as bags *)
+Global Instance properEquivFlatMap {A B}: Proper ((eq ==> eq_set) ==>  eq_set  ==> eq_set) (@flat_map A B).
+Proof.
+  intros f g H1 ? ? H2.
+  apply eqsetv_prop.
+  setoid_rewrite in_flat_map.
+  intros.
+  setoid_rewrite H2.
+  firstorder; subst; eexists; split;  eauto; try apply H1.
+Qed.
 
 Lemma subsetv_nil_r {A}:
   forall vs,
@@ -2857,4 +2911,6 @@ Proof using.
   tauto.
 Qed.
 
+
+Hint Resolve  flat_map_monotone map_monotone : subset.
 

@@ -1893,6 +1893,19 @@ Proof using.
   refl.
 Qed.
 
+
+Lemma flat_map_bterm_nil_allvars:
+  forall  (lnt : list NTerm),
+   flat_map all_vars_bt (map (terms.bterm []) lnt) = flat_map all_vars lnt.
+Proof using.
+  intros. rewrite flat_map_map.
+  apply eq_flat_maps.
+  intros ? Hin.
+  unfold compose, all_vars_bt.
+  simpl.
+  refl.
+Qed.
+
 End terms4Generic.
 
 Ltac  varsOfClassSimpl :=
@@ -2056,7 +2069,7 @@ Ltac disjoint_flat2 :=
 disjoint_reasoning2; disjoint_flat_allv;disjoint_reasoningv2.
 
 
-
+Hint Resolve subsetAllVarsLbt2 : subset. 
 
 Hint Rewrite remove_var_nil remove_nvars_nil_r:  SquiggleLazyEq.
 
