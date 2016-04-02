@@ -1101,6 +1101,10 @@ Proof.
   apply assert_memberb.
 Defined.
 
+Require Import Morphisms.
+
+
+
 Lemma in_deq :
   forall A,
   forall eq : Deq A,
@@ -2708,9 +2712,6 @@ Proof.
 Qed.
 
 
-Section RWInstances.
-(** contents of this section will work only when [univ] := Prop. Coq does (yet) not support rewriting
-with relations in Type *)
 Global Instance equivEqsetv {A}: Equivalence (@eq_set A).
 Proof.
   constructor; eauto using eqsetv_trans, eq_vars_sym.
@@ -2760,6 +2761,16 @@ Proof.
   refl.
 Qed.
 
+
+Global Instance proper_memberb {A:Type} `{Deq A} :
+Proper (eq ==> eq_set ==>eq) (@memberb A _).
+Proof.
+  intros ? ? ? ? ? ?.
+  pose proof (@proper_decider2 A _ (@LIn A) eq eq_set in_deqq properEqsetvLin).
+  simpl in H2.
+  apply H2; auto.
+Qed.
+
 Lemma flat_map_fapp:
   forall {A B : Type} (f g : A -> list B) (l : list A), 
   eq_set
@@ -2778,8 +2789,6 @@ Proof.
   intros ? ? ? ? ? Heq.  subst. apply iff_t_iff.  unfold disjoint.
   repeat setoid_rewrite Heq. setoid_rewrite H. reflexivity.
 Qed.
-
-End RWInstances.
 
 Lemma subsetvAppLR {A} : forall a b c d,
   subset a c

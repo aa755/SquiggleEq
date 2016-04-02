@@ -2601,6 +2601,11 @@ Proof using.
   apply IHsub1; sp.
 Qed.
 
+Definition map_sub_range {gtsi} {gtso} (f : @NTerm gtsi -> @NTerm gtso) 
+  (sub : @Substitution gtsi): @Substitution gtso :=
+  map (fun p => (fst p, f (snd p))) sub.
+
+
 Lemma sub_filter_map_trivial_vars :
   forall vars l,
     sub_filter (map (fun v : NVar => (v, vterm v)) vars) l
@@ -6272,9 +6277,7 @@ Proof using.
   rw simple_ssubst_app; simpl; sp; cpx.
 Qed.
 
-Definition map_sub_range {gtsi} {gtso} (f : @NTerm gtsi -> @NTerm gtso) 
-  (sub : @Substitution gtsi): @Substitution gtso :=
-  map (fun p => (fst p, f (snd p))) sub.
+
 
 Lemma dom_sub_map_range {gtsi} {gtso} : forall (f : @NTerm gtsi -> @NTerm gtso) sub,
    dom_sub (map_sub_range f sub) = dom_sub sub.
@@ -6639,8 +6642,34 @@ Proof using.
   change_to_ssubst_aux4.
 Qed.
 
+Require Import Morphisms.
+
+Global Instance sub_filter_proper :
+  Proper (eq ==> eq_set ==> eq) sub_filter.
+Proof using.
+  intros ? sub ? l1 l2 Heq.
+  subst. revert Heq.
+  clear. intros.
+  induction sub; auto;[].
+  simpl.
+  destruct a. unfold memvar.
+  rewrite Heq.
+  rewrite IHsub.
+  refl.
+Qed.
 
 End SubstGeneric2.
+
+
+Lemma sub_filter_map_range_comm {gtsi gtso NVar} `{Deq NVar}:
+  forall sub (f: (@terms.NTerm NVar gtsi) -> (@NTerm NVar gtso)) l,
+    sub_filter (map_sub_range  f sub)  l
+    = map_sub_range f (sub_filter sub l)  .
+Proof using.
+  induction sub; simpl; sp. simpl.
+  rewrite IHsub. clear IHsub.
+  destruct (memvar a0 l); auto.
+Qed.
 
 Lemma sub_find_some_map {NVar} `{Deq NVar} {gtsi gtso : GenericTermSig}
  (f : @NTerm NVar gtsi -> @NTerm NVar gtso) v (sub : @Substitution NVar gtsi) (t: @NTerm NVar gtsi) :

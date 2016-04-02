@@ -129,6 +129,19 @@ Proof using.
   apply Nat.eqb_eq.
 Defined.
 
+Require Import Morphisms.
+
+Lemma proper_decider2 {A B} (P: A -> B -> Prop) R1 R2
+  (d: forall a b, Decidable (P a b))
+  (p: Proper (R1 ==> R2 ==> iff) P ) : Proper (R1 ==> R2 ==> eq) (fun a b => @Decidable_witness _ (d a b)).
+Proof.
+  intros ? ? h1e ? ? H2e.
+  apply eq_true_iff_eq.
+  unfold decide.
+  do 2 rewrite Decidable_spec.
+  apply p; auto.
+Qed.
+
 Definition assert (b : bool) : Prop := b = true.
 
 Lemma fold_assert :
