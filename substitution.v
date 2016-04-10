@@ -1293,30 +1293,35 @@ Definition apply_bterm  (bt :BTerm) (lnt: list NTerm) : NTerm :=
 
 Hint Rewrite sub_filter_nil_r : SquiggleLazyEq.
 
-Lemma ssubst_ssubst_aux: forall t sub, disjoint (bound_vars t) (flat_map free_vars (range sub))
-  -> ssubst t sub = ssubst_aux t sub.
+
+Lemma ssubst_ssubst_aux_nb : 
+  (forall t sub, 
+  disjoint (bound_vars t) (flat_map free_vars (range sub))
+  -> ssubst t sub = ssubst_aux t sub)
+  *
+  (forall t sub, 
+  disjoint (bound_vars_bterm t) (flat_map free_vars (range sub))
+  -> ssubst_bterm t sub = ssubst_bterm_aux t sub).
 Proof using.
-  intro t.
-  nterm_ind1 t as [x | o lbt Hind] Case;
-  intros ? Hdis;[simpl; refl|].
-  simpl.
-  f_equal.
-  apply eq_maps.
-  intros bt Hin.
-  destruct bt as [lv nt].
+  apply NTerm_BTerm_ind;[simpl; refl| |].
+- intros ? ? Hind ? Hdis.
   simpl in *.
-  rewrite disjoint_flat_map_l in Hdis.
-  applydup Hdis in Hin.
+  f_equal.
+  apply eq_maps. intros. apply Hind; auto.
+  rewrite disjoint_flat_map_l in Hdis. auto.
+- intros ? ? Hind ? Hdis.
   simpl in *.
   destruct lv;
     [f_equal; autorewrite with SquiggleLazyEq; 
-       apply Hind with (lv:=[]); auto; 
+       apply Hind; auto; 
        disjoint_reasoningv; fail
      | clear Hind].
   cases_if;[| contradiction].
   simpl. refl.
 Qed.
 
+
+Definition ssubst_ssubst_aux := fst ssubst_ssubst_aux_nb.
 
 
 (*
