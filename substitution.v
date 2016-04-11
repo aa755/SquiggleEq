@@ -7031,4 +7031,38 @@ Hint Rewrite @dom_sub_map_range : SquiggleLazyEq.
 
 Hint Immediate @allvars_combine : SquiggleLazyEq.
 
-Hint Resolve sub_filter_subset : subset.
+Hint Resolve @sub_filter_subset : subset.
+
+Lemma sub_range_sat_range {n s}: forall P (sub: @Substitution n s),
+  sub_range_sat sub P
+  <-> (lforall P (range sub)).
+Proof.
+  unfold sub_range_sat, lforall.
+  induction sub as [| ss sub Hind]; 
+     simpl in*;[tauto|].
+  destruct ss as [v t]. simpl in *.
+  split;
+  intros; repeat(in_reasoning); subst; simpl in *; subst; cpx.
+- eapply H; eauto.
+- unfold range in *. apply in_map_iff in H0. exrepnd.
+  simpl in *. subst.
+  eapply H. right. eauto.
+- 
+  eapply H. right. apply in_map_iff. eexists; split; eauto.
+Qed.  
+
+            Ltac lcongruence :=
+            unfold isprogram in *;
+            unfold isprogram_bt in *;
+            unfold closed in *;
+            unfold closed_bt in *;
+            pose proof @app_nil_r;
+            pose proof @map_length;
+            pose proof @rev_length;
+            pose proof @rev_involutive;
+            pose proof @remove_nvars_nil_r;
+            pose proof @ssubst_aux_nil;
+            pose proof @ssubst_nil;
+            pose proof @remove_var_nil;
+            pose proof @remove_nvars_eq;
+            congruence.

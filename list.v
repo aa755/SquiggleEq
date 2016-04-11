@@ -2547,14 +2547,17 @@ Proof.
   introv Hin. apply in_combine in Hin; spc.
 Qed.
 
-Ltac dLin_hyp := 
-  repeat match goal with
-  [ H : forall  x : ?T , ((( ?L = x ) [+] ?R) -> ?C) |- _ ] => 
-    let Hyp := fresh "Hyp" in
-    pose proof (H L (or_introl eq_refl)) as Hyp;
-    specialize (fun x y => H x (or_intror y))
-  | [ H : forall  x : ?T , False -> _ |- _ ] => clear H
-  end.
+Ltac dLin_hyp :=
+  repeat
+   match goal with
+   | H:forall x : ?T, ?L = x [+] ?R -> ?C
+     |- _ => let Hyp := fresh "Hyp" in
+             pose proof (H L injL( eq_refl)) as Hyp; specialize (fun x y => H x injR( y))
+   | H:forall (x : _) (y:_), ?L = (x,y) [+] ?R -> ?C
+     |- _ => let Hyp := fresh "Hyp" in
+             pose proof (H (fst L) (snd L) injL( eq_refl)) as Hyp; specialize (fun x z y => H x z injR( y))
+   | H:forall x : ?T, False -> _ |- _ => clear H
+   end.
 
 Ltac dlist_len_name ll name :=
 repeat match goal with
@@ -2934,5 +2937,77 @@ Proof using.
 Qed.
 
 
+  Hint Resolve @subset_flat_map_r : subset.
+  
+  (* Move *)
+Lemma combine_map_fst {A B}: forall la lb,
+  length la = length lb
+  -> la = map fst (@combine A B la lb).
+Proof.
+  intros ? ? Hl.
+  change la  with (fst (la, lb)) at 1.
+  apply combine_split in Hl.
+  rewrite <- Hl.
+  rewrite fst_split_as_map.
+  refl.
+Qed.
+
+
+Lemma combine_map_snd {A B}: forall la lb,
+  length la = length lb
+  -> lb = map snd (@combine A B la lb).
+Proof.
+  intros ? ? Hl.
+  change lb  with (snd (la, lb)) at 1.
+  apply combine_split in Hl.
+  rewrite <- Hl.
+  rewrite snd_split_as_map.
+  refl.
+Qed.
+
+
 Hint Resolve  flat_map_monotone map_monotone : subset.
+
+Lemma combineeq {A}: forall la lb,
+  @length A la = length lb
+  -> (forall x y, LIn (x,y) (combine la lb) -> x=y)
+  -> la = lb.
+Proof.
+  induction la; intros ? Hl Hin; simpl in *; dlist_len_name lb b;[refl|].
+  simpl in *.
+  dLin_hyp. simpl in *. subst.
+  f_equal; auto.
+Qed.
+
+Lemma list_pair_ext {A B} : forall (la lb : list (A *B)),
+  map fst la = map fst lb
+  -> map snd la = map snd lb
+  -> la = lb.
+Proof.
+  induction la as [| a la Hind]; intros ? H1m H2m; destruct lb as [| b lb]; inverts H1m; auto.
+  inverts H2m. destruct a. destruct b.
+  simpl in *. subst.
+  f_equal. auto.
+Qed.
+
+Lemma eqset_repeat {A B} la (lb: list B) :
+la <> []
+-> eq_set (flat_map (fun _ : A => lb) la) lb.
+Proof.
+  intros ?. apply eqsetv_prop.
+  intros.
+  rewrite in_flat_map.
+  destruct la; [ congruence|]. simpl.
+  firstorder.
+  eexists; split; eauto.
+Qed.
+
+Lemma repeat_nil {A B} la  :
+(flat_map (fun _ : A => []) la) = @nil B.
+Proof.
+  induction la; auto.
+Qed.
+
+Hint Rewrite @repeat_nil : SquiggleLazyEq.
+
 

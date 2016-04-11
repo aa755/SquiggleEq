@@ -1304,6 +1304,13 @@ Proof using.
   refl.
 Qed.
 
+Lemma memvar_nil_r :  forall a, memvar a [] = false.
+Proof.
+  intros.
+  apply assert_memvar_false.
+  auto.
+Qed.
+
 
 End Vars.
 
@@ -1472,3 +1479,8 @@ Qed.
 
 
 End Vars2Class.
+
+  Hint Resolve @varsOfClassSubset : subset.
+
+Hint Rewrite @memvar_nil_r : SquiggleLazyEq.
+

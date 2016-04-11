@@ -1883,7 +1883,7 @@ Proof using.
   refl.
 Qed.
 
-Lemma subsetAllVarsLbt3 : forall (lbt : list BTerm) (lv : list NVar) (nt : NTerm), 
+Lemma subsetBoundVarsLbt3 : forall (lbt : list BTerm) (lv : list NVar) (nt : NTerm), 
   LIn (bterm lv nt) lbt -> subset lv (flat_map bound_vars_bterm lbt).
 Proof using.
   intros.
@@ -1904,6 +1904,17 @@ Proof using.
   unfold compose, all_vars_bt.
   simpl.
   refl.
+Qed.
+
+Lemma subsetAllVarsLbt3
+     : forall (lbt : list BTerm) (lv : list NVar) (nt : terms.NTerm),
+       LIn (bterm lv nt) lbt -> subset lv (flat_map all_vars_bt lbt).
+Proof.
+  introv Hin.
+   eapply transitivity;
+    [|apply subset_flat_map_r; eauto].
+  rewrite allvars_bterm.
+  apply subset_app_r. refl.       
 Qed.
 
 End terms4Generic.
@@ -2072,6 +2083,18 @@ disjoint_reasoning2; disjoint_flat_allv;disjoint_reasoningv2.
 Hint Resolve subsetAllVarsLbt2 : subset. 
 
 Hint Rewrite remove_var_nil remove_nvars_nil_r:  SquiggleLazyEq.
+
+    Ltac rwHyps :=
+    unfold closed, closed_bt in *;
+    repeat match goal with
+    [ H: _ = _ |- _] =>  repeat rewrite H; hide_hyp H
+    end; show_hyps.
+
+
+
+
+
+    Hint Resolve @subsetAllVarsLbt3 @subsetBoundVarsLbt3 : subset.
 
 
 
