@@ -6301,6 +6301,14 @@ Proof using.
   introv Hin; in_reasoning. cpx. cpx.
 Qed.
 
+Lemma map_sub_range_combine {gtsi} {gtso} : forall (f : @terms.NTerm NVar gtsi -> @terms.NTerm NVar gtso) lv nt,
+    map_sub_range f (combine lv nt) = combine lv (map f nt). 
+Proof using.
+  induction lv; auto. intros. simpl.
+  destruct nt; auto. simpl.
+  f_equal; auto.
+Qed.
+
 Ltac simpl_sub5 :=
 (match goal with
 | [ H : (prog_sub _) |- _ ] => (allrewrite (prog_sub_flatmap_range _ H))

@@ -2641,6 +2641,28 @@ Proof.
     split; auto. omega. 
 Qed.
 
+Lemma find_map_same_compose {A B: Type} (f : A -> bool) 
+  (h : A -> B) (g : B -> bool) :
+(forall a, (compose g h) a = f a)
+-> forall (s : A) (l: list A),
+  find f l = Some s
+  -> find g (map h l) = Some (h s).
+Proof.
+  intros Hc ?.
+  induction l; auto; intros Hf;[inverts Hf|].
+  simpl in *. unfold compose in Hc.
+  rewrite Hc.
+  destruct (f a); auto.
+  inverts Hf. refl.  
+Qed.
+
+Lemma combine_map {A B C: Type} (f:A->B) (g: A->C) (la:list A):
+combine (map f la) (map g la)
+= map (fun x => (f x, g x)) la.
+Proof.
+  induction la; simpl; congruence.
+Qed.
+
 Lemma iff_t_iff : forall A B : Prop, A <-> B <-> (A <=> B).
 Proof.
   firstorder.
