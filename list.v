@@ -2965,6 +2965,19 @@ Proof.
   refl.
 Qed.
 
+Lemma select_map {A B}: forall (f: A->B)  la n a,
+  select n la = Some a
+  -> select n (map f la) = Some (f a).
+Proof using.
+  induction la; simpl;destruct n;  introv H; simpl in *; try congruence.
+  auto.
+Qed.
+
+Lemma move_snd_out {A B C}: forall (p: A*B) (f : B->C),  
+  f (snd p) = snd ((fun x => (fst x, f (snd x))) p).
+Proof using.
+  intros. destruct p. refl.
+Qed.
 
 Hint Resolve  flat_map_monotone map_monotone : subset.
 
