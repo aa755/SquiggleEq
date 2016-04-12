@@ -6671,6 +6671,18 @@ Proof using.
   refl.
 Qed.
 
+Lemma map_ssubst_aux: forall (ws: list NTerm) sub,
+disjoint (flat_map free_vars ws) (dom_sub sub)
+-> map (fun x : NTerm => bterm [] (ssubst_aux x sub)) ws = map (bterm []) ws.
+Proof using.
+  intros ? ? Hf.
+  apply eq_maps.
+  intros ? Hin.
+  f_equal.
+  apply ssubst_aux_trivial_disj.
+  rewrite disjoint_flat_map_l in Hf.
+  auto.
+Qed.
 End SubstGeneric2.
 
 
@@ -7049,7 +7061,9 @@ Proof.
   eapply H. right. eauto.
 - 
   eapply H. right. apply in_map_iff. eexists; split; eauto.
-Qed.  
+Qed.
+
+
 
             Ltac lcongruence :=
             unfold isprogram in *;
