@@ -41,7 +41,6 @@ Require Import list.
 
 Require Import Recdef.
 Require Import Eqdep_dec.
-Require Import opid.
 Require Import varInterface.
 Require Import terms.
 Require Import terms2.

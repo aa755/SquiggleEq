@@ -17,7 +17,6 @@ Require Import list.
 
 Require Import Recdef.
 Require Import Eqdep_dec.
-Require Import opid.
 Require Import varInterface.
 Require Import terms.
 
@@ -700,6 +699,7 @@ Qed.
 *)
 
 
+(*
 (** A value is a program with a canonical operator *)
 Inductive isvalue : NTerm -> [univ] :=
   | isvl : forall (c : CanonicalOp) (bts : list BTerm ),
@@ -726,6 +726,7 @@ Lemma isvalue_program :
 Proof using.
   introv isv; inversion isv; sp.
 Qed.
+*)
 
 (* ------ programs ------ *)
 
@@ -796,6 +797,7 @@ Definition get_bcterm (bt : BCTerm) := let (a,_) := bt in a.
 Definition selectbt (bts: list BTerm) (n:nat) : BTerm :=
   nth n bts (bterm [] (vterm nvarx)).
 
+(*
 Definition isnoncan (t: NTerm):=
 match t with
 | vterm _ => False
@@ -804,6 +806,7 @@ match t with
                | NCan _ => True
                end
 end.
+*)
 Lemma wf_cterm :
   forall t, wf_term (get_cterm t).
 Proof using.
@@ -928,7 +931,7 @@ Ltac unfold_all_mk :=
 
 
 Hint Immediate wf_cterm : wf.
-Hint Constructors isvalue.
+(* Hint Constructors isvalue. *)
 Hint Constructors nt_wf bt_wf.
 
 Ltac rwselectbt :=
@@ -958,6 +961,7 @@ match goal with
   fold (selectbt lbt n)
 end.
 
+(*
 Ltac d_isnoncan H := 
   match type of H with
     isnoncan ?t => let tlbt := fresh t "lbt" in let tnc := fresh t "nc" in
@@ -965,7 +969,7 @@ Ltac d_isnoncan H :=
               destruct t as [tt|tt tlbt];[inverts H as H; fail|];
               destruct tt as [tt|tnc]; [inverts H as H; fail|]
   end.
-
+*)
 
 Section terms4Generic.
 
@@ -1018,9 +1022,10 @@ Definition mk_wterm (t : NTerm) (p : wf_term t) := exist (@wf_term NVar _) t p.
 Definition mk_wterm' (t : NTerm) (p : nt_wf t) :=
   exist wf_term t (nt_wf_implies t p).
 
-Definition iscvalue (t : CTerm) : Type :=
+(* Definition iscvalue (t : CTerm) : Type :=
   isvalue (get_cterm t).
-
+ *)
+ 
 Lemma mk_cv_pf :
   forall vs t,
     isprog_vars vs (get_cterm t).
@@ -1114,7 +1119,7 @@ Proof using.
   destruct n; simpl; sp.
 Qed.
 
-Lemma isvalue_wf :
+(* Lemma isvalue_wf :
   forall c bts,
     isvalue (oterm (Can c) bts)
     -> map num_bvars bts = OpBindings (Can c).
@@ -1122,9 +1127,9 @@ Proof using. intros ? ?  Hval.
  inverts Hval as Hpr. inverts Hpr as Hclose Hwf.
  inverts Hwf; auto.
 Qed.
+ *)
 
-
-Lemma isvalue_wf2: forall c bts,
+(* Lemma isvalue_wf2: forall c bts,
   (isvalue (oterm (Can c) bts))
   -> length bts= length(OpBindings (Can c)).
 Proof using. intros ? ?  Hval. apply isvalue_wf in Hval.
@@ -1134,7 +1139,7 @@ Proof using. intros ? ?  Hval. apply isvalue_wf in Hval.
    as Hlen by (rewrite Hval; reflexivity) .
  rewrite map_length in Hlen. auto.
 Qed.
-
+ *)
 
 Lemma isprogram_wf3: forall o bts,
   (isprogram (oterm o bts))
@@ -1150,12 +1155,12 @@ assert(nth n (map num_bvars bts) 0= nth n (OpBindings o) 0)
  compute; auto . rewrite H in Hmapn. rewrite Hmapn in Hnth. auto.
 Qed.
 
-Lemma isvalue_wf3: forall o bts,
+(* Lemma isvalue_wf3: forall o bts,
   (isvalue (oterm o bts))
   -> forall n, (n<length bts) -> (num_bvars (selectbt bts n))= nth n (OpBindings o) 0.
 Proof using. intros ? ?  Hval ? Hlt.
  inverts Hval as Hprog. apply isprogram_wf3 with (n:=n) in Hprog ; auto.
-Qed.
+Qed. *)
 
 Theorem var_not_prog : forall v,  (isprogram (vterm v)) -> void.
 Proof using.
@@ -1640,15 +1645,7 @@ Proof using.
 Qed.
 
 
-Lemma isprogram_noncan:
-  forall v, isprogram v
-  -> (isvalue v [+] isnoncan v).
-Proof using.
-  introv Hp. applydup isprogramd in Hp.
-  exrepnd. subst.
-  destruct o; cpx.
-Qed.
-
+(* Move *)
 Lemma fold_combine : forall {A B} (v:A) (t:B), 
   [(v,t)] = (combine [v] [t]).
 Proof using.
@@ -1657,7 +1654,7 @@ Qed.
 
 
 
-Lemma noncan_not_value : forall e,
+(* Lemma noncan_not_value : forall e,
   isnoncan e
   -> isvalue e
   -> False.
@@ -1666,7 +1663,7 @@ Proof using.
   destruct e as [?| o lbt]; allsimpl; cpx.
   destruct o; cpx.
   inverts Hisv.
-Qed.
+Qed. *)
 
 Theorem isprogram_ot_if_eauto2 :
   forall o bts,

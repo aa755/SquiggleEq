@@ -16,8 +16,14 @@ Require Import list.
 
 Require Import Recdef.
 Require Import Eqdep_dec.
-Require Import opid.
 Require Import varInterface.
+
+Class GenericTermSig : Type :=
+{
+  Opid : Set;
+  OpBindings : Opid -> list nat;
+  opid_dec : forall x y : Opid, {x = y} + {x <> y};
+}.
 
 
 Section terms.
@@ -65,12 +71,13 @@ with BTerm_mut := Induction for BTerm Sort Prop.
 Definition term_rel := NTerm -> NTerm -> Type.
 *)
 
+(*
 Definition iscanonical (t : NTerm) :=
   match t with
     | oterm (Can _) _ => true
     | _ => false
   end.
-
+*)
 Definition isvar (t : NTerm) :=
   match t with
     | vterm _ => true

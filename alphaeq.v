@@ -41,11 +41,27 @@ Require Import list.
 
 Require Import Recdef.
 Require Import Eqdep_dec.
-Require Import opid.
 Require Import varInterface.
 Require Import terms.
 Require Import terms2.
 Require Import substitution.
+
+(* Move *)
+Lemma and_weaken_l : forall (A B C : Prop),
+ (A -> B)
+ -> (A # C)
+ -> (B # C).
+Proof using.
+  intros. tauto. 
+Qed.
+
+(* Move *)
+Lemma forall_combine : forall (A : Type) (P Q R: A -> Prop),
+ (forall a:A, P a -> Q a /\ R a)
+ -> ((forall a:A, P a -> Q a)#(forall a:A, P a -> R a)).
+Proof using.
+  intros. firstorder.
+Qed.
 
 
 Section AlphaGeneric.
@@ -3069,7 +3085,7 @@ Proof using.
 Qed.
 
 
-Lemma alpha_preserves_value : forall t1 t2,
+(* Lemma alpha_preserves_value : forall t1 t2,
   alpha_eq t1 t2
   -> isvalue t1
   -> isvalue t2.
@@ -3080,9 +3096,9 @@ Proof using.
   constructor.
   apply alphaeq_preserves_program in Hcc.
   inverts Hcc. auto.
-Qed.
+Qed. *)
 
-Hint Resolve alpha_preserves_value : slow.
+(* Hint Resolve alpha_preserves_value : slow. *)
 
 Lemma subst_aux_change_prog : forall t ts td v,
   isprogram ts
@@ -3220,7 +3236,7 @@ Proof using.
     auto.
 Qed.
 
-Lemma subst_val : forall e vx no lbt,
+(* Lemma subst_val : forall e vx no lbt,
   isvalue (subst_aux e vx (oterm (NCan no) lbt))
   -> {c : CanonicalOp $ {lbtc : list BTerm $ e = oterm (Can c) lbtc}}.
 Proof using.
@@ -3228,7 +3244,7 @@ Proof using.
   [revert Hisv; cases_if; simpl; introv Hisv; inverts Hisv |].
   destruct oo; inverts Hisv.
   eexists ; eauto.
-Qed.
+Qed. *)
 
 Lemma alpha_eq_bterm_lenbvars: forall lv1 lv2 nt1 nt2,
   alpha_eq_bterm (bterm lv1 nt1) (bterm lv2 nt2)
@@ -3257,7 +3273,7 @@ Proof using.
 Qed.
 
 
-Lemma isvalue_change_subst_noncan :forall e vx no lbt t,
+(* Lemma isvalue_change_subst_noncan :forall e vx no lbt t,
   isvalue (subst e vx (oterm (NCan no) lbt))
   -> isprogram t
   -> isvalue (subst e vx t).
@@ -3282,8 +3298,8 @@ Proof using.
   allsimpl.
   auto.
 Qed.
-
-Lemma noncan_ssubst_aux : forall e vy t1 t2,
+ *)
+(* Lemma noncan_ssubst_aux : forall e vy t1 t2,
   isnoncan t1
   -> isnoncan (subst_aux e vy t1)
   -> isnoncan t2
@@ -3294,9 +3310,9 @@ Proof using.
   [revert Hisv; cases_if; simpl; introv Hisv; allsimpl; cpx  |].
   destruct oo; cpx.
 Qed.
-
+ *)
   
-Lemma alpha_noncan : forall t1 t2,
+(* Lemma alpha_noncan : forall t1 t2,
   alpha_eq t1 t2
   -> isnoncan t1
   -> isnoncan t2.
@@ -3305,9 +3321,9 @@ Proof using.
   d_isnoncan Hc0.
   duplicate Hc as Hcc. invertsn Hc. 
   constructor.
-Qed.
+Qed. *)
   
-Lemma noncan_ssubst : forall e vx t1 t2,
+(* Lemma noncan_ssubst : forall e vx t1 t2,
   isnoncan t1
   -> isnoncan (subst e vx t1)
   -> isnoncan t2
@@ -3325,7 +3341,7 @@ Proof using.
   ssubst_ssubst_aux_eq_hyp  Hdd H1snc; [simpl ;repeat (simpl_sub5); disjoint_reasoningv| ].
   change_to_ssubst_aux8; [| simpl; disjoint_reasoningv;fail ].
   eapply noncan_ssubst_aux with (t1:=t1); eauto.
-Qed.
+Qed. *)
 
 Lemma alpha_prog_eauto:
  forall t1 t2 : NTerm, alpha_eq t1 t2 -> (isprogram t1 -> isprogram t2).
@@ -3769,22 +3785,6 @@ Proof.
               
 SearchAbout alpha_eq_bterm apply_bterm.
 *)
-
-Lemma and_weaken_l : forall (A B C : Prop),
- (A -> B)
- -> (A # C)
- -> (B # C).
-Proof using.
-  intros. tauto. 
-Qed.
-
-
-Lemma forall_combine : forall (A : Type) (P Q R: A -> Prop),
- (forall a:A, P a -> Q a /\ R a)
- -> ((forall a:A, P a -> Q a)#(forall a:A, P a -> R a)).
-Proof using.
-  intros. firstorder.
-Qed.
 
 
 Lemma alpha_eq_bterm_nil : forall o lnt t2,
