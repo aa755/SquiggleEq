@@ -9,7 +9,7 @@ dirs = []
 vs = []
 
 
-env = DefaultEnvironment(ENV = os.environ, tools=['default','Coq','CoqQuick'])
+env = DefaultEnvironment(ENV = os.environ, tools=['default','Coq'])
 
 while nodes:
   node = nodes.pop()
