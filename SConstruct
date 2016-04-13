@@ -1,3 +1,5 @@
+#originall copied from https://github.com/math-classes/math-classes
+
 import os, glob, string
 
 dirs_to_compile = ['.']
@@ -24,15 +26,10 @@ includes = ' '.join(map(lambda x: '-I ' + x, dirs[1:]))
 
 Rs = '-R . SquiggleLazyEq'
 coqcmd = 'coqc ${str(SOURCE)[:-2]} ' + Rs
-coqcmdquick = 'coqc ${str(SOURCE)[:-2]} -quick ' + Rs
 
 env['COQFLAGS'] = Rs
 
-quick = ARGUMENTS.get('quick', 0)
-if int(quick):
-  for node in vs: env.CoqQuick(node, COQCMDQUICK=coqcmdquick)
-else:
-  for node in vs: env.Coq(node, COQCMD=coqcmd)
+for node in vs: env.Coq(node, COQCMD=coqcmd)
 
 
 os.system('coqdep ' + ' '.join(map(str, vs)) + ' ' + includes + ' ' + Rs + ' > deps')
