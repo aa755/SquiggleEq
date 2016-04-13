@@ -33,6 +33,21 @@ Require Import Omega.
 Require Import eq_rel.
 Require Import universe.
 
+(* unlike apply, this is not too eager and does not demand instantiations for all quantifier *)
+Ltac apply' H1 H2 :=
+  let H3 := fresh in
+  (pose proof (H1 H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ _ _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ _ _ _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ _ _ _ _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3) ||
+  (pose proof (H1 _ _ _ _ _ _ _ _ _ _ H2) as H3; clear H2; pose proof H3 as H2; clear H3).
+
 
 (** Taken from SfLib *)
 
