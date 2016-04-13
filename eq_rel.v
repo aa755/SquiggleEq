@@ -24,7 +24,7 @@
 *)
 
 
-Require Export universe.
+Require Import universe.
 
 
 Inductive void : [univ] := .
@@ -482,7 +482,7 @@ Qed.
 
 (**  --- setoid stuff -- delete? *)
 
-Require Export Coq.Setoids.Setoid.
+Require Import Coq.Setoids.Setoid.
 
 Inductive Cast (t : [univ]) : Prop :=
 | cast : t -> Cast t.

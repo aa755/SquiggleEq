@@ -26,6 +26,11 @@
 
 Require Import UsefulTypes.
 
+Require Import eq_rel.
+Require Import universe.
+Require Import LibTactics.
+Require Import tactics.
+
 
 Definition bin_rel (T : Type) := T -> T -> [univ].
 

@@ -1,5 +1,25 @@
 
-Require Export terms.
+Require Import bin_rels.
+Require Import eq_rel.
+Require Import universe.
+Require Import LibTactics.
+Require Import tactics.
+Require Import Coq.Bool.Bool.
+Require Import Coq.Program.Tactics.
+Require Import Omega.
+Require Import Coq.Program.Basics.
+Require Import Coq.Lists.List.
+Require Import Coq.Init.Notations.
+Require Import UsefulTypes.
+Require Import Coq.Classes.DecidableClass.
+Require Import Coq.Classes.Morphisms.
+Require Import list.
+
+Require Import Recdef.
+Require Import Eqdep_dec.
+Require Import opid.
+Require Import varInterface.
+Require Import terms.
 
 (** printing #  $\times$ #×# *)
 (** printing <=>  $\Leftrightarrow$ #&hArr;# *)
@@ -443,7 +463,7 @@ Proof using.
 Qed.
 
 
-Require Export tactics.
+Require Import tactics.
 Lemma isprogram_eq :
   forall t,
     isprogram t <=> isprog t.

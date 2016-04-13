@@ -1,7 +1,20 @@
 (* MathClasses or Extlib may habe a much richer theory and implementation *)
 Require Import Coq.Classes.DecidableClass.
 
-
+Require Import bin_rels.
+Require Import eq_rel.
+Require Import universe.
+Require Import LibTactics.
+Require Import tactics.
+Require Import Coq.Bool.Bool.
+Require Import Coq.Program.Tactics.
+Require Import Omega.
+Require Import Coq.Program.Basics.
+Require Import Coq.Lists.List.
+Require Import Coq.Init.Notations.
+Require Import UsefulTypes.
+Require Import Coq.Classes.DecidableClass.
+Require Import Coq.Classes.Morphisms.
 
 Require Import list.
 

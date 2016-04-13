@@ -24,13 +24,14 @@
 *)
 
 
-Require Export Coq.Lists.List.
+Require Import Coq.Lists.List.
 Export List.ListNotations.
-Require Export Coq.Program.Tactics.
+Require Import Coq.Program.Tactics.
 (*Require Import SfLib.*)
-Require Import String. Open Scope string_scope.
+Require Import Coq.Strings.String. Open Scope string_scope.
 Require Import Omega.
-Require Export eq_rel.
+Require Import eq_rel.
+Require Import universe.
 
 
 (** Taken from SfLib *)
@@ -156,6 +157,7 @@ Ltac cpltLR :=
   || complete (left; auto; cpltLR)
   || complete (right; auto; cpltLR).
 
+Require Import universe.
 Ltac sp_step :=
   match goal with
     (* true conclusion *)
@@ -346,7 +348,7 @@ Ltac symm :=
 Tactic Notation "inv_sub_clear" ident (h) :=
   inversion h; subst; clear h.
 
-Require Export LibTactics.
+ Require Import LibTactics. 
 
 Ltac clear_eq x y :=
   match goal with
@@ -744,7 +746,7 @@ Ltac make_and H1 H2 :=
   let Ha := fresh H1 H2 in
   pose proof (H1, H2) as Ha; clear H1; clear H2.
 
-(** From Adam's LibTactics.v ... ,move to tactics.v*)
+(** From LibTactics.v ... ,move to tactics.v*)
 Definition ltac_something (P:Type) (e:P) := e.
 
 Notation "'Something'" := 

@@ -1,6 +1,12 @@
 
-Require Export list.
+Require Import list.
 
+Require Import bin_rels.
+Require Import eq_rel.
+Require Import universe.
+Require Import tactics.
+Require Import Coq.Lists.List.
+Require Import Coq.Init.Notations.
 
 Class GenericTermSig : Type :=
 {

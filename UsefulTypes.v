@@ -24,15 +24,19 @@
 *)
 
 
-(*Require Export SfLib.*)
-Require Export Coq.Init.Notations.
-Require Export tactics.
-Require Export Peano.
-Require Export Basics.
-Require Export Bool.
-Require Export Arith.
-Require Export Arith.EqNat.
-Require Export Omega.
+(*Require Import SfLib.*)
+Require Import Coq.Init.Notations.
+Require Import tactics.
+Require Import Peano.
+Require Import Basics.
+Require Import Coq.Bool.Bool.
+Require Import Arith.
+Require Import Arith.EqNat.
+Require Import Omega.
+
+Require Import eq_rel.
+Require Import universe.
+Require Import LibTactics.
 
 
 (* Prop/Type exists depending on the switch universe-type.v/universe-prop.v *)

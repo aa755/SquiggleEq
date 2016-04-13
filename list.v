@@ -24,8 +24,21 @@
 *)
 
 
-Require Export UsefulTypes.
-Require Export bin_rels.
+Require Import bin_rels.
+Require Import eq_rel.
+Require Import universe.
+Require Import LibTactics.
+Require Import tactics.
+Require Import Coq.Bool.Bool.
+Require Import Coq.Program.Tactics.
+Require Import Omega.
+Require Import Coq.Program.Basics.
+Require Import Coq.Lists.List.
+Require Import Coq.Init.Notations.
+Require Import UsefulTypes.
+Require Import Coq.Classes.DecidableClass.
+Require Import Coq.Classes.Morphisms.
+
 
 Notation LIn := (List.In).
 (**
@@ -71,7 +84,6 @@ Qed.
 
 
 
-Require Import Coq.Classes.DecidableClass.
 
   Fixpoint remove {A:Type } `{Deq A} (x : A) (l : list A) : list A :=
     match l with
@@ -513,6 +525,7 @@ Proof with (repeat rewrite decide_decideP).
   destruct Hlr as [Heq  | Hin]; tauto.
 Qed.
 
+
 Lemma memberb_app :
   forall A eq x,
   forall l1 l2 : list A,
@@ -811,6 +824,8 @@ Proof.
   rewrite IHl; sp.
 Qed.
 
+Open Scope nat_scope.
+
 Lemma length_app :
   forall T,
   forall l1 l2 : list T,
@@ -1101,7 +1116,7 @@ Proof.
   apply assert_memberb.
 Defined.
 
-Require Import Morphisms.
+(* Require Import Morphisms. *)
 
 
 
@@ -2743,7 +2758,7 @@ Proof.
   constructor; unfold subset; tauto.
 Qed.
 
-Require Import Morphisms.
+(* Require Import Morphisms. *)
 
 Global Instance properEqsetvLin {A} : Proper (eq ==> eq_set ==> iff ) (@LIn A).
 Proof.
@@ -2877,7 +2892,6 @@ Proof using.
   split; intros Hh; subst; simpl in H; firstorder;[destruct y | destruct x]; simpl in *;
    try tauto; specialize (H a); try tauto.
 Qed.
-Require Import Coq.Classes.Morphisms.
 
 SearchAbout ((?A -> ?B)-> (?A -> ?B) -> Prop).
 

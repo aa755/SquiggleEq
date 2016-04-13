@@ -24,7 +24,7 @@
 *)
 
 
-Require Export list.
+Require Import list.
 
 (** printing #  $\times$ #×# *)
 (** printing <=>  $\Leftrightarrow$ #&hArr;# *)
