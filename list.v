@@ -1584,12 +1584,6 @@ Proof.
   sp.
 Qed.
 
-Fixpoint repeat {T} (n:nat) (t:T):=
- match n with
- | O => []
- | S m => t::(repeat m t)
- end.
-
 Lemma cons_inj :
   forall A (a c : A) b d,
     a :: b = c :: d -> a = c  #  b = d.
@@ -1621,12 +1615,7 @@ Proof.
   exists y; sp.
 Qed.
 
-Lemma repeat_length : forall T n (t:T), length(repeat n t)=n.
-Proof.
-  induction n; intros; simpl; try omega. rewrite IHn. auto.
-Qed.
-
-Lemma in_repeat : forall T n (u t:T),  LIn u (repeat n t) -> u=t.
+Lemma in_repeat : forall T n (u t:T),  LIn u (repeat t n) -> u=t.
 Proof. induction n; introv H; simpl. inverts H.
  simpl in H. destruct H; auto.
 Qed.
@@ -1695,13 +1684,13 @@ Qed.
 Lemma false_in_combine_repeat :
   forall A B (al : list A) (t : B) n,
     n > 0
-    -> forall a,  LIn a al ->  LIn (a,t) (combine al (repeat n t)).
+    -> forall a,  LIn a al ->  LIn (a,t) (combine al (repeat t n)).
 Abort.
 
 Lemma in_combine_repeat :
   forall A B (al : list A) (t : B) n,
     length al <= n
-    -> forall a,  LIn a al ->  LIn (a,t) (combine al (repeat n t)).
+    -> forall a,  LIn a al ->  LIn (a,t) (combine al (repeat t n)).
 Proof.
   induction al; simpl; sp; subst; destruct n; try omega;
   allapply S_le_inj; simpl; sp.
@@ -2619,13 +2608,13 @@ Proof.
 Qed.
 
 Lemma repeat_map_len : forall A B (b:B) (vs: list A) ,
-  map (fun _ => b) vs = repeat (Datatypes.length vs) b.
+  map (fun _ => b) vs = repeat b  (Datatypes.length vs).
 Proof.
   induction vs; auto; simpl; f_equal; auto.
 Qed.
 
 Lemma map_eq_repeat_implies : forall A B (b:B) f (vs: list A) n,
-  map f vs = repeat n b
+  map f vs = repeat b n
   -> forall v, LIn v vs -> f v = b.
 Proof.
   induction vs; intros; [simpl in *; tauto|].
@@ -2938,6 +2927,17 @@ Qed.
 
 Hint Rewrite @subsetv_nil_r : SquiggleLazyEq.
 
+
+Lemma disjoint_neq_iff {A} {a b : A} :
+  disjoint [a] [b]
+  <-> a <> b.
+Proof using.
+  split; intros; simpl in *;
+  repeat disjoint_reasoning;
+  simpl in *;
+  tauto.
+Qed.
+
 Lemma disjoint_neq {A} {a b : A} :
   disjoint [a] [b]
   -> a <> b.
@@ -2949,6 +2949,7 @@ Proof using.
   simpl in *.
   tauto.
 Qed.
+
 
 
   Hint Resolve @subset_flat_map_r : subset.

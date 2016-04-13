@@ -2078,6 +2078,8 @@ match goal with
 | [  |- disjoint _ (_ :: ?v) ] => notNil v;apply disjoint_cons_r;split
 | [  |- disjoint (_ :: ?v) _ ] => notNil v;apply disjoint_cons_l;split
 | [  |- disjoint _ _ ] => (sp;fail  || apply disjoint_sym; sp;fail)
+| [  |- _ <> _] => apply disjoint_neq_iff
+| [  |- ! (LIn _ _)] => apply disjoint_singleton_l
 (** important to leave it the way it was .. so that repeat progress won't loop*)
 | [ H: disjoint _ (_ ++ _) |- _ ] => apply disjoint_app_r in H;sp
 | [ H: disjoint (_ ++ _) _ |- _ ] => apply disjoint_app_l in H;sp
@@ -2089,8 +2091,8 @@ match goal with
 | [ H: !(disjoint  [] _) |- _ ] => provefalse; apply H; apply disjoint_nil_l
 | [ H: (disjoint  _ []) |- _ ] => clear H
 | [ H: (disjoint  [] _) |- _ ] => clear H
-|[H: ! (LIn _ _) |- _] => apply disjoint_singleton_l in H
-|[|- ! (LIn _ _)] => apply disjoint_singleton_l
+| [ H: ! (LIn _ _) |- _] => apply disjoint_singleton_l in H
+| [ H: _ <> _  |- _] => apply disjoint_neq_iff in H
 end.
 
 Tactic Notation "disjoint_reasoningv2" :=
