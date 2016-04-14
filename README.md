@@ -1,11 +1,6 @@
 # SquiggleLazyEq
 
 An SConstruct file is provided for compilation using SCons (http://www.scons.org/).
+To compile, run `scons` in the root directory of the projecti.
 
-In addition, an SCons library for Coq is needed. 
-This can be achieved by copying 
-the directory https://github.com/aa755/ROSCoq/tree/master/site_scons to either the root of this project,
-or globally to ~/.scons
-
-The main file so far is alphaeq.v
-You can compile it using `scons alphaeq.vo`
+To use these files in other project use the flag -R SquiggleLazyEq /path/to/this/repo

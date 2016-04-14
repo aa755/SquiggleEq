@@ -46,7 +46,6 @@ Definition nobnd (f:NTerm) : BTerm := bterm [] f.
     webpage that shows complete contents of this file.
 *)
 
-(* begin hide *)
 
 Lemma fold_nobnd :
   forall t, bterm [] t = nobnd t.
@@ -60,7 +59,6 @@ Definition mk_esquash (R : NTerm) :=
   oterm (Can NEsquash) [nobnd R].
 *)
 
-(* begin hide *)
 
 
 (* Picks a variable that is not in the set of free variables of a given term *)
@@ -392,7 +390,6 @@ Definition closedb (t : NTerm) := nullb (free_vars(t)).
 Definition closed_bt (bt : BTerm) := free_vars_bterm bt = [].
 
 
-(* end hide *)
 Definition isprogram_bt (bt : BTerm) := closed_bt bt # bt_wf bt.
 
 (** Our definition [isprog] below is is logically equivalent to [isprogram],
@@ -410,7 +407,6 @@ Definition isprogram_bt (bt : BTerm) := closed_bt bt # bt_wf bt.
 
 *)
 Definition isprog (t : NTerm) := (nullb (free_vars t) && wft t) = true.
-(* begin hide *)
 
 Definition isprog_bt (bt : BTerm) :=
   (nullb (free_vars_bterm bt) && wftb bt) = true.
@@ -522,13 +518,11 @@ Proof using.
   sp; apply isprogram_eq; sp.
 Qed.
 
-(* end hide *)
 Lemma isprog_eq :
   forall t, isprog t <=> isprogram t.
 Proof using.
   intro; symm; apply isprogram_eq; auto.
 Qed.
-(* begin hide *)
 
 Lemma isprogram_bt_eq :
   forall bt,
@@ -733,7 +727,6 @@ Qed.
 Definition WTerm  := { t : NTerm  | wf_term t }.
 Definition WBTerm := { bt : BTerm | wf_bterm bt }.
 
-(* end hide *)
 
 (*
   (* first of all, isprog is NOT a boolean. also, the reader will
@@ -760,11 +753,9 @@ Definition WBTerm := { bt : BTerm | wf_bterm bt }.
 Definition CTerm  := { t : NTerm  | isprog t }.
 Definition get_cterm (t : CTerm) := let (a,_) := t in a.
 
-(* begin hide *)
 
 Definition BCTerm := { bt : BTerm | isprog_bt bt }.
 
-(* end hide *)
 
 (**
 
@@ -780,7 +771,6 @@ Definition BCTerm := { bt : BTerm | isprog_bt bt }.
 
 Definition CVTerm (vs : list NVar) := { t : NTerm | isprog_vars vs t }.
 
-(* begin hide *)
 
 Definition CVTerm3 := forall a b c, CVTerm [a;b;c].
 

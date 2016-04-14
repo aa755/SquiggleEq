@@ -25,17 +25,21 @@ Notation subsetv := subset (only parsing).
 Class VarType (T:Type) (ClassType : Type)  `{Deq T} := {
 
 (** There can be different classes of variables, e.g. one for types, and one for terms.
-We need to put this in the interface, because substitution may need to rename bound variables,
-and we would like to preserve variable classes when renaming bould variables.*)
+As another example, during CPS conversion, it is handy to have a different class for continuation variables.
+Substitution may need to rename bound variables,
+and we prove that variable class is preserved by substitution. See
+[alphaeq.ssubst_allvars_varclass_nb]
+*)
 
   varClass : T -> ClassType;
 
-(** [original] is a mechanism to pass extra information to [fresh]. 
+(** We can generate fresh variables w.r.t. variables of any class. 
+   [original] is a mechanism to pass extra information to [freshVars]. 
   For example, we often want the fresh replacement names to be close to original names.
-  In such cases, [length original=n]. The correctness properties of [fresh] ignore this input *)
+  In such cases, [length original=n]. The correctness properties of [freshVars] ignore this input *)
   freshVars : forall (n:nat)  (c : option ClassType) (avoid : list T) (original : list T), list T;
 
-(** Is it important to pick a more efficient variant of [nat]? This not a concern after extraction.
+(* Is it important to pick a more efficient variant of [nat]? This not a concern after extraction.
 Even inside Coq the output is a list which will be built one element at a time. So [nat] should not
 be the bottleneck*)
 

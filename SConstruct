@@ -44,4 +44,4 @@ ParseDepends('deps')
 # Only after a normal build (for .vos) is complete, one can enable the 2 lines below to enable coqdoc generation (using scons coqdoc).  dont forget to then patch the generated HTML to disable caching. run patchNoCache.sh in the generated coqdoc/ directory. also see updateDoc.sh
 # enabling it before somehow messes the dependency analysis done by scons
 #mc_vs, mc_vos, mc_globs = env.SConscript(dirs='dependencies/corn/') # CoRN + MathClasses
-#env.CoqDoc(env.Dir('coqdoc'), vs+mc_vs, COQDOCFLAGS='-utf8 --toc --interpolate --no-lib-name --coqlib http://coq.inria.fr/library')
+env.CoqDoc(env.Dir('coqdoc'), vs, COQDOCFLAGS='-utf8 --toc --interpolate --no-lib-name --coqlib http://coq.inria.fr/library')

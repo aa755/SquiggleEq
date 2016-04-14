@@ -109,7 +109,6 @@ with alpha_eq_bterm : BTerm -> BTerm -> [univ] :=
  (** ** Key Properties about Substitution and Alpha Equality *)
 
  
-(* begin hide *)
 Definition alphaeqc t1 t2 := alpha_eq (get_cterm t1) (get_cterm t2).
 
 Inductive alpha_eq3 (lva: list NVar): NTerm -> NTerm -> [univ] :=
@@ -179,7 +178,6 @@ Proof using.
 Qed.
 
 
-(* end hide *)
 Lemma alpha_eq_refl:
   forall nt, alpha_eq nt nt.
 Proof using.
@@ -202,7 +200,6 @@ Proof using.
     change_to_ssubst_aux8. rewrite ssubst_aux_allvars_preserves_size; [ omega |].
     apply allvars_combine.
 Qed.
-(* begin hide *)
 
 (** exact same proof as above*)
 Lemma alpha_eq3_sym:
@@ -569,7 +566,6 @@ Qed.
 
 
 
-(* end hide *)
 Lemma alpha_eq_trans:
   forall nt1 nt2 nt3, alpha_eq nt1 nt2 -> alpha_eq nt2 nt3 -> alpha_eq nt1 nt3.
 Proof using.
@@ -606,7 +602,6 @@ Proof using.
     eapply Hind with(lv:=lv1) (nt:=nt1); eauto.
     rewrite ssubst_aux_allvars_preserves_size; [ omega |]. apply allvars_combine.
 Qed.
-(* begin hide *)
 
 Lemma alphaeqbt_numbvars : forall a b,
   alpha_eq_bterm a b  -> num_bvars a = num_bvars b.
@@ -675,7 +670,6 @@ Proof using.
      - rewrite ssubst_aux_allvars_preserves_size2; auto. 
 Qed.
 
-(* end hide *)
 Lemma alphaeq_preserves_wf: 
   forall t1 t2, alpha_eq t1 t2 -> (nt_wf t2 <=> nt_wf t1).
 Proof using.
@@ -800,7 +794,6 @@ Lemma change_bvars_alpha_spec_varclass: forall lv vc,
       -> varsOfClass (bound_vars (change_bvars_alpha lv nt)) vc)
 *)
 
-(* begin hide *)
 Ltac add_changebvar_spec cb Hn:=
 match goal with 
 | [ |- context[change_bvars_alpha ?lv ?nt] ] => pose proof (change_bvars_alpha_spec nt lv) as Hn;
@@ -870,7 +863,6 @@ Hint Immediate alpha_eq_refl.
 Hint Immediate alphaeqbt_refl.
 
 Hint Resolve alpha3bt_change_var alpha_eq_if3 : slow.
-(* end hide *)
 
 Lemma alphaeq_bterm3_if: forall bt1 bt2,
   alpha_eq_bterm bt1 bt2
@@ -1396,7 +1388,6 @@ Proof using.
   apply allvars_combine.
 Qed.
 
-(* end hide *)
 Theorem alphaeq_preserves_free_vars: 
   forall t1 t2, alpha_eq  t1 t2 ->
      (free_vars t1) = (free_vars t2). 
@@ -1668,7 +1659,6 @@ match goal with
   exact prf
 end.
 
-(* end hide *)
 (** % \noindent \\* %
     In the following theorem, 
     the binary relation [(bin_rel_nterm alpha_eq)] on [list NTerm]
@@ -1702,7 +1692,6 @@ Proof using.
   apply bin_rel_list_refl.
   exact alpha_eq_refl.
 Qed.
-(* begin hide *)
 
 Ltac get_alpha_lhs H :=
 match type of H with
@@ -1882,7 +1871,6 @@ Proof using.
  repnd. rewrite Hs. refl.
 Qed.
 
-(* begin hide *)
 
 Theorem ssubst_wf_if_eauto: 
   forall sub, 
@@ -2093,7 +2081,6 @@ match goal with
   alpharw (ssubst_trim_alpha t sub)
 end.
 
-(* end hide *)
 (** The following lemma characterizes the free variables of the result of
     a substitution as a set. [eqsetv] is a binary relation on
     [list NVar] that asserts that the 2 lists are equal as sets.
@@ -2116,7 +2103,6 @@ Proof using.
   apply eqsetv_free_vars_disjoint_aux;try(sp;fail);
   try(apply disjoint_sub_as_flat_map;disjoint_reasoning).
 Qed.
-(* begin hide *)
 
 (*
 Lemma prog_ssubst_app : forall nt sub sub2,
@@ -2295,7 +2281,6 @@ Proof using.
   exists l;sp.
 Qed.
 
-(* end hide *)
 Lemma ssubst_sub_filter_alpha:
   forall (t : NTerm) (sub : Substitution) (l : list NVar),
   disjoint (free_vars t) l 
@@ -2310,7 +2295,6 @@ Proof using.
   apply ssubst_sub_filter2;sp;[];
   disjoint_flat;sp;fail.
 Qed.
-(* begin hide *)
 
 Ltac prove_alpha_eq3 :=
 match goal with 
@@ -2637,7 +2621,6 @@ Hint Resolve sub_range_refl refl_rel_alpha_eauto : slow.
 
 Hint Resolve sub_range_refl sub_range_rel_app sub_rel_ssubst_sub_alpha : slow.
 
-(* end hide *)
 (** 
     % \noindent \\* %
     In the following lemma, [ssubst_sub] is a function such that 
@@ -2680,7 +2663,6 @@ Proof using.
     disjoint_flat; spcls; disjoint_reasoningv.
   - disjoint_ssubst.
 Qed.
-(* begin hide *)
 
 Lemma combine_sub_nest_wspec:
   forall sub1 sub2,
@@ -2858,7 +2840,6 @@ Ltac prove_bin_rel_nterm :=
   split;[sp|simpl];[];
   intros n Hlt; repeat (destruct n; try(omega));sp.
   (*-> disjoint (lvio++(flat_map free_vars lnt)) (bound_vars t)*)
-(* end hide *)
 
 Lemma ssubst_nest_same_alpha :
   forall t lvi lvio lnt,
@@ -2876,7 +2857,6 @@ Proof using.
   rw ssubst_nest_same;spc.
   alpharws (alpha_eq_sym _ _ Hf0). sp.
 Qed.
-(* begin hide *)
 
 Ltac prove_alpha_eq4 := unfold_all_mk; let Hlt := fresh "Hltalc" in
 match goal with
@@ -3353,7 +3333,6 @@ Qed.
 
 Hint Resolve alpha_prog_eauto : slow.
 
-(* end hide *)
 Lemma ssubst_nest_swap_alpha: forall t sub1 sub2,
   let lvi1 := dom_sub sub1 in
   let lvi2 := dom_sub sub2 in
@@ -3403,7 +3382,6 @@ Proof using.
   apply alpha_eq_refl.
 Qed.
 
-(* begin hide *)
 
 
 

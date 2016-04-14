@@ -92,11 +92,9 @@ Notation oterm := (@oterm NVar gts).
 Notation bterm := (@bterm NVar gts).
 Notation vterm := (@vterm NVar gts).
 
-(* begin hide *)
 Definition Substitution   : Type := lmap NVar NTerm.
 Definition WfSubstitution : Type := lmap NVar WTerm.
 Definition CSubstitution  : Type := lmap NVar  CTerm.
-(* end hide *)
 
 (** % \noindent %
   The function [var_ren] below provides a way to 
@@ -119,14 +117,13 @@ Definition dom_sub  (sub : Substitution) : list NVar := map (fun x => fst x) sub
 
 *)
 
-(* begin hide *)
 Definition Sub  := Substitution.
 Definition CSub := CSubstitution.
 
 Definition dom_sub : Substitution -> (list NVar):= @dom_lmap NVar NTerm.
 Definition dom_csub   (sub : CSubstitution)  := map (fun x => fst x) sub.
 Definition wf_dom_sub (sub : WfSubstitution) := map (fun x => fst x) sub.
-(* end hide *)
+
 Definition range  (sub : Substitution)  : list NTerm := map (fun x => snd x) sub.
 
 (** % \noindent \\*%
@@ -135,7 +132,6 @@ Definition range  (sub : Substitution)  : list NTerm := map (fun x => snd x) sub
   in the first component([NVar]s) of the pairs with the second ones([NTerm]s).
 *)
 
-(* begin hide *)
 Definition crange (sub : CSubstitution) : list CTerm := map (fun x => snd x) sub.
 Lemma deq_in_sub :
   forall v t (sub : Substitution),
@@ -225,13 +221,11 @@ Proof using.
 Qed.
 
 
-(* end hide *)
 Fixpoint sub_find (sub : Substitution) (var : NVar) : option NTerm :=
   match sub with
   | nil => None
   | (v, t) :: xs => if beq_var v var then Some t else sub_find xs var
   end.
-(* begin hide *)
 
 Lemma fold_var_ren :
   forall lvo lvn,
@@ -339,7 +333,6 @@ Proof using.
   apply_in_hyp p; sp.
 Qed.
 
-(* end hide *)
 
 (**
 
@@ -391,7 +384,6 @@ Fixpoint lmap_filter {A B: Type}
       else (v, t) :: lmap_filter eqdec xs vars
   end.
 
-(* end hide *)
 (* removes from sub the variables from vars *)
 Fixpoint sub_filter (sub : Substitution) (vars : list NVar) : Substitution :=
   match sub with
@@ -401,7 +393,6 @@ Fixpoint sub_filter (sub : Substitution) (vars : list NVar) : Substitution :=
       then sub_filter xs vars
       else (v, t) :: sub_filter xs vars
   end.
-(* begin hide *)
 
 
 
@@ -1163,7 +1154,6 @@ Fixpoint ssubstd (t : NTerm) (sub : Substitution) (p: disjoint_bv_sub t sub): NT
   end.
 *)
 
-(* end hide *)
 
 (** % \noindent \\* %
     The following function is an auxilliary one that performs a
@@ -1308,7 +1298,6 @@ Definition apply_bterm  (bt :BTerm) (lnt: list NTerm) : NTerm :=
     We will first define alpha equality and then list some useful properties
     that we proved about [ssubst].
  *)
-(* begin hide *)
 
 Hint Rewrite sub_filter_nil_r : SquiggleLazyEq.
 

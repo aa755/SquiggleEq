@@ -20,7 +20,14 @@ Require Import varInterface.
 
 Class GenericTermSig : Type :=
 {
+(** the collection of operators in the language. For example, in lambda calculus, App and Lam are operators *)
   Opid : Set;
+(** Arities for each operator. An [Opid] [o] takes 
+  [length (OpBindings o)] arguments. The number of bound variables in the ith argument is 
+  specified by the ith member of [(OpBindings o)].
+  For example this signature for Lambda is [[1]]. And it is [[0,0]] for App.
+  A lambda takes one argument and that argument binds 1 variable. An application takes 2 arguments,
+  each of which bind 0 variables.*)
   OpBindings : Opid -> list nat;
   opid_dec : forall x y : Opid, {x = y} + {x <> y};
 }.
@@ -39,12 +46,12 @@ with BTerm : Type :=
   The [Opid] type contains one element corresponding to every operator
   of the language, e.g. lambda abstraction, funtion application,
   dependent function type constructor. As a more concrete example,
-  the [Can NLambda] is the element of [Opid] that represents lambda
+  the [NLambda] is the element of [Opid] that represents lambda
   abstractions.
   To construct a bound term([BTerm]), we need a list of variables and
   an [NTerm] (see the [bterm] constructor). As a concrete example,
-   $ \lambda x.x$ is represented in this type
-  as [(oterm  (Can NLambda) (bterm [nvarx] (vterm nvarx)))].
+   $ \lambda x.y$ is represented in this type
+  as [(oterm  NLambda (bterm [x] (vterm y)))].
 *)
 
 (**
