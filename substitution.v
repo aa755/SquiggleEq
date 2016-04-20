@@ -1237,6 +1237,32 @@ Finally, here is the function that safely perfoms
 
 Class FreeVars (T V:Type) := freevars : T -> list V.
 
+Fixpoint ssubst {NVar VarClass} {d : Deq NVar} {vc : @VarType NVar VarClass d} {gts : GenericTermSig} 
+  (t : @NTerm NVar gts) (sub : @Substitution NVar gts) : @NTerm NVar gts:=
+match t with
+| terms.vterm var =>
+    match sub_find sub var  with
+    | Some st => st
+    | None => t
+    end
+| oterm op bts => oterm op (map (fun t => @ssubst_bterm NVar VarClass d vc gts t sub) bts)
+end
+with ssubst_bterm  {NVar VarClass}  {d : Deq NVar} {vc : @VarType NVar VarClass d} {gts : GenericTermSig} 
+  (bt : @BTerm NVar gts) (sub : Substitution) : @BTerm  NVar gts :=
+  match bt with
+  | bterm [] nt => bterm [] (ssubst nt sub)
+  | bterm lv nt => 
+      let bt :=
+         let sfr := flat_map free_vars (range sub) in
+        if dec_disjointv (lv++bound_vars nt) sfr 
+        then bt 
+        else change_bvars_alphabt sfr bt
+        in ssubst_bterm_aux bt sub
+      (** doing alpha renaming recursively can be costly *)
+  end.
+
+
+
 Section SubstGeneric2.
 Context {NVar VarClass} {deqnvar : Deq NVar} {varclass: @VarType NVar VarClass deqnvar} {gts : GenericTermSig}.
 Notation NTerm := (@NTerm NVar).
@@ -1261,27 +1287,6 @@ Definition ssubst  (t : NTerm) (sub : Substitution) : NTerm :=
     else ssubst_aux (change_bvars_alpha  sfr t) sub.
 *)
 
-Fixpoint ssubst  (t : NTerm) (sub : Substitution) : NTerm :=
-match t with
-| terms.vterm var =>
-    match sub_find sub var with
-    | Some st => st
-    | None => t
-    end
-| oterm op bts => oterm op (map (fun t => ssubst_bterm t sub) bts)
-end
-with ssubst_bterm  (bt : BTerm) (sub : Substitution) : BTerm :=
-  match bt with
-  | bterm [] nt => bterm [] (ssubst nt sub)
-  | bterm lv nt => 
-      let bt :=
-         let sfr := flat_map free_vars (range sub) in
-        if dec_disjointv (lv++bound_vars nt) sfr 
-        then bt 
-        else change_bvars_alphabt sfr bt
-        in ssubst_bterm_aux bt sub
-      (** doing alpha renaming recursively can be costly *)
-  end.
 
 
 (** %\noindent% The following definition will be useful while
