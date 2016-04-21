@@ -1839,15 +1839,7 @@ Proof.
   rewrite length_snoc in H1; inversion H1; auto.
 Qed.
 *)
-
-(** asserts that a list has no repeated elements. need not have decidable equality *)
-Inductive no_repeats {T} : list T -> [univ] :=
-  | no_rep_nil : no_repeats []
-  | no_rep_cons :
-      forall x xs,
-        !LIn x xs
-        -> no_repeats xs
-        -> no_repeats (x :: xs).
+Notation no_repeats := NoDup (only parsing).
 
 
 Theorem last_snoc: forall A (l:list A) (a d:A) ,

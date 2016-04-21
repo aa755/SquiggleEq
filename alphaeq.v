@@ -3150,7 +3150,7 @@ Proof using.
   destruct (decideP (vx=vy)); subst.
   - apply alpha_eq_bterm_congr. apply alpha_eq_sym. 
     apply ssubst_trivial_alpha.
-  - apply btchange_alpha; auto;[apply no_rep_cons; cpx; fail|].
+  - apply btchange_alpha; auto;[apply NoDup_cons; cpx; fail|].
     eapply subset_disjoint; eauto.
     disjoint_reasoningv; cpx.
 Qed.
@@ -3164,7 +3164,7 @@ Proof using.
   destruct  (decideP (vx=vy)); subst.
   - apply alpha_eq_bterm_congr. apply alpha_eq_sym. 
     apply ssubst_trivial_alpha.
-  - apply btchange_alpha; auto;[apply no_rep_cons; cpx; fail|].
+  - apply btchange_alpha; auto;[apply NoDup_cons; cpx; fail|].
     inauto. tauto.
 Qed.
 
