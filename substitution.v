@@ -1210,7 +1210,8 @@ Fixpoint ssubst_aux {NVar} `{Deq NVar} {gts : GenericTermSig} (nt : NTerm) (sub 
 *)
 
 
-Fixpoint change_bvars_alpha {NVar VarClass : Type} `{VarType NVar VarClass} {gts : GenericTermSig} (lv : list NVar ) (t : (@NTerm NVar gts)) 
+Fixpoint change_bvars_alpha {NVar VarClass : Type} `{VarType NVar VarClass} 
+{gts : GenericTermSig} (lv : list NVar ) (t : (@NTerm NVar gts)) 
 : (@NTerm NVar gts) :=
 match t with
 | vterm v => vterm v
@@ -1222,9 +1223,15 @@ with change_bvars_alphabt {NVar VarClass : Type} `{VarType NVar VarClass}  {gts 
 match bt with
 | bterm blv bnt => 
     let bnt' := @change_bvars_alpha NVar _ _ _ _  lv bnt in
+  (* All boundvars are produced by the [freshReplacements] function,
+    which produces unique (no_repeats) variables.
+    Also, these variables are disjoint from the bound variables of
+    the subterm bnt'.
+    So all occurrences of bound variables in the result are distinct.
+    *)
     let lvn := freshReplacements blv (lv++(all_vars bnt')) in
          bterm lvn (ssubst_aux bnt' (var_ren blv lvn))
-end. 
+end.
 
 
 (** % \noindent \\* %
@@ -1234,7 +1241,28 @@ Finally, here is the function that safely perfoms
   a [Substitution] on an [NTerm].
 
 *)
+(*
+Fixpoint makeBvarsUnique1 {NVar VarClass : Type} `{VarType NVar VarClass} 
+{gts : GenericTermSig} (lv : list NVar ) (t : (@NTerm NVar gts)) 
+: (@NTerm NVar gts * list NVar) :=
+match t with
+| vterm v => (vterm v, [])
+| oterm o lbt => 
+  let lbt_bv := (map (@makeBvarsUniqueBt1 NVar _ _ _ _ lv) lbt) in 
+  (oterm o (map fst lbt_bv), 
 
+end
+with makeBvarsUniqueBt1 {NVar VarClass : Type} `{VarType NVar VarClass}  
+{gts : GenericTermSig} lv  (bt: @BTerm NVar gts) 
+: (@BTerm NVar gts  * list NVar):=
+match bt with
+| bterm blv bnt => 
+    let bnt' := @makeBvarsUnique NVar _ _ _ _  lv bnt in
+    let bvars := bound_vars bnt in
+    let lvn := freshReplacements blv (lv++(all_vars bnt')) in
+         bterm lvn (ssubst_aux bnt' (var_ren blv lvn))
+end. 
+*)
 Class FreeVars (T V:Type) := freevars : T -> list V.
 
 Fixpoint ssubst {NVar VarClass} {d : Deq NVar} {vc : @VarType NVar VarClass d} {gts : GenericTermSig} 
