@@ -1,4 +1,4 @@
-all:
+all: Makefile.coq
 	make -f Makefile.coq
 
 Makefile.coq : _CoqProject
@@ -6,6 +6,10 @@ Makefile.coq : _CoqProject
 
 install :
 	make -f Makefile.coq install
+
+clean:
+	make -f Makefile.coq clean
+	rm Makefile.coq
 
 _CoqProject:
 	echo "-R . SquiggleLazyEq" > _CoqProject
