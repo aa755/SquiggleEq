@@ -3035,13 +3035,13 @@ Qed.
 Hint Rewrite @repeat_nil : SquiggleEq.
 
 Ltac rwsimpl He1 :=
-  repeat progress (autorewrite with list core SquiggleLazyEq in He1; simpl in He1).
+  repeat progress (autorewrite with list core SquiggleEq in He1; simpl in He1).
 
 Ltac rwsimplAll :=
-  repeat progress (autorewrite with list core SquiggleLazyEq in *; simpl in *).
+  repeat progress (autorewrite with list core SquiggleEq in *; simpl in *).
 
 Ltac rwsimplC :=
-  repeat progress (autorewrite with list core SquiggleLazyEq; simpl).
+  repeat progress (autorewrite with list core SquiggleEq; simpl).
 
 
 
