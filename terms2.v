@@ -1945,12 +1945,12 @@ end.
 
 (* Move *)
 Hint Rewrite @flat_map_bterm_nil @flat_map_free_var_vterm
-  remove_nvars_eq : SquiggleLazyEq.
+  remove_nvars_eq : SquiggleEq.
 
 
 Hint Rewrite @all_vars_ot @allvars_bterm : allvarsSimpl.
 
-Hint Rewrite @all_vars_ot @allvars_bterm @varsOfClassApp : SquiggleLazyEq.
+Hint Rewrite @all_vars_ot @allvars_bterm @varsOfClassApp : SquiggleEq.
 
 
 Hint Resolve isprogram_ot_if_eauto : slow.
@@ -2040,12 +2040,12 @@ Ltac destructlbt lbt tac :=
   let b := fresh "b" in
   destruct lbt as [| b lbt];tac; []).
 
-Hint Rewrite memvar_singleton : SquiggleLazyEq.
+Hint Rewrite memvar_singleton : SquiggleEq.
 
-Hint Rewrite remove_nvars_cons_r : SquiggleLazyEq2.
+Hint Rewrite remove_nvars_cons_r : SquiggleEq2.
 
 Hint Rewrite
-  <- beq_var_refl : SquiggleLazyEq.
+  <- beq_var_refl : SquiggleEq.
 
 Ltac disjoint_flat_allv :=
 repeat match goal with
@@ -2091,7 +2091,7 @@ disjoint_reasoning2; disjoint_flat_allv;disjoint_reasoningv2.
 
 Hint Resolve subsetAllVarsLbt2 : subset. 
 
-Hint Rewrite remove_var_nil remove_nvars_nil_r:  SquiggleLazyEq.
+Hint Rewrite remove_var_nil remove_nvars_nil_r:  SquiggleEq.
 
     Ltac rwHyps :=
     unfold closed, closed_bt in *;

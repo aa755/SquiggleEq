@@ -270,7 +270,7 @@ Proof using.
   induction sub as [| a]; intros ; auto; simpl. 
   destruct a. rewrite beq_deq. simpl.
   destruct (decideP (n = v));
-  subst; autorewrite with SquiggleLazyEq; simpl in *; auto.
+  subst; autorewrite with SquiggleEq; simpl in *; auto.
   rewrite IHsub. destruct ((lmap_find deq_nvar sub v)); simpl;
   try(destruct s; simpl); auto. 
 Qed.
@@ -282,7 +282,7 @@ Proof using.
   induction sub as [| a]; intros ; auto; simpl. 
   destruct a. repeat rewrite beq_deq.  simpl in *.
   destruct (decideP (n = v));
-  simpl; subst; autorewrite with SquiggleLazyEq;  subst; auto.
+  simpl; subst; autorewrite with SquiggleEq;  subst; auto.
   rewrite IHsub. destruct ((lmap_find_first deq_nvar sub v)); simpl;
   exrepnd; auto.
 Qed.
@@ -1332,7 +1332,7 @@ Definition apply_bterm  (bt :BTerm) (lnt: list NTerm) : NTerm :=
     that we proved about [ssubst].
  *)
 
-Hint Rewrite sub_filter_nil_r : SquiggleLazyEq.
+Hint Rewrite sub_filter_nil_r : SquiggleEq.
 
 
 Lemma ssubst_ssubst_aux_nb : 
@@ -1353,7 +1353,7 @@ Proof using.
 - intros ? ? Hind ? Hdis.
   simpl in *.
   destruct lv;
-    [f_equal; autorewrite with SquiggleLazyEq; 
+    [f_equal; autorewrite with SquiggleEq; 
        apply Hind; auto; 
        disjoint_reasoningv; fail
      | clear Hind].
@@ -4009,12 +4009,12 @@ Lemma sub_keep_first_singleton_r_some :
   forall sub v t,
     sub_find sub v = Some t
     -> sub_keep_first sub [v] = [(v,t)].
-Proof with (autorewrite with SquiggleLazyEq) using.
+Proof with (autorewrite with SquiggleEq) using.
   induction sub; simpl; sp.
   rewrite remove_nvar_cons.
   rewrite remove_nvar_nil.
   repeat rewrite decide_decideP.
-  destruct (decideP (v=a0)); subst; autorewrite with SquiggleLazyEq.
+  destruct (decideP (v=a0)); subst; autorewrite with SquiggleEq.
   allrw <- beq_var_refl.
   inversion H; subst. rewrite sub_keep_first_nil_r. refl.
   
@@ -4030,7 +4030,7 @@ Proof using.
   rewrite remove_nvar_cons.
   rewrite remove_nvar_nil.
   repeat rewrite decide_decideP.
-  destruct (decideP (a0=v)); subst; autorewrite with SquiggleLazyEq.
+  destruct (decideP (a0=v)); subst; autorewrite with SquiggleEq.
   allrw <- beq_var_refl; sp.
   rewrite not_eq_beq_var_false; auto.
   rw not_eq_beq_var_false in H; auto.
@@ -6941,7 +6941,7 @@ Tactic Notation  "spcl" := spc;simpl_list.
 Tactic Notation  "spcls" := repeat(simpl_list);sp;repeat(simpl_sub).
 
 
-Hint Rewrite (fun gs => @sub_filter_nil_r gs) : SquiggleLazyEq.
+Hint Rewrite (fun gs => @sub_filter_nil_r gs) : SquiggleEq.
 
 Ltac change_to_ssubst_aux4 :=
   unfold ssubst;
@@ -7044,7 +7044,7 @@ match goal with
 | [ |- context [ [(?v1 ,ssubst ?t1 ?sub)] ] ] => fold (ssubst_sub [(v1,t1)] sub)
 end.
 
-Hint Rewrite (fun gts => @ssubst_nil gts): SquiggleLazyEq.
+Hint Rewrite (fun gts => @ssubst_nil gts): SquiggleEq.
 
 Ltac change_to_ssubst_aux8 :=
   repeat rewrite ssubst_ssubst_aux_hide;
@@ -7078,11 +7078,11 @@ match T with
   [change_to_ssubst_aux8; sp  | rewrite H in Hyp ]
 end.
 
-Hint Rewrite @dom_sub_map_range : SquiggleLazyEq.
-Hint Rewrite @ssubst_aux_nil: SquiggleLazyEq.
-Hint Rewrite @dom_sub_map_range : SquiggleLazyEq.
+Hint Rewrite @dom_sub_map_range : SquiggleEq.
+Hint Rewrite @ssubst_aux_nil: SquiggleEq.
+Hint Rewrite @dom_sub_map_range : SquiggleEq.
 
-Hint Immediate @allvars_combine : SquiggleLazyEq.
+Hint Immediate @allvars_combine : SquiggleEq.
 
 Hint Resolve @sub_filter_subset : subset.
 

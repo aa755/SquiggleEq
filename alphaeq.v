@@ -782,7 +782,7 @@ Proof using.
   split;[apply freshReplacementsSameClass; assumption|].
   eapply lforall_subset;[apply boundvars_ssubst_aux_subset|].
   rewrite flat_map_bound_var_vars_range;
-      [| autorewrite with SquiggleLazyEq; refl].
+      [| autorewrite with SquiggleEq; refl].
   autorewrite with list.
   unfold varsOfClass in *.
   eauto.
@@ -1312,7 +1312,7 @@ Proof using.
 - intros ? ? Hind. destruct lv as [| v lv].
   + simpl. unfold freshReplacements in *. simpl. addFreshVarsSpec2 lvn hfr. repnd. dlist_len_name lvn lv.
     simpl. unfold var_ren. simpl.
-    autorewrite with SquiggleLazyEq.
+    autorewrite with SquiggleEq.
     apply alphaeqbt_nilv2.
     assumption.
   + unfold ssubst_bterm. remember (v :: lv) as lvv.
@@ -3947,7 +3947,7 @@ destruct lbt;[ clear H | inverts H]
 end.
 
 Ltac noRepDis2 :=
-autorewrite with SquiggleLazyEq;
+autorewrite with SquiggleEq;
 (repeat match goal with
 [H: no_repeats [] |- _] => clear H
 |[H: ! (LIn _ _) |- _] => apply disjoint_singleton_l in H

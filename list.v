@@ -177,7 +177,7 @@ Proof.
 - sp.
 Qed.
 
-Hint Rewrite (fun T d => @deq_refl T d) (fun T d => @deqP_refl T d) : SquiggleLazyEq.
+Hint Rewrite (fun T d => @deq_refl T d) (fun T d => @deqP_refl T d) : SquiggleEq.
 
 Lemma remove_comm {T:Type} `{Deq T} :
   forall l : list T,
@@ -186,7 +186,7 @@ Lemma remove_comm {T:Type} `{Deq T} :
 Proof.
   induction l; simpl; sp.
   repeat rewrite decide_decideP.
-  repeat (cases_if; subst; simpl in *; auto; autorewrite with SquiggleLazyEq; try congruence;
+  repeat (cases_if; subst; simpl in *; auto; autorewrite with SquiggleEq; try congruence;
    repeat rewrite decide_decideP).
 Qed.
 
@@ -336,7 +336,7 @@ Qed.
 
 Hint Rewrite null_nil_iff.
 
-Hint Resolve decideP : SquiggleLazyEq.
+Hint Resolve decideP : SquiggleEq.
 Lemma null_diff :
   forall T,
   forall eq : Deq T,
@@ -345,7 +345,7 @@ Lemma null_diff :
 Proof.
   induction l1; simpl; sp.
   trw IHl1; sp; split; sp.
-  assert ({a = x} + {a <> x}) by auto with SquiggleLazyEq; sp.
+  assert ({a = x} + {a <> x}) by auto with SquiggleEq; sp.
   right; apply_hyp.
   trw in_remove; sp.
   alltrewrite in_remove; sp.
@@ -453,7 +453,7 @@ Proof.
   destruct (decideP (a=a0)); subst; sp.
   f_equal. apply IHl1; auto. 
   inversion H. subst.
-  autorewrite with SquiggleLazyEq.
+  autorewrite with SquiggleEq.
   rewrite  IHl1. refl.
 Qed.
 
@@ -470,7 +470,7 @@ Lemma beq_list_refl :
     beq_list eq l l = true.
 Proof.
   induction l; simpl; sp.
-  autorewrite with SquiggleLazyEq.
+  autorewrite with SquiggleEq.
   auto.
 Qed.
 
@@ -2546,15 +2546,19 @@ Qed.
 Ltac dLin_hyp :=
   repeat
    match goal with
-   | H:forall x : ?T, ?L = x [+] ?R -> ?C
-     |- _ => let Hyp := fresh "Hyp" in
-             pose proof (H L injL( eq_refl)) as Hyp; specialize (fun x y => H x injR( y))
-   | H:forall (x : _) (y:_), ?L = (x,y) [+] ?R -> ?C
-     |- _ => let Hyp := fresh "Hyp" in
-             pose proof (H (fst L) (snd L) injL( eq_refl)) as Hyp; specialize (fun x z y => H x z injR( y))
+   | H:forall x : ?T, ?L = x \/ ?R -> ?C
+     |- _ =>
+         let Hyp := fresh "Hyp" in
+         pose proof (H L (or_introl eq_refl)) as Hyp; specialize (fun x y => H x (or_intror y))
+   | H:forall x y, _ = _ \/ ?R -> ?C
+     |- _ =>
+         let Hyp := fresh "Hyp" in
+         pose proof (H _ _ (or_introl eq_refl)) as Hyp; specialize
+          (fun x z y => H x z (or_intror y))
    | H:forall x : ?T, False -> _ |- _ => clear H
    end.
-
+   
+   
 Ltac dlist_len_name ll name :=
 repeat match goal with
 [  H : length ll  = _ |- _ ]=> symmetry in H 
@@ -2917,7 +2921,7 @@ Proof.
   discover; sp.
 Qed.
 
-Hint Rewrite @subsetv_nil_r : SquiggleLazyEq.
+Hint Rewrite @subsetv_nil_r : SquiggleEq.
 
 
 Lemma disjoint_neq_iff {A} {a b : A} :
@@ -3028,6 +3032,18 @@ Proof.
   induction la; auto.
 Qed.
 
-Hint Rewrite @repeat_nil : SquiggleLazyEq.
+Hint Rewrite @repeat_nil : SquiggleEq.
+
+Ltac rwsimpl He1 :=
+  repeat progress (autorewrite with list core SquiggleLazyEq in He1; simpl in He1).
+
+Ltac rwsimplAll :=
+  repeat progress (autorewrite with list core SquiggleLazyEq in *; simpl in *).
+
+Ltac rwsimplC :=
+  repeat progress (autorewrite with list core SquiggleLazyEq; simpl).
+
+
+
 
 

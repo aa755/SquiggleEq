@@ -75,6 +75,6 @@ Global Instance VarTypePeano : VarType VType VarClass.
 - introv ? Hin. subst.
   apply in_map_iff in Hin.
   exrepnd. cpx.
-Qed.
+Defined.
 
 End PeanoVarInstance.

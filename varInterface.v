@@ -111,7 +111,7 @@ Definition beq_var (a b : NVar):= decide (a=b).
 Theorem beq_var_refl : forall X,
   true = beq_var X X.
 Proof.
-  intros. unfold beq_var. autorewrite with SquiggleLazyEq.
+  intros. unfold beq_var. autorewrite with SquiggleEq.
   refl.
 Qed.
 
@@ -1278,7 +1278,7 @@ Proof using.
   intros ? ? Heq ? ? ?. unfold varsOfClass. rewrite Heq. subst. refl.
 Qed.
 
-Hint Rewrite @remove_nvars_nil_l @remove_nvars_nil_r : SquiggleLazyEq.
+Hint Rewrite @remove_nvars_nil_l @remove_nvars_nil_r : SquiggleEq.
 
 Lemma remove_nvars_cons_r2:
   forall  (l : list NVar) (v : NVar) (vars : list NVar),
@@ -1287,7 +1287,7 @@ Proof using.
   intros. rewrite remove_nvars_cons_r.
   rewrite cons_as_app.
   rewrite remove_nvars_cons_r.
-  cases_if; simpl; autorewrite with SquiggleLazyEq; auto.
+  cases_if; simpl; autorewrite with SquiggleEq; auto.
 Qed.
 
 (* for rewriting selectively *)
@@ -1305,9 +1305,9 @@ Proof using.
   assumption.
 Qed.
 
-Hint Rewrite @memvar_singleton @memvar_fresh_var : SquiggleLazyEq.
+Hint Rewrite @memvar_singleton @memvar_fresh_var : SquiggleEq.
 
-Hint Rewrite <- @beq_var_refl : SquiggleLazyEq.
+Hint Rewrite <- @beq_var_refl : SquiggleEq.
 
 
 Lemma remove_nvars_cons_r_same:
@@ -1317,7 +1317,7 @@ Lemma remove_nvars_cons_r_same:
 Proof using.
   intros.
   rewrite remove_nvars_cons_r.
-  autorewrite with SquiggleLazyEq.
+  autorewrite with SquiggleEq.
   refl.
 Qed.
 
@@ -1355,13 +1355,13 @@ repeat match goal with
     notNil tl; setoid_rewrite (@remove_nvars_cons_r2 _ _ _ h tl) in H  
 end.
 
-Hint Rewrite <- @beq_var_refl : SquiggleLazyEq.
+Hint Rewrite <- @beq_var_refl : SquiggleEq.
 
-Hint Rewrite @memvar_singleton @memvar_fresh_var : SquiggleLazyEq.
+Hint Rewrite @memvar_singleton @memvar_fresh_var : SquiggleEq.
 
 (* Remove : neve add anything to core DB *)
 Hint Immediate @deq_nvar.
-Hint Rewrite @remove_nvars_nil_l @remove_nvars_nil_r : SquiggleLazyEq.
+Hint Rewrite @remove_nvars_nil_l @remove_nvars_nil_r : SquiggleEq.
 
 (* Hint Constructors issorted. *)
 Hint Immediate eqsetv_refl.
@@ -1454,19 +1454,19 @@ Ltac cpx :=
 
 Hint Immediate nvarx_nvary : slow.
 
-Hint Rewrite (@freshVars0) : SquiggleLazyEq.
+Hint Rewrite (@freshVars0) : SquiggleEq.
 
-Hint Immediate varsOfClassNil : SquiggleLazyEq.
+Hint Immediate varsOfClassNil : SquiggleEq.
 
 
-Hint Rewrite (@freshVarsLen) : SquiggleLazyEq.
+Hint Rewrite (@freshVarsLen) : SquiggleEq.
 
-Hint Rewrite (@freshRepsLen) : SquiggleLazyEq.
+Hint Rewrite (@freshRepsLen) : SquiggleEq.
 
-Hint Rewrite (fun T D l1 l2 => @remove_nvars_app_r T D l1 l1 l2) : SquiggleLazyEq.
-Hint Rewrite @remove_nvars_app_r : SquiggleLazyEq2.
+Hint Rewrite (fun T D l1 l2 => @remove_nvars_app_r T D l1 l1 l2) : SquiggleEq.
+Hint Rewrite @remove_nvars_app_r : SquiggleEq2.
 
-Hint Rewrite @remove_nvars_cons_r_same @remove_nvars_eq: SquiggleLazyEq.
+Hint Rewrite @remove_nvars_cons_r_same @remove_nvars_eq: SquiggleEq.
 
 
 Tactic Notation "simpl_vlist" :=
@@ -1477,7 +1477,7 @@ Tactic Notation "simpl_vlist" :=
                          
 Notation beq_var_eq := beq_var_true.
 
-Hint Rewrite remove_nvars_cons_r_same : SquiggleLazyEq.
+Hint Rewrite remove_nvars_cons_r_same : SquiggleEq.
 
 Hint Resolve varsOfClassSubset : subset.
 
@@ -1499,5 +1499,5 @@ End Vars2Class.
 
   Hint Resolve @varsOfClassSubset : subset.
 
-Hint Rewrite @memvar_nil_r : SquiggleLazyEq.
+Hint Rewrite @memvar_nil_r : SquiggleEq.
 
