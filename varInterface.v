@@ -21,10 +21,21 @@ Require Import list.
 (* get rid of it eventually *)
 Notation subsetv := subset (only parsing).
 
+(* delete *)
+Class VarType2 (T:Type) := {
+  deq : forall x y : T, {x = y} + {x <> y};
+  freshVars2 : forall (n:nat) (avoid : list T), list T;
+  freshCorrect2: forall  (n:nat) (avoid : list T), 
+    let lf:= (freshVars2 n avoid) in
+      (no_repeats lf 
+      /\ disjoint lf avoid
+      /\ length lf = n)
+}.
+
 
 Class VarType (T:Type) (ClassType : Type)  `{Deq T} := {
 
-(** There can be different classes of variables, e.g. one for types, and one for terms.
+(* There can be different classes of variables, e.g. one for types, and one for terms.
 As another example, during CPS conversion, it is handy to have a different class for continuation variables.
 Substitution may need to rename bound variables,
 and we prove that variable class is preserved by substitution. See
@@ -33,7 +44,7 @@ and we prove that variable class is preserved by substitution. See
 
   varClass : T -> ClassType;
 
-(** We can generate fresh variables w.r.t. variables of any class. 
+(* We can generate fresh variables w.r.t. variables of any class. 
    [original] is a mechanism to pass extra information to [freshVars]. 
   For example, we often want the fresh replacement names to be close to original names.
   In such cases, [length original=n]. The correctness properties of [freshVars] ignore this input *)
