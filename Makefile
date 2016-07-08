@@ -11,6 +11,9 @@ clean:
 	make -f Makefile.coq clean
 	rm Makefile.coq
 
+texdoc:
+	coqdoc --interpolate --latex -R . SquiggleEq terms.v terms2.v substitution.v alphaeq.v varInterface.v varImplZ.v 
+
 _CoqProject:
 	echo "-R . SquiggleEq" > _CoqProject
 	find . -name "*.v" >> _CoqProject
