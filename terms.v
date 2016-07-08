@@ -68,6 +68,28 @@ with BTerm : Type :=
   We will use it soon to define the subcollection of well-formed terms.
 *)
 
+Notation "x -- y" := (remove_nvars y x) (at level 50).
+
+Local Fixpoint fvars  (t:NTerm): list NVar :=
+  match t with
+  | vterm v => [v]
+  | oterm op bts => flat_map fvars_bterm  bts
+  end
+ with fvars_bterm  (bt : BTerm) : list NVar :=
+  match bt with
+  | bterm  lv nt => (fvars nt) -- lv
+  end.
+
+Local Fixpoint bvars  (t : NTerm) : list NVar :=
+  match t with
+  | vterm v => []
+  | oterm op bts => flat_map bvars_bterm  bts
+  end
+ with bvars_bterm  (bt : BTerm ) :list NVar :=
+  match bt with
+  | bterm lv nt =>  (bvars nt) ++ lv
+  end.
+
 (* begin hide *)
 (*
 Scheme NTerm_mut := Induction for NTerm Sort Prop
@@ -96,6 +118,7 @@ Definition isvariable (t : NTerm) :=
     | vterm _ => True
     | _ => False
   end.
+
 
 
 (*Notation "x # b" := (bterm [x] b) (at level 70, right associativity).
@@ -249,3 +272,4 @@ Definition closed (t : NTerm) := free_vars t = [].
 Definition isprogram (t : NTerm) := closed t # nt_wf t.
 
 End termsCont.
+Locate "--".

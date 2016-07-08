@@ -20,6 +20,7 @@ Require Import Eqdep_dec.
 Require Import varInterface.
 Require Import terms.
 
+
 (** printing #  $\times$ #×# *)
 (** printing <=>  $\Leftrightarrow$ #&hArr;# *)
 (** printing $  $\times$ #×# *)
