@@ -21,7 +21,7 @@ Require Import varInterface.
 Class GenericTermSig : Type :=
 {
 (** the collection of operators in the language. For example, in lambda calculus, App and Lam are operators *)
-  Opid : Set;
+  Opid : Type;
 (** Arities for each operator. An [Opid] [o] takes 
   [length (OpBindings o)] arguments. The number of bound variables in the ith argument is 
   specified by the ith member of [(OpBindings o)].
