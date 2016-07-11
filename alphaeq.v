@@ -3802,6 +3802,18 @@ Proof using.
   simpl. assumption.
 Qed.
 
+Local Notation fvars := free_vars.
+Local Notation subst := ssubst.
+
+Local Lemma alpharwtest : forall x y sub lv,
+alpha_eq x y
+-> disjoint (fvars (subst x sub)) lv
+-> disjoint (fvars (subst y sub)) lv.
+Proof.
+  intros ? ? ? ? H1a Hs.
+  rewrite <- H1a.
+  assumption.
+Qed.
 
 End AlphaGeneric.
 
