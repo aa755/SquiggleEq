@@ -280,6 +280,7 @@ Proof using .
       apply_clear Hin.
       repeat(rw in_app_iff).
       repeat(rw in_app_iff in Hc).
+SearchAbout @map @combine @prod.
       rewrite boundvars_ssubst_aux_vars in Hc;auto.
       rewrite boundvars_ssubst_aux_vars in Hc;auto.
       repeat(dorn Hc); auto; [|];
@@ -305,7 +306,7 @@ Qed.
 
 Theorem alpha_eq3_if: forall nt1 nt2,
     (alpha_eq nt1 nt2) -> forall lv, (alpha_eq3 lv nt1 nt2).
-Proof using hdeq.
+Proof using.
   nterm_ind1s nt1 as [v1 | o1 lbt1 Hind] Case; introv Hyp;
   destruct nt2 as [v2 | o2 lbt2]; 
   inverts Hyp as Hlen Hbt;
@@ -341,7 +342,7 @@ Qed.
 Theorem alpha_eq3_change_avoidvars:
  forall lv lv' nt1 nt2, alpha_eq3 lv nt1 nt2
    ->  alpha_eq3 lv' nt1 nt2.
-Proof using hdeq.
+Proof using.
   introv Hal.
   apply alpha_eq_if3 in Hal.
   apply alpha_eq3_if; auto.
@@ -705,7 +706,7 @@ Proof using.
       apply Hind. auto.
     + 
       constructor; try (rw map_length; auto);[].
-      introv Hlt. rw selectbt_map; auto.
+      introv Hlt. rw @selectbt_map; auto.
       pose proof (selectbt_in2 n lbt Hlt) as XX; exrepnd.
       destruct bt as [blv bnt]. rewrite XX0.
       apply Hind. auto.
@@ -735,7 +736,7 @@ Proof using.
     exrepnd. allsimpl.
     disjoint_reasoningv.
      apply al_bterm with (lv:=lvn); sp.
-    unfold all_vars. rw boundvars_ssubst_aux_vars;sp;
+    unfold all_vars. rw @boundvars_ssubst_aux_vars;sp;
     try(disjoint_reasoningv).
     introv Hin Hinc.
     applydup pal5 in Hin.
@@ -747,7 +748,8 @@ Proof using.
     dorn Hinc1; sp.
     subst.
     apply pal3 in Hin. sp.
-    rw <- ssubst_ssubst_aux; spcls; disjoint_reasoningv. rewrite ssubst_nest_vars_same; sp;
+    rewrite <- ssubst_ssubst_aux; 
+    spcls; disjoint_reasoningv. rewrite ssubst_nest_vars_same; sp;
     try congruence; try disjoint_reasoningv.
     apply alpha_eq_if3 with (lv:=nil).
     change_to_ssubst_aux8.
@@ -769,10 +771,10 @@ Definition change_bvars_alphabt_spec
 
 
 Lemma change_bvars_alpha_spec_varclass: forall lv vc,
-  (forall nt, varsOfClass (bound_vars nt) vc 
+  (forall (nt:NTerm), varsOfClass (bound_vars nt) vc 
       -> varsOfClass (bound_vars (change_bvars_alpha lv nt)) vc)
   * 
-  (forall bt, varsOfClass (bound_vars_bterm bt) vc 
+  (forall (bt:BTerm), varsOfClass (bound_vars_bterm bt) vc 
       -> varsOfClass (bound_vars_bterm (change_bvars_alphabt lv bt)) vc).
 Proof using.
   intros. apply NTerm_BTerm_ind;
@@ -832,7 +834,8 @@ Proof using.
   apply_clear Hal in Hlt. revert Hlt. rw XX0. introv Hlt.
   destruct (selectbt lbt2 n) as [lv2 nt2].
   simpl. invertsna Hlt  Hbal.
-  eapply Hind in Hbal3; eauto; allrw ssubst_aux_allvars_preserves_size2;sp.
+  eapply Hind in Hbal3; eauto;
+  repeat rewrite @ssubst_aux_allvars_preserves_size2 in *; sp.
 Qed.
 
 Lemma alpha_eq_preserves_size: forall nt1 nt2,
@@ -877,8 +880,8 @@ Proof using.
   apply alpha_eq3_if with  (lv:=lva) in Hal3.
   assert (alpha_eq_bterm3 [] (bterm lv1 nt1) (bterm lv2 nt2)) as XX.
   - eapply al_bterm3 with (lv:=lv); simpl_vlist; eauto.
-    rw <- ssubst_ssubst_aux; spcls; disjoint_reasoningv.
-    rw <- ssubst_ssubst_aux; spcls; disjoint_reasoningv.
+    rewrite <- ssubst_ssubst_aux; spcls; disjoint_reasoningv.
+    rewrite <- ssubst_ssubst_aux; spcls; disjoint_reasoningv.
      eapply alpha_eq3_change_avoidvars; eauto.
   - pose proof (fresh_vars (length lv1) (all_vars nt1 ++ all_vars nt2 ++lva)) as Hfr.
     exrepnd. apply alpha3bt_change_var with (lv:=lvn) in XX;sp; try congruence;
@@ -1036,7 +1039,7 @@ Proof using. introv Hind Hlt1 H1len H2len H1dis H2dis Hall.
       disjoint_reasoningv;try(disjoint_sub_filter; fail).
 
       Focus 2. rw Heqlsvi1.
-        rw <- dom_sub_sub_filter.
+        rewrite <- dom_sub_sub_filter.
         spcls. apply disjoint_remove_nvars.
 
       apply alpha_eq3_sym.
