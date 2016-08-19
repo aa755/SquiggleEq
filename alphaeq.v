@@ -63,14 +63,16 @@ Proof using.
   intros. firstorder.
 Qed.
 
+Generalizable Variable Opid.
 
 Section AlphaGeneric.
-Context {NVar VarClass} {deqnvar : Deq NVar} {varclass: @VarType NVar VarClass deqnvar} {gts : GenericTermSig}.
-Notation NTerm := (@NTerm NVar).
-Notation BTerm := (@BTerm NVar).
-Notation WTerm := (@WTerm NVar).
-Notation CTerm := (@CTerm NVar).
-Notation Substitution := (@Substitution NVar).
+Context {NVar VarClass} {deqnvar : Deq NVar} {varclass: @VarType NVar VarClass deqnvar} 
+ `{hdeq : Deq Opid} {gts : GenericTermSig Opid}.
+Notation NTerm := (@NTerm NVar Opid).
+Notation BTerm := (@BTerm NVar Opid).
+Notation WTerm := (@WTerm NVar Opid).
+Notation CTerm := (@CTerm NVar  Opid).
+Notation Substitution := (@Substitution NVar Opid).
 (** printing #  $\times$ #×# *)
 (** printing <=>  $\Leftrightarrow$ #&hArr;# *)
 (** printing <  $<$ #<# *)
@@ -241,7 +243,7 @@ Lemma alpha3_ssubst_allvars_congr : forall nt1 nt2 lvi lvo lva,
   -> disjoint (lvi++lvo) (bound_vars nt1 ++ bound_vars nt2) 
   -> alpha_eq3 lva (ssubst_aux nt1 (var_ren lvi lvo))
                      (ssubst_aux nt2 (var_ren lvi lvo)).
-Proof using.
+Proof using hdeq.
   nterm_ind1s nt1 as [v1 | o1 lbt1 Hind] Case; introv Hllll Hal Hdis; inverts Hal as Hlen Hal.
   - Case "vterm"; apply alpha_eq3_refl.
   - Case "oterm". constructor;
@@ -249,7 +251,7 @@ Proof using.
     introv Hlt. rewrite selectbt_map; auto.
     duplicate Hlt. rewrite Hlen in Hlt0.
     rewrite selectbt_map; auto.
-    fold ssubst_bterm_aux.
+    fold @ssubst_bterm_aux.
     applydup Hal in Hlt.
     clear Hal.
     pose proof (selectbt_in2 n lbt1 Hlt) as [bt99 pp].
@@ -302,7 +304,7 @@ Qed.
 
 Theorem alpha_eq3_if: forall nt1 nt2,
     (alpha_eq nt1 nt2) -> forall lv, (alpha_eq3 lv nt1 nt2).
-Proof using.
+Proof using hdeq.
   nterm_ind1s nt1 as [v1 | o1 lbt1 Hind] Case; introv Hyp;
   destruct nt2 as [v2 | o2 lbt2]; 
   inverts Hyp as Hlen Hbt;
@@ -338,11 +340,13 @@ Qed.
 Theorem alpha_eq3_change_avoidvars:
  forall lv lv' nt1 nt2, alpha_eq3 lv nt1 nt2
    ->  alpha_eq3 lv' nt1 nt2.
-Proof using.
+Proof using hdeq.
   introv Hal.
   apply alpha_eq_if3 in Hal.
   apply alpha_eq3_if; auto.
 Qed.
+
+Notation vterm := (@vterm NVar Opid).
 
 Lemma alpha3_ssubst_aux_allvars_congr2 : forall nt1 nt2 lvi lvo lva,
   length lvi=length lvo
@@ -360,7 +364,7 @@ Proof using.
     introv Hlt. rewrite selectbt_map; auto.
     duplicate Hlt. rewrite Hlen in Hlt0.
     rewrite selectbt_map; auto.
-    fold ssubst_bterm_aux. clear Hal.
+    fold @ssubst_bterm_aux. clear Hal.
     pose proof (selectbt_in2 n lbt1 Hlt) as [bt99 pp].
     exrepnd. destruct bt99 as [blv1 bnt1].
     pose proof (selectbt_in2 n lbt2 Hlt0) as [bt99 p2p].
@@ -382,10 +386,10 @@ Proof using.
     rewrite flat_map_free_var_vars_range;spc;sp;fail]).
     allsimpl.
     rename Ha5 into XX.
-    simpl.  pose proof (allvars_sub_filter lvi lvo blv1) as X1.
+    simpl.  pose proof (@allvars_sub_filter _ _ Opid lvi lvo blv1) as X1.
     pose proof (get_sub_dom_vars_eta _ X1) as X1X. exrepnd.
     repeat(rewrite X1X0).
-    simpl.  pose proof (allvars_sub_filter lvi lvo blv2) as X2.
+    simpl.  pose proof (@allvars_sub_filter _ _ Opid lvi lvo blv2) as X2.
     pose proof (get_sub_dom_vars_eta _ X2) as X2X. exrepnd.
     repeat(rewrite X2X0).
     apply al_bterm3 with (lv:=lv); auto.

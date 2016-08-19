@@ -81,10 +81,12 @@ Definition Substitution   : Type := list (NVar # NTerm).
 ]]
  *)
  Local Opaque beq_var.
+Generalizable Variable Opid.
+
 Section SubstGeneric.
 
 Context {NVar VarClass} {deqnvar : Deq NVar} {varclass: @VarType NVar VarClass deqnvar}
-  {Opid} {gts : GenericTermSig Opid}.
+  `{hdeq: Deq Opid} {gts : GenericTermSig Opid}.
 Notation NTerm := (@NTerm NVar Opid).
 Notation BTerm := (@BTerm NVar Opid).
 Notation WTerm := (@WTerm NVar Opid).
@@ -137,7 +139,7 @@ Definition crange (sub : CSubstitution) : list CTerm := map (fun x => snd x) sub
 Lemma deq_in_sub :
   forall v t (sub : Substitution),
     LIn (v,t) sub + !LIn (v,t) sub.
-Proof using deqnvar gts.
+Proof using deqnvar hdeq.
   introv.
   apply in_deq; sp.
   apply deq_prod; sp; try (apply deq_nvar); try (apply deq_nterm).
@@ -150,7 +152,7 @@ Definition sub_range_satb (sub: Substitution) (P: NTerm -> [univ]) :=
   forall t, assert (memberb _ t (range sub)) -> P t.
 
 Lemma in_range :
-  forall t sub, LIn t (range sub) -> {v : NVar $ LIn (v,t) sub}.
+  forall t (sub: Substitution), LIn t (range sub) -> {v : NVar $ LIn (v,t) sub}.
 Proof using.
   induction sub; allsimpl; sp; allsimpl; subst.
   exists a0; sp.
@@ -158,8 +160,8 @@ Proof using.
 Qed.
 
 Lemma in_range_t :
-  forall t sub, LIn t (range sub) -> {v : NVar & LIn (v,t) sub}.
-Proof using deqnvar gts.
+  forall t (sub: Substitution), LIn t (range sub) -> {v : NVar & LIn (v,t) sub}.
+Proof using deqnvar hdeq.
   introv i.
   rw <- (@assert_memberb NTerm _) in i.
   induction sub; allsimpl; sp; allsimpl.
@@ -171,7 +173,7 @@ Proof using deqnvar gts.
 Qed.
 
 Lemma sub_range_sat_implies_b :
-  forall sub P, sub_range_sat sub P -> sub_range_satb sub P.
+  forall (sub: Substitution) P, sub_range_sat sub P -> sub_range_satb sub P.
 Proof using deqnvar.
   unfold sub_range_sat, sub_range_satb; introv s a.
   rw (@assert_memberb NTerm _) in a.
@@ -182,7 +184,7 @@ Qed.
 Lemma sub_range_sat_implies :
   forall (P Q : NTerm -> [univ]),
     (forall t, P t -> Q t)
-    -> forall sub,
+    -> forall (sub: Substitution),
          sub_range_sat sub P
          -> sub_range_sat sub Q.
 Proof using.
@@ -234,15 +236,6 @@ Lemma fold_var_ren :
 Proof using. sp.
 Qed.
 
-Lemma beq_deq : forall T v1 v2 (ct cf:T) ,
-  (if (beq_var v1 v2)  then ct else cf) = (if (decideP (v1=v2))  then ct else cf).
-Proof.
-  intros.
-  Local Transparent beq_var.
-   apply decide_decideP.
-  Local Opaque beq_var.
-   
-Qed.
 
 
 Definition lmap_apply {A : Type} (eqdec: Deq A) (sub: lmap A A) (a:A): A :=
@@ -265,11 +258,14 @@ Definition proj_as_option {A Q: Type} {P : A->Type} (a': {a : A & (P a)} + Q)
   end.
 
 Hint Rewrite deqP_refl.
-Lemma sub_lmap_find: forall sub v, sub_find sub v =
+Lemma sub_lmap_find: forall (sub: Substitution) v, sub_find sub v =
         proj_as_option (lmap_find deq_nvar sub v).
 Proof using.
+  clear hdeq.
   induction sub as [| a]; intros ; auto; simpl. 
-  destruct a. rewrite beq_deq. simpl.
+  destruct a.
+  Locate beq_deq.
+ rewrite (@beq_deq NVar). simpl.
   destruct (decideP (n = v));
   subst; autorewrite with SquiggleEq; simpl in *; auto.
   rewrite IHsub. destruct ((lmap_find deq_nvar sub v)); simpl;
@@ -277,7 +273,7 @@ Proof using.
 Qed.
 
 
-Lemma sub_lmap_find_first: forall sub v, sub_find sub v =
+Lemma sub_lmap_find_first: forall (sub: Substitution) v, sub_find sub v =
         proj_as_option (lmap_find_first deq_nvar sub v).
 Proof using.
   induction sub as [| a]; intros ; auto; simpl. 
@@ -330,7 +326,7 @@ Lemma in_csub2sub :
 Proof using.
   induction sub; simpl; sp; destruct a; allsimpl.
   inj.
-  allrw isprogram_eq; sp.
+  allrw @isprogram_eq; sp.
   apply_in_hyp p; sp.
 Qed.
 
@@ -397,29 +393,8 @@ Fixpoint sub_filter (sub : Substitution) (vars : list NVar) : Substitution :=
 
 
 
-(* Same as sub_filter but on a CSub *)
-Fixpoint csub_filter (sub : CSub) (vars : list NVar) : CSub :=
-  match sub with
-  | nil => nil
-  | (v, t) :: xs =>
-      if memvar v vars
-      then csub_filter xs vars
-      else (v, t) :: csub_filter xs vars
-  end.
-
-Lemma sub_filter_csub2sub :
-  forall sub vs,
-    sub_filter (csub2sub sub) vs
-    = csub2sub (csub_filter sub vs).
-Proof using.
-  induction sub; simpl; sp.
-  destruct a; allsimpl.
-  destruct (memvar a0 vs); sp; simpl.
-  rewrite IHsub; sp.
-Qed.
-
 Lemma sub_filter_subset :
-  forall sub vars,
+  forall (sub: Substitution) vars,
     subset (sub_filter sub vars) sub.
 Proof using.
   induction sub; simpl; sp.
@@ -436,7 +411,7 @@ Proof using.
 Qed.
 
 Lemma in_sub_filter :
-  forall v t sub vars,
+  forall v t (sub: Substitution) vars,
     LIn (v, t) (sub_filter sub vars)
     <=>
     (
@@ -450,7 +425,7 @@ Proof using.
   boolvar; simpl; allrw; split; sp; cpx.
 Qed.
 
-Lemma sub_filter_sat :  forall P sub lv,
+Lemma sub_filter_sat :  forall P (sub: Substitution) lv,
   sub_range_sat  sub P
   -> sub_range_sat (sub_filter sub lv) P.
 Proof using. introv Hall hsub. apply in_sub_filter in hsub. repnd.
@@ -468,7 +443,7 @@ Proof using.
 Qed.
 
 Lemma sub_filter_snoc :
-  forall sub v t vars,
+  forall (sub: Substitution) v t vars,
     sub_filter (snoc sub (v, t)) vars
     = if memvar v vars
       then sub_filter sub vars
@@ -483,7 +458,7 @@ Proof using.
 Qed.
 
 Lemma dom_sub_sub_filter :
-  forall l sub,
+  forall l (sub: Substitution),
     remove_nvars l (dom_sub sub) = dom_sub (sub_filter sub l).
 Proof using.
   induction sub; simpl; sp; allsimpl.
@@ -494,19 +469,9 @@ Proof using.
   simpl; auto.
 Qed.
 
-Lemma dom_csub_csub_filter :
-  forall l sub,
-    dom_csub (csub_filter sub l) = remove_nvars l (dom_csub sub).
-Proof using.
-  induction sub; simpl; sp; allsimpl.
-  rewrite remove_nvars_nil_r; sp.
-  rewrite remove_nvars_cons_r.
-  destruct (memvar a0 l); auto; simpl.
-  rewrite IHsub; auto.
-Qed.
 
 Lemma sub_filter_app_r :
-  forall sub vs1 vs2,
+  forall (sub: Substitution) vs1 vs2,
     sub_filter sub (vs1 ++ vs2)
     = sub_filter (sub_filter sub vs1) vs2.
 Proof using.
@@ -519,36 +484,6 @@ Proof using.
   rewrite IHsub; auto.
 Qed.
 
-Lemma crange_snoc :
-  forall sub x,
-    crange (snoc sub x) = snoc (crange sub) (snd x).
-Proof using.
-  unfold crange; simpl; sp.
-  rewrite map_snoc; sp.
-Qed.
-
-Lemma crange_length :
-  forall sub,
-    length (crange sub) = length sub.
-Proof using.
-  unfold crange; sp.
-  rewrite map_length; sp.
-Qed.
-
-Lemma dom_csub_length :
-  forall sub,
-    length (dom_csub sub) = length sub.
-Proof using.
-  unfold dom_csub; sp.
-  rewrite map_length; sp.
-Qed.
-
-Lemma cover_vars_covered :
-  forall t sub,
-    cover_vars t sub <=> covered t (dom_csub sub).
-Proof using.
-  sp.
-Qed.
 
 Lemma cover_vars_proof_irrelevance :
   forall t sub,
@@ -605,82 +540,6 @@ Proof using.
   rewrite IHsub; sp.
 Qed.
 
-Lemma over_vars_eq :
-  forall vs : list NVar,
-  forall sub : CSubstitution,
-    over_vars vs sub <=> subsetv vs (dom_csub sub).
-Proof using.
-  unfold over_vars; sp.
-  rewrite assert_sub_vars in *.
-  sp.
-Qed.
-
-Lemma cover_vars_eq :
-  forall t : NTerm,
-  forall sub : CSubstitution,
-    cover_vars t sub <=> subsetv (free_vars t) (dom_csub sub).
-Proof using.
-  unfold cover_vars, over_vars, subset; sp.
-  rewrite assert_sub_vars in *.  cpx.
-Qed.
-
-Lemma cover_vars_cterm :
-  forall t s, cover_vars (get_cterm t) s.
-Proof using.
-  introv; destruct_cterms; simpl.
-  rw cover_vars_eq.
-  allrw isprog_eq; unfold isprogram in *; repnd; allrw; sp.
-Qed.
-Hint Immediate cover_vars_cterm.
-
-Lemma cover_vars_app_weak :
-  forall t sub1 sub2,
-    cover_vars t sub1
-    -> cover_vars t (sub1 ++ sub2).
-Proof using.
-  intros.
-  allrw cover_vars_eq.
-  unfold subset in *.
-  rw dom_csub_app.
-  apply subset_app_r; auto.
-Qed.
-
-Lemma cover_vars_snoc_weak :
-  forall t x sub,
-    cover_vars t sub
-    -> cover_vars t (snoc sub x).
-Proof using.
-  intros.
-  allrw cover_vars_eq.
-  unfold subset in *.
-  rw dom_csub_snoc.
-  apply subset_snoc_r; auto.
-Qed.
-
-Lemma cover_vars_snoc_weak_r :
-  forall t sub v u,
-    (forall x, LIn x (free_vars t) -> x = v)
-    -> cover_vars t (snoc sub (v,u)).
-Proof using.
-  intros.
-  rw cover_vars_eq.
-  unfold subset in *.
-  rw dom_csub_snoc; simpl.
-  apply subset_snoc_l; auto.
-Qed.
-
-
-Definition CSubOver (vs : list NVar) : Type :=
-  { s : CSubstitution | over_vars vs s }.
-
-Definition csubo2csub (vs : list NVar) (sub : CSubOver vs) : CSubstitution :=
-  let (s,x) := sub in s.
-
-Definition dom_csubo (vs : list NVar) (sub : CSubOver vs) :=
-  dom_csub (csubo2csub vs sub).
-
-Definition csubo2sub (vs : list NVar) (sub : CSubOver vs) : Substitution :=
-  csub2sub (csubo2csub vs sub).
 
 Lemma in_dom_sub :
   forall v t sub,
@@ -704,23 +563,15 @@ Lemma in_dom_sub_exists :
   forall v sub,
     LIn v (dom_sub sub)
     -> {t : NTerm $ sub_find sub v = Some t}.
-Proof using.
+Proof.
   induction sub; simpl; sp; allsimpl; subst; simpl; boolvar.
+  exists a; sp.
   exists a; sp.
   exists a; sp.
   exists t; sp.
 Qed.
 
-Lemma in_dom_csub_exists :
-  forall v sub,
-    LIn v (dom_csub sub)
-    -> {t : NTerm $ sub_find (csub2sub sub) v = Some t # isprogram t}.
-Proof using.
-  induction sub; simpl; sp; destruct a; allsimpl; subst; boolvar; sp.
-  exists x; sp; rw isprogram_eq; sp.
-  exists x; sp; rw isprogram_eq; sp.
-  exists t; auto.
-Qed.
+
 
 Definition insub sub var : bool :=
   match sub_find sub var with
@@ -805,7 +656,7 @@ Lemma sub_find_none :
     -> forall u, ! LIn (v, u) sub.
 Proof using.
   induction sub; simpl; sp; inj.
-  rw <- beq_var_refl in H; sp.
+  rw <- @beq_var_refl in H; sp.
   remember (beq_var a0 v).
   destruct b; sp.
   apply IHsub with (u0 := u0) in H; auto.
@@ -817,7 +668,7 @@ Lemma sub_find_none2 :
     -> ! LIn v (dom_sub sub).
 Proof using.
   induction sub; simpl; sp; subst; allsimpl.
-  rw <- beq_var_refl in H; inversion H.
+  rw <- @beq_var_refl in H; inversion H.
   remember (beq_var a0 v).
   destruct b.
   inversion H.
@@ -830,7 +681,7 @@ Lemma sub_find_none_iff :
     <=> ! LIn v (dom_sub sub).
 Proof using.
   induction sub; simpl; sp; subst; split; sp; allsimpl; subst.
-  rw <- beq_var_refl in H; inversion H.
+  rw <- @beq_var_refl in H; inversion H.
   remember (beq_var a0 v); destruct b.
   inversion H.
   rw IHsub in H; auto.
@@ -1069,7 +920,7 @@ Proof using.
     remember (memvar a fvars); destruct b; allsimpl; sp; inj; sp.
     symmetry in Heqb.
     rw fold_assert in Heqb.
-    rw assert_memvar in Heqb; auto.
+    rw @assert_memvar in Heqb; auto.
     apply_in_hyp p; sp.
     apply_in_hyp p; sp.
 
@@ -1077,7 +928,7 @@ Proof using.
     remember (memvar a fvars); destruct b; allsimpl; sp; inj; sp.
     symmetry in Heqb.
     rw fold_assert in Heqb.
-    rw assert_memvar in Heqb; auto.
+    rw @assert_memvar in Heqb; auto.
     exists (fresh_var (fst (sub_mk_renames bvars fvars) ++ fvars)); sp.
     assert (! (LIn (fresh_var (fst (sub_mk_renames bvars fvars) ++ fvars))
                   (fst (sub_mk_renames bvars fvars) ++ fvars))) as nin
@@ -1100,7 +951,7 @@ Proof using.
   remember (beq_var a0 n); destruct b.
   apply beq_var_eq in Heqb0; subst.
   rw not_of_assert in Heqb.
-  rw assert_memvar in Heqb; sp.
+  rw @assert_memvar in Heqb; sp.
   apply_in_hyp p; sp.
 Qed.
 
@@ -1296,8 +1147,9 @@ with ssubst_bterm  {NVar VarClass}  {d : Deq NVar} {vc : @VarType NVar VarClass 
 
 
 Section SubstGeneric2.
+Typeclasses eauto :=10.
 Context {NVar VarClass} {deqnvar : Deq NVar} {varclass: @VarType NVar VarClass deqnvar} 
- {Opid} {gts : GenericTermSig Opid}.
+ `{hdeq : Deq Opid} {gts : GenericTermSig Opid}.
 Notation NTerm := (@NTerm NVar Opid).
 Notation BTerm := (@BTerm NVar Opid).
 Notation WTerm := (@WTerm NVar Opid _).
@@ -1461,7 +1313,7 @@ Qed.
 Hint Rewrite ssubst_nil.
 
 Lemma ssubst_aux_trivial_cl :
-  forall (t:NTerm) sub,
+  forall (t:NTerm) (sub: @Substitution Opid),
     (forall v u, LIn (v, u) sub -> closed u # ! LIn v (free_vars t))
     -> ssubst_aux t sub = t.
 Proof using.
@@ -1489,7 +1341,7 @@ Proof using.
       apply_in_hyp p; sp; allsimpl.
       allrw in_app_iff.
       allrw not_over_or; sp.
-      allrw in_remove_nvars; sp.
+      allrw @in_remove_nvars; sp.
     + rewrite H with (lv := lv); sp.
     + apply_in_hyp p; sp.
     + apply_in_hyp p; sp; allsimpl.
@@ -1498,7 +1350,7 @@ Proof using.
 Qed.
 
 Lemma ssubst_aux_trivial :
-  forall t sub,
+  forall (t:NTerm) (sub: @Substitution Opid),
     (forall v u, LIn (v, u) sub -> isprogram u # ! LIn v (free_vars t))
     -> ssubst_aux t sub = t.
 Proof using.
@@ -1508,7 +1360,7 @@ Proof using.
   firstorder.
 Qed.
 
-Lemma prog_sub_flatmap_range : forall sub, prog_sub sub
+Lemma prog_sub_flatmap_range : forall (sub : @Substitution Opid), prog_sub sub
     -> flat_map free_vars (range sub) =[].
 Proof using.
   unfold prog_sub, isprogram,closed . introv Hps. apply flat_map_empty. cpx.
@@ -1644,7 +1496,7 @@ Proof using.
 Qed.
 Hint Immediate prog_sub_csub2sub.
 
-Definition hide_csub2sub sub := csub2sub sub.
+Definition hide_csub2sub (sub :@CSubstitution NVar _ Opid _) := csub2sub sub.
 
 Ltac simpl_sub :=
 (match goal with
@@ -1667,10 +1519,10 @@ Tactic Notation  "spcl" := spc;simpl_list.
 Tactic Notation  "spcls" := repeat(simpl_list);sp;repeat(simpl_sub).
 
 Ltac change_to_ssubst_aux4 :=
-  allunfold disjoint_bv_sub;
-  allunfold hide_csub2sub;
-  allunfold prog_sub;
-  allunfold sub_range_sat;
+  allunfold @disjoint_bv_sub;
+  allunfold @hide_csub2sub;
+  allunfold @prog_sub;
+  allunfold @sub_range_sat;
   (repeat match goal with
             | [ |- context [csub2sub ?sub] ] =>
               let name := fresh "ps_csub2sub" in
@@ -1678,7 +1530,7 @@ Ltac change_to_ssubst_aux4 :=
               fold (hide_csub2sub sub)
             | [ H:( forall _ _, LIn (_, _) _
                                 -> disjoint (free_vars _) (bound_vars _)) |- _ ] =>
-              apply disjoint_sub_as_flat_map in H;apply disjoint_sym in H
+              apply @disjoint_sub_as_flat_map in H;apply @disjoint_sym in H
           end);
   let tac:=
   (repeat match goal with
@@ -1687,27 +1539,17 @@ Ltac change_to_ssubst_aux4 :=
             | [ H:(forall _ _, LIn (_, _) _ -> closed _) |- _ ] =>
               progress(rewrite (closed_sub_flatmap_range _ H))
           end); (try sp; try disjoint_reasoningv; try spcls; try disjoint_reasoningv) in
-  tac; repeat (rewrite ssubst_ssubst_aux;[|tac]).
+  tac; repeat (rewrite @ssubst_ssubst_aux;[|tac]).
 
 
 Lemma ssubst_trivial :
-  forall t sub,
+  forall (t:NTerm) (sub: @Substitution Opid),
     (forall v u, LIn (v, u) sub -> isprogram u # ! LIn v (free_vars t))
     -> ssubst t sub = t.
 Proof using.
   introv Hpr. assert (prog_sub sub). introv Hin. apply Hpr in Hin;sp.
-  change_to_ssubst_aux4.
+  change_to_ssubst_aux4;[].
   apply ssubst_aux_trivial;sp.
-Qed.
-
-Lemma ssubst_cterm :
-  forall t s,
-    ssubst (get_cterm t) (csub2sub s) = get_cterm t.
-Proof using.
-  introv.
-  apply ssubst_trivial; introv i.
-  rw free_vars_cterm; simpl; sp.
-  apply in_csub2sub in i; sp.
 Qed.
 
 
@@ -1749,7 +1591,7 @@ Qed.
 *)
 
 Lemma ssubst_aux_trivial2_cl :
-  forall (t:NTerm) sub,
+  forall (t:NTerm) (sub : @Substitution Opid),
     (forall v u, LIn (v, u) sub -> closed u)
     -> closed t
     -> ssubst_aux t sub = t.
@@ -1762,12 +1604,12 @@ Proof using.
 Qed.
 
 Lemma ssubst_aux_trivial2 :
-  forall t sub,
+  forall t (sub : @Substitution Opid),
     (forall v u, LIn (v, u) sub -> isprogram u)
     -> isprogram t
     -> ssubst_aux t sub = t.
 Proof using.
-  intros. apply ssubst_aux_trivial2_cl;  unfold isprogram in *;
+  intros. apply @ssubst_aux_trivial2_cl;  unfold isprogram in *;
   firstorder.
 Qed.
 
@@ -1865,7 +1707,7 @@ repeat match goal with
 end.
 
 Lemma simple_ssubst_aux_app :
-  forall t sub1 sub2,
+  forall t (sub1 sub2 : @Substitution Opid),
     (forall v u, LIn (v, u) sub1 -> isprogram u)
     -> (forall v u, LIn (v, u) sub2 -> isprogram u)
     -> ssubst_aux (ssubst_aux t sub1) sub2 = ssubst_aux t (sub1 ++ sub2).
@@ -1974,11 +1816,11 @@ Proof using.
   induction sub; simpl; sp.
   remember (memvar a0 l); destruct b; symmetry in Heqb; simpl.
   rw fold_assert in Heqb.
-  rw assert_memvar in Heqb.
+  rw @assert_memvar in Heqb.
   rw IHsub.
-  rw <- remove_nvars_dup; auto.
-  repeat (rw remove_nvars_move).
-  repeat (rw remove_nvars_cons).
+  rw <- @remove_nvars_dup; auto.
+  repeat (rw @remove_nvars_move).
+  repeat (rw @remove_nvars_cons).
   rw IHsub; auto.
 Qed.
 
@@ -1998,27 +1840,27 @@ Proof using.
       unfold isprogram, closed in p; sp.
       allrw.
       symmetry; rw <- null_iff_nil.
-      rw null_remove_nvars; simpl; sp; subst.
+      rw @null_remove_nvars; simpl; sp; subst.
       apply in_dom_sub in Heqo; sp.
     + sp.
       apply sub_find_none2 in Heqo.
       symmetry.
-      rw <- remove_nvars_unchanged.
+      rw <- @remove_nvars_unchanged.
       unfold disjoint; simpl; sp; subst; auto.
 
   - Case "oterm".
 
       rw flat_map_map; unfold compose.
-      rw remove_nvars_flat_map; unfold compose.
+      rw @remove_nvars_flat_map; unfold compose.
       apply eq_flat_maps; introv i.
       destruct x; simpl.
       simpl in i.
       apply ind with (sub := sub_filter sub l) in i; sp.
 
       rewrite i.
-      rw remove_nvars_app_l.
-      rw remove_nvars_comm.
-      rw remove_nvars_app_l.
+      rw @remove_nvars_app_l.
+      rw @remove_nvars_comm.
+      rw @remove_nvars_app_l.
       rw remove_nvars_comb; auto.
 
       apply k with (v := v).
@@ -2026,7 +1868,6 @@ Proof using.
       unfold subset in s.
       discover; sp.
 Qed.
-
 
 (* TODO : reuse the above lemma *)
 Lemma isprogram_ssubst_aux1 :
@@ -2046,12 +1887,12 @@ Proof using.
       unfold isprogram, closed in p; sp.
       allrw.
       symmetry; rw <- null_iff_nil.
-      rw null_remove_nvars; simpl; sp; subst.
+      rw @null_remove_nvars; simpl; sp; subst.
       apply in_dom_sub in Heqo; sp.
     + sp.
       apply sub_find_none2 in Heqo.
       symmetry.
-      rw <- remove_nvars_unchanged.
+      rw <- @remove_nvars_unchanged.
       unfold disjoint; simpl; sp; subst; auto.
 
   - Case "oterm".
@@ -2073,7 +1914,7 @@ Proof using.
 
     + auto.
       rw flat_map_map; unfold compose.
-      rw remove_nvars_flat_map; unfold compose.
+      rw @remove_nvars_flat_map; unfold compose.
       apply eq_flat_maps; introv i.
       destruct x; simpl.
       apply_in_hyp p.
@@ -2082,10 +1923,10 @@ Proof using.
       apply ind with (sub := sub_filter sub l) in i; sp.
 
       allrw.
-      rw remove_nvars_app_l.
-      rw remove_nvars_comm.
-      rw remove_nvars_app_l.
-      rw remove_nvars_comb; auto.
+      rw @remove_nvars_app_l.
+      rw @remove_nvars_comm.
+      rw @remove_nvars_app_l.
+      rw @remove_nvars_comb; auto.
 
       apply k with (v := v).
       assert (subset (sub_filter sub l) sub) as s by apply sub_filter_subset.
@@ -2171,27 +2012,27 @@ Proof using.
       allrw.
       symmetry. 
       rw <- null_iff_nil.
-      rw null_remove_nvars; simpl; sp; subst.
+      rw @null_remove_nvars; simpl; sp; subst.
       eapply in_dom_sub; eauto.
     + apply sub_find_none2 in Heqo.
       symmetry.
-      rw <- remove_nvars_unchanged.
+      rw <- @remove_nvars_unchanged.
       unfold disjoint; simpl; sp; subst; auto.
 
   - Case "oterm".
     auto.
     rw flat_map_map; unfold compose.
-    rw remove_nvars_flat_map; unfold compose.
+    rw @remove_nvars_flat_map; unfold compose.
     apply eq_flat_maps; introv i.
     destruct x; simpl.
 
     apply ind with (sub := sub_filter sub l) in i; sp.
 
     allrw.
-    rw remove_nvars_app_l.
-    rw remove_nvars_comm.
-    rw remove_nvars_app_l.
-    rw remove_nvars_comb; auto.
+    rw @remove_nvars_app_l.
+    rw @remove_nvars_comm.
+    rw @remove_nvars_app_l.
+    rw @remove_nvars_comb; auto.
 
     apply k with (v := v).
     assert (subset (sub_filter sub l) sub) as s by apply sub_filter_subset.
@@ -2225,7 +2066,7 @@ Proof using.
   unfold closed.
   allrw.
   rw <- null_iff_nil.
-  rw null_remove_nvars; simpl; sp.
+  rw @null_remove_nvars; simpl; sp.
 Qed.
 
 (*
@@ -2268,7 +2109,7 @@ Definition ssubstc0 (vs  : list NVar)
 *)
 
 Lemma subst_preserves_program :
-  forall t v u,
+  forall (t : NTerm) (v :NVar) u ,
     nt_wf t
     -> (forall x, LIn x (free_vars t) -> x = v)
     -> isprogram u
@@ -2288,14 +2129,14 @@ Lemma subst_preserves_isprog :
     -> isprog (subst t v u).
 Proof using.
   intros t v u.
-  repeat (rw <- isprogram_eq).
+  repeat (rw <- @isprogram_eq).
   unfold isprog_vars.
   rw andb_eq_true.
   fold (wf_term t).
-  repeat (rewrite <- nt_wf_eq).
+  repeat (rewrite <- @nt_wf_eq).
   rw fold_assert.
-  rw assert_sub_vars; allsimpl; sp.
-  apply subst_preserves_program; sp.
+  rw @assert_sub_vars; allsimpl; sp.
+  apply @subst_preserves_program; sp.
   symmetry; apply_in_hyp p; sp.
 Qed.
 Hint Resolve subst_preserves_isprog : isprog.
@@ -2317,23 +2158,6 @@ Tactic Notation "allrwxxx" ident(T) :=
            | [ H1 : t, H : _ |- _ ] =>
              progress (trw_h T H || trw T || rewrite T in H || rewrite T)
          end.
-
-Lemma substc_cvterm_var :
-  forall t v u,
-    substc t v (cvterm_var v u) = u.
-Proof using.
-  destruct u, t; simpl; unfold subst.
-  assert (ssubst x [(v, x0)] = x) as leq.
-  apply ssubst_trivial; simpl; sp; inj.
-  rw isprogram_eq; sp.
-  rw isprog_eq in i.
-  inversion i.
-  unfold closed in H.
-  rww H; allsimpl; sp.
-  rewrite dep_pair_eq with (eq0 := leq) (pb := i); sp.
-  apply UIP_dec.
-  apply bool_dec.
-Qed.
 
 (** the ssubst version of this is best done after 
    we have the lemma that alpha_equality preserves wf 
@@ -2590,7 +2414,7 @@ Abort.
 *)
 
 Lemma subset_free_vars_sub_aux_app :
-  forall t sub1 sub2,
+  forall t (sub1 sub2 : Substitution),
     (forall v t, LIn (v, t) (sub1 ++ sub2) -> isprogram t)
     -> disjoint (free_vars t) (dom_sub sub2)
     -> ssubst_aux t (sub1 ++ sub2) = ssubst_aux t sub1.
@@ -2622,20 +2446,21 @@ Proof using.
     allrw disjoint_flat_map_l.
     apply_in_hyp p.
     allsimpl.
-    rw disjoint_remove_nvars_l in p.
+    rw @disjoint_remove_nvars_l in p.
     rw <- @dom_sub_sub_filter; auto.
 Qed.
 
+
 Lemma subset_free_vars_sub_app :
-  forall t sub1 sub2,
+  forall t (sub1 sub2 : Substitution),
     (forall v t, LIn (v, t) (sub1 ++ sub2) -> isprogram t)
     -> disjoint (free_vars t) (dom_sub sub2)
     -> ssubst t (sub1 ++ sub2) = ssubst t sub1.
 Proof using.
-  introv Hpr. applydup (sub_app_sat_if isprogram) in Hpr. repnd.
+  introv Hpr. applydup (@sub_app_sat_if NVar Opid isprogram) in Hpr. repnd.
   allfold (prog_sub sub1). intros.
   change_to_ssubst_aux4.
-  apply subset_free_vars_sub_aux_app;sp.
+  eapply subset_free_vars_sub_aux_app;sp.
 Qed.
 
 Lemma sub_find_member :
@@ -2644,7 +2469,7 @@ Lemma sub_find_member :
     -> sub_find (sub1 ++ (x, t) :: sub2) x = Some t.
 Proof using.
   induction sub1; simpl; sp.
-  rw <- beq_var_refl; auto; allsimpl.
+  rw <- @beq_var_refl; auto; allsimpl.
   remember (beq_var a0 x); destruct b.
   apply beq_var_eq in Heqb; subst.
   provefalse; apply H; left; auto.
@@ -2665,9 +2490,9 @@ Lemma sub_filter_map_trivial_vars :
     = map (fun v : NVar => (v, vterm v)) (remove_nvars l vars).
 Proof using.
   induction vars; simpl; sp.
-  rw remove_nvars_nil_r; simpl; auto.
+  rw @remove_nvars_nil_r; simpl; auto.
   rw IHvars.
-  rw remove_nvars_cons_r.
+  rw @remove_nvars_cons_r.
   destruct (memvar a l); auto.
 Qed.
 
@@ -2686,11 +2511,11 @@ Proof using.
   rw IHsub in H; sp.
   symmetry in Heqb.
   rw fold_assert in Heqb.
-  rw assert_memvar in Heqb; sp.
-  rw <- beq_var_refl in H; allsimpl; sp.
+  rw @assert_memvar in Heqb; sp.
+  rw <- @beq_var_refl in H; allsimpl; sp.
 
   symmetry in Heqb.
-  applydup beq_var_false_not_eq in Heqb.
+  applydup @beq_var_false_not_eq in Heqb.
   remember (memvar a0 l); destruct b; allsimpl.
   rw IHsub in H; sp.
   rw Heqb in H.
@@ -2701,14 +2526,14 @@ Proof using.
 
   symmetry in Heqb.
   rw not_of_assert in Heqb.
-  rw assert_memvar in Heqb.
+  rw @assert_memvar in Heqb.
   remember (beq_var a0 v); destruct b.
   apply beq_var_eq in Heqb0; subst; sp.
   rw IHsub in H; sp.
 
   remember (memvar a0 l); destruct b; allsimpl.
 
-  symmetry in Heqb; rw fold_assert in Heqb; rw assert_memvar in Heqb.
+  symmetry in Heqb; rw fold_assert in Heqb; rw @assert_memvar in Heqb.
   rw IHsub; sp.
   remember (beq_var a0 v); destruct b; sp.
 
@@ -2727,12 +2552,12 @@ Proof using.
   remember (memvar a0 l); destruct b; allsimpl;
   duplicate Heqb as eq;
   symmetry in Heqb;
-  try (rw fold_assert in Heqb; rw assert_memvar in Heqb);
-  try (rw not_of_assert in Heqb; rw assert_memvar in Heqb);
+  try (rw @fold_assert in Heqb; rw @assert_memvar in Heqb);
+  try (rw @not_of_assert in Heqb; rw @assert_memvar in Heqb);
   remember (beq_var a0 v); destruct b;
   duplicate Heqb0 as eq2;
-  try (apply beq_var_eq in Heqb0; subst);
-  try (symmetry in Heqb0; apply beq_var_false_not_eq in Heqb0); sp;
+  try (apply @beq_var_eq in Heqb0; subst);
+  try (symmetry in Heqb0; apply @beq_var_false_not_eq in Heqb0); sp;
   try (complete (apply IHsub; auto)).
 Qed.
 
@@ -2750,15 +2575,16 @@ Proof using.
   rw IHsub; sp.
 Qed.
 
+Notation assert_memvar := (@assert_memvar NVar).
 Lemma sub_filter_app_as_remove_nvars :
-  forall (sub : @Substitution Opid) l1 l2,
+  forall (sub : @Substitution Opid) (l1 l2 : list NVar),
     sub_filter sub (l1 ++ l2)
     = sub_filter sub (l1 ++ remove_nvars l1 l2).
 Proof using.
   induction sub; simpl; sp; allsimpl.
   remember (memvar a0 (l1 ++ l2)); symmetry in Heqb; destruct b.
 
-  rw fold_assert in Heqb; rw assert_memvar in Heqb.
+  rw fold_assert in Heqb; rw @assert_memvar in Heqb.
   rw in_app_iff in Heqb; sp.
 
   remember (memvar a0 (l1 ++ remove_nvars l1 l2)); symmetry in Heqb; destruct b.
@@ -2774,24 +2600,26 @@ Proof using.
 
   rw not_of_assert in Heqb; rw assert_memvar in Heqb; rw in_app_iff in Heqb.
   apply not_over_or in Heqb; repnd.
-  allrw in_remove_nvars.
+  allrw @in_remove_nvars.
   provefalse; apply Heqb; sp.
 
-  rw not_of_assert in Heqb; rw assert_memvar in Heqb; rw in_app_iff in Heqb.
+  rw @not_of_assert in Heqb; rw @assert_memvar in Heqb; rw @in_app_iff in Heqb.
   apply not_over_or in Heqb; repnd.
 
   remember (memvar a0 (l1 ++ remove_nvars l1 l2)); symmetry in Heqb1; destruct b.
 
   rw fold_assert in Heqb1; rw assert_memvar in Heqb1; rw in_app_iff in Heqb1; sp.
-  allrw in_remove_nvars; sp.
+  allrw @in_remove_nvars; sp.
 
   rw <- IHsub; sp.
 Qed.
 
+Notation in_remove_nvars := (@in_remove_nvars NVar).
+
 (** TODO : use the stronger lemma ssubst_aux_sub_filter2 for a smaller and
     more maintainable proof*)
 Lemma ssubst_aux_sub_filter :
-  forall t sub l,
+  forall t (sub : Substitution) l,
     (forall v u, LIn (v, u) sub -> isprogram u)
     -> disjoint (free_vars t) l
     -> ssubst_aux t (sub_filter sub l) = ssubst_aux t sub.
@@ -2800,7 +2628,7 @@ Proof using.
 
   - Case "vterm".
     remember (sub_find (sub_filter sub l) n); symmetry in Heqo; destruct o.
-    rw sub_find_sub_filter_some in Heqo; sp.
+    rw @sub_find_sub_filter_some in Heqo; sp.
     allrw; sp.
     rw sub_find_sub_filter_none in Heqo; sp.
     allrw; sp.
@@ -2813,10 +2641,10 @@ Proof using.
 
     allrw disjoint_flat_map_l.
     apply_in_hyp p; allsimpl.
-    allrw disjoint_remove_nvars_l.
+    allrw @disjoint_remove_nvars_l.
 
-    repeat (rw bvar_renamings_subst_isprogram; sp).
-    repeat (rw app_nil_l).
+    repeat (rw @bvar_renamings_subst_isprogram; sp).
+    repeat (rw @app_nil_l).
     rw sub_filter_swap.
     rw <- @sub_filter_app_r.
     rw sub_filter_app_as_remove_nvars.
@@ -2887,7 +2715,7 @@ Proof using.
 Qed.
 
 Lemma ssubst_aux_nt_wf :
-  forall t sub,
+  forall t (sub : Substitution),
     nt_wf (ssubst_aux t sub)
     -> nt_wf t.
 Proof using.
@@ -2945,7 +2773,7 @@ Qed.
 
 
 Lemma ssubst_aux_snoc_dup :
-  forall t sub v u,
+  forall t (sub : Substitution) v u,
     (forall v t, LIn (v, t) sub -> isprogram t)
     -> isprogram u
     -> LIn v (dom_sub sub)
@@ -2974,7 +2802,7 @@ Proof using.
     allrw @in_sub_filter; sp.
     apply_in_hyp p; sp.
     rw <- @dom_sub_sub_filter.
-    rw in_remove_nvars; sp.
+    rw @in_remove_nvars; sp.
     rw not_of_assert in Heqb.
     rw assert_memvar in Heqb; sp.
 Qed.
@@ -2997,7 +2825,7 @@ Qed.
 
 
 Lemma ssubst_aux_swap:
-  forall t sub v u,
+  forall t (sub : Substitution) v u,
     (forall v t, LIn (v, t) sub -> isprogram t)
     -> isprogram u
     -> ! LIn v (dom_sub sub)
@@ -3026,11 +2854,11 @@ Proof using.
     allrw @in_sub_filter; sp.
     apply_in_hyp p; sp.
     allrw <- @dom_sub_sub_filter.
-    allrw in_remove_nvars; sp.
+    allrw @in_remove_nvars; sp.
 Qed.
 
 Lemma ssubst_swap:
-  forall t sub v u,
+  forall t (sub: @Substitution Opid) v u,
     (forall v t, LIn (v, t) sub -> isprogram t)
     -> isprogram u
     -> ! LIn v (dom_sub sub)
@@ -3050,20 +2878,10 @@ Proof using.
     apply ssubst_aux_swap ;sp.
 Qed.
 
-Lemma cover_vars_var :
-  forall v sub,
-    LIn v (dom_csub sub)
-    -> cover_vars (mk_var v) sub.
-Proof using.
-  sp.
-  rw cover_vars_eq; simpl.
-  unfold subset; simpl; sp; subst; auto.
-Qed.
-
 
 
 Lemma ssubst_aux_shift :
-  forall t sub1 sub2 sub3,
+  forall t (sub1 sub2 sub3 : @Substitution Opid),
     (forall v t, LIn (v, t) (sub1 ++ sub2 ++ sub3) -> isprogram t)
     -> disjoint (dom_sub sub1) (dom_sub sub2)
     -> ssubst_aux t (sub1 ++ sub2 ++ sub3) = ssubst_aux t (sub2 ++ sub1 ++ sub3).
@@ -3099,7 +2917,7 @@ Proof using.
 Qed.
 
 Lemma ssubst_shift :
-  forall t sub1 sub2 sub3,
+  forall t (sub1 sub2 sub3 :@Substitution Opid),
     (forall v t, LIn (v, t) (sub1 ++ sub2 ++ sub3) -> isprogram t)
     -> disjoint (dom_sub sub1) (dom_sub sub2)
     -> ssubst t (sub1 ++ sub2 ++ sub3) = ssubst t (sub2 ++ sub1 ++ sub3).
@@ -3115,17 +2933,6 @@ Proof using.
 Qed.
 
 
-Lemma cover_vars_shift :
-  forall t sub1 sub2 sub3,
-    cover_vars t (sub1 ++ sub2 ++ sub3)
-    -> cover_vars t (sub2 ++ sub1 ++ sub3).
-Proof using.
-  sp; allrw cover_vars_eq; sp;
-  unfold subset; unfold subset in H; sp.
-  apply_in_hyp p.
-  allrw dom_csub_app; allrw in_app_iff; sp.
-Qed.
-
 
 
 Fixpoint ssubst_sub (sub1 sub2 : Substitution) : @Substitution Opid :=
@@ -3135,7 +2942,7 @@ Fixpoint ssubst_sub (sub1 sub2 : Substitution) : @Substitution Opid :=
   end.
 
 Lemma ssubst_sub_cons :
-  forall v t sub1 sub2,
+  forall v t (sub1 sub2 :@Substitution Opid),
     ssubst_sub ((v, t) :: sub1) sub2
     = (v, ssubst t sub2) :: ssubst_sub sub1 sub2.
 Proof using.
@@ -3143,7 +2950,7 @@ Proof using.
 Qed.
 
 Lemma ssubst_sub_nil :
-  forall sub, ssubst_sub [] sub = [].
+  forall (sub :@Substitution Opid), ssubst_sub [] sub = [].
 Proof using.
   sp.
 Qed.
@@ -3235,22 +3042,6 @@ Proof using.
     sp.
 Qed.
 
-Lemma ssubst_aux_sub_filter3 :
-  forall t sub vs,
-    disjoint (remove_nvars vs (dom_csub sub)) (free_vars t)
-    -> ssubst_aux t (sub_filter (csub2sub sub) vs) = t.
-Proof using.
-  introv disj.
-  apply ssubst_aux_trivial; introv i.
-  apply in_sub_filter in i; repnd.
-  dands; try (complete (apply in_csub2sub in i0; sp)).
-  introv j.
-  generalize (disj v); intro imp.
-  dest_imp imp hyp.
-  rw in_remove_nvars; sp.
-  rw <- dom_csub_eq.
-  apply in_dom_sub in i0; sp.
-Qed.
 
 Lemma ssubst_sub_filter2:
   forall t (sub : @Substitution Opid) l,
@@ -3282,14 +3073,14 @@ Ltac disjoint_flat2 := allunfold disjoint_bv_sub; allunfold sub_range_sat; allsi
 end.
 
 Lemma ssubst_sub_sub_filter_disjoint2:
-  forall sub1 sub2 l,
+  forall (sub1 sub2 : @Substitution Opid) l,
     disjoint (flat_map bound_vars (range sub1)) (flat_map free_vars (range sub2))
    -> disjoint l (flat_map free_vars (range sub1))
    ->  ssubst_sub (sub_filter sub1 l) (sub_filter sub2 l)
        = ssubst_sub (sub_filter sub1 l) sub2.
 Proof using.
   induction sub1 as [|(v,t) sub Hind]; introv H1dis H2dis; allsimpl;sp.
-  rw memvar_dmemvar.
+  rw @memvar_dmemvar.
   cases_ifn Hm; allsimpl; rw Hind; disjoint_reasoningv;[].
   f_equal; f_equal;[].
   rw ssubst_sub_filter2;sp; disjoint_reasoningv;[].
@@ -3486,7 +3277,7 @@ Proof using.
   induction sub. simpl; split; sp.
   simpl. destruct a as [v t]. introv.
   cases_if as Hmv;
-    (applydup assert_memvar in Hmv || applydup assert_memvar_false in Hmv) ; simpl;
+    (applydup @assert_memvar in Hmv || applydup @assert_memvar_false in Hmv) ; simpl;
     split; introv Hor.
   - invertsn Hor. invertsn Hor; split; auto.  apply IHsub in Hor; repnd; auto.
   - inverts Hor as Hor Hin. invertsn Hor. invertsn Hor. left; reflexivity.   right. apply IHsub;  auto.
@@ -3496,6 +3287,7 @@ Qed.
 
 (* Theorem memvar2 (v:NVar) (vs:list NVar) : {LIn v vs}  + {! LIn v vs} := *)
 
+Notation assert_memvar_false := (@assert_memvar_false NVar).
 
 
 Theorem sub_keep_nest:
@@ -3605,7 +3397,10 @@ Proof using.
   introv Hcl. introv Hin. apply Hcl in Hin. repnud Hin; auto.
 Qed.
 
-
+Notation beq_var := (@beq_var NVar).
+Notation beq_var_refl := (@beq_var_refl NVar).
+Notation not_eq_beq_var_false := (@not_eq_beq_var_false NVar).
+Notation eq_var_dec := (@eq_var_dec NVar).
 (** TODO : use the stronger lemma free_vars_ssubst_aux2 for a shorter
     and more maintainable proof *)
 Theorem free_vars_ssubst_aux:
@@ -3752,24 +3547,6 @@ Proof using.
 Qed.
 
 
-
-Lemma cover_vars_upto_eq_dom_csub :
-  forall t s1 s2 vs,
-    cover_vars_upto t (csub_filter s1 vs) vs
-    -> dom_csub s1 = dom_csub s2
-    -> cover_vars_upto t (csub_filter s2 vs) vs.
-Proof using.
-  unfold cover_vars_upto; sp.
-  repeat rewrite assert_sub_vars in H.
-  repeat rewrite assert_sub_vars.
-  sp.
-  apply_in_hyp p.
-  allrw in_app_iff; sp.
-  allrw dom_csub_csub_filter.
-  allrw in_remove_nvars; sp.
-  right; sp.
-  rewrite <- H0; sp.
-Qed.
 
 Lemma sub_find_varsub :
   forall lvo lvn vo (vnt : NTerm),
@@ -3950,13 +3727,15 @@ Proof using. introv Hall Heq.
 Qed.
 
 
+Notation assert_sub_vars := (@assert_sub_vars NVar).
+
 Lemma covered_app_weak_l :
   forall (t:NTerm) vs1 vs2,
     covered t vs1
     -> covered t (vs1 ++ vs2).
 Proof using.
   unfold covered; intros.
-  allrw assert_sub_vars; sp.
+  allrw @assert_sub_vars; sp.
   apply_in_hyp p.
   allrw in_app_iff; sp.
 Qed.
@@ -4010,7 +3789,7 @@ Lemma sub_keep_first_nil_r :
 Proof using.
   induction sub; simpl; sp.
 Qed.
-Local Opaque beq_var.
+Local Opaque varInterface.beq_var.
 
 Lemma sub_keep_first_singleton_r_some :
   forall sub v t,
@@ -4055,10 +3834,10 @@ Proof using.
   remember (memvar a0 (remove_nvar vs2 v)); symmetry in Heqb; destruct b;
   remember (memvar a0 vs2); symmetry in Heqb0; destruct b; simpl;
   remember (memvar a0 vs1); symmetry in Heqb1; destruct b; simpl; sp;
-  allrw fold_assert;
-  allrw not_of_assert;
-  allrw assert_memvar;
-  allrw in_remove_nvar; sp.
+  allrw @fold_assert;
+  allrw @not_of_assert;
+  allrw @assert_memvar;
+  allrw @in_remove_nvar; sp.
 
   - rewrite remove_nvar_comm; auto.
 
@@ -4294,6 +4073,8 @@ Proof using.
         eapply Hind; eauto. 
         apply disjoint_app_r. split; trivial.
 Qed.
+
+Notation sub_range_sat := (@sub_range_sat NVar).
 (**ssubst_wf_iff proved in alpgaeq.v*)
 Theorem ssubst_aux_wf_iff: 
   forall sub, 
@@ -4482,6 +4263,7 @@ Proof using.
   - apply sub_find_sub_filter_none in Hl. dorn Hl; sp.
 Qed.
 
+Notation sub_filter := (@sub_filter NVar).
 
 Theorem no_repeats_sub_filter:
   forall lvi lvo lvi0 lvo0 lv, 
@@ -4524,7 +4306,9 @@ Theorem freevars_ssubst_aux_allvars:
        -> disjoint (get_sub_dom_vars sub p) (all_vars t)
        -> map vterm (free_vars (ssubst_aux t sub)) 
           = map (fun t=> ssubst_aux t sub) (map vterm (free_vars t)).
-Proof using Type* gts.
+Proof using hdeq.
+  clear varclass.
+  clear VarClass.
   clear gts.
   nterm_ind1 t as [v | o lbt Hind] Case; 
   introv Hnr Hdis.
@@ -4546,26 +4330,11 @@ Proof using Type* gts.
     destruct bt as [lv nt].
     simpl.
     remember ((sub_filter sub lv)) as sfio.
-    remember (@sub_mk_renames2 _ _ _ _ Opid lv (sub_free_vars sfio) (dom_sub sfio ++ all_vars nt) ) as H99.
-    destruct H99 as [lvr subr].
     pose proof (get_sub_dom_vars_eta sub p).
     exrepnd. subst.
      duplicate Hdis.
      unfold all_vars in Hdis. simpl in Hdis. 
      repeat(rw disjoint_app_r in Hdis).
-    rewrite sub_mk_renames2_disjoint in HeqH99.
-    Focus 2.
-       repnd. rewrite get_sub_dom_vars_ren in Hdis3; auto.
-       apply disjoint_sym in Hdis3.
-       introv Hc1 Hc2. apply Hdis3 in Hc1.
-       apply in_sub_free_vars in Hc2. exrepnd.
-       apply in_sub_filter in Hc0; repnd.
-       apply in_combine in Hc3. repnd.
-       apply in_map_iff in Hc3. exrepnd. subst.
-       allsimpl. dorn Hc2; sp.
-       subst; sp. 
- 
-    inverts HeqH99. allsimpl. 
     pose proof (allvars_sub_filter lvi lvo lv) as Halv.
 
      rewrite map_removevars.
@@ -4651,9 +4420,6 @@ Proof using Type* gts.
             rewrite map_length. omega.
 Qed.
 
-
-
-
 (* Print Assumptions freevars_ssubst_allvars. *)
 
 Lemma lin_combine_injective: forall {A B C D :Type} 
@@ -4702,7 +4468,7 @@ Print lmap_find_injection.
 Lemma lmap_apply_var: forall (lvi lvo : list NVar) v,
  (fun t=> @ssubst _ _ _ _ Opid t (var_ren lvi lvo)) (vterm v)
   = vterm (lmap_apply deq_nvar (combine lvi lvo) v).
-Proof using.
+Proof using hdeq.
  intros. simpl. unfold ssubst. simpl. rewrite sub_lmap_find.
   unfold lmap_apply.
   unfold var_ren. rewrite <- (@lmap_find_injection NVar); [| introv H; inverts H;sp].
@@ -4712,7 +4478,7 @@ Qed.
 Lemma lmap_lapply_var_map: forall (lvi lvo lv : list NVar),
  map (fun t:NTerm=> ssubst_aux t (var_ren lvi lvo)) (map (@vterm NVar Opid) lv)
   = map (@vterm NVar Opid) (lmap_lapply deq_nvar (combine lvi lvo) lv).
-Proof using Type*.
+Proof using hdeq varclass VarClass.
   induction lv as [|v lv Hind];auto.
   simpl. rewrite Hind. f_equal.
   rewrite <- lmap_apply_var; refl.
@@ -4726,7 +4492,7 @@ Theorem freevars_ssubst_allvars2:
        -> disjoint lvo (all_vars t)
        -> free_vars (ssubst t (var_ren lvi lvo) ) 
           = lvmap_lapply (combine lvi lvo) (free_vars t).
-Proof using.
+Proof using hdeq varclass VarClass.
   clear gts.
   introv Hleq Hnr Hdis.
   rewrite ssubst_ssubst_aux_hide.
@@ -4744,10 +4510,10 @@ Proof using.
 Qed.
 
 Lemma ssubst_aux_trivial5 :
-  (forall t sub,
+  (forall t (sub : @Substitution Opid),
     disjoint (free_vars t) (dom_sub sub)
     -> ssubst_aux t sub = t)*
-  (forall bt sub,
+  (forall bt (sub : @Substitution Opid),
     disjoint (dom_sub sub) (free_vars_bterm bt)
     -> ssubst_bterm_aux bt sub = bt).
 Proof using.
@@ -4776,7 +4542,7 @@ Definition ssubst_bterm_aux_trivial_disj := snd ssubst_aux_trivial5.
 
 (* TODO : delete because [ssubst_aux_trivial_disj] is stronger and easier to use *)
 Lemma ssubst_aux_trivial3 :
-  forall t sub,
+  forall t (sub : @Substitution Opid),
     (forall v u, LIn (v, u) sub -> disjoint (free_vars u) (bound_vars t) 
           # ! LIn v (free_vars t))
     -> ssubst_aux t sub = t.
@@ -4784,7 +4550,7 @@ Proof using.
   nterm_ind t Case; simpl; intros.
 
   - Case "vterm".
-    allunfold isprogram; allunfold closed; sp.
+    allunfold @isprogram; allunfold @closed; sp.
     remember (sub_find sub n); destruct o; symmetry in Heqo; auto.
     apply sub_find_some in Heqo.
     apply_in_hyp p; sp.
@@ -4813,7 +4579,7 @@ Qed.
 
 
 Lemma ssubst_trivial3 :
-  forall t sub,
+  forall t (sub : @Substitution Opid),
     (forall v u, LIn (v, u) sub -> disjoint (free_vars u) (bound_vars t) 
           # ! LIn v (free_vars t))
     -> ssubst t sub = t.
@@ -4824,6 +4590,10 @@ Proof using.
   apply ssubst_aux_trivial3; try(sp;fail);
   try(apply disjoint_sub_as_flat_map;disjoint_reasoning).
 Qed.
+
+Section TempTemp.
+
+Notation ssubst := (@ssubst NVar _ _ _ Opid).
 
 Lemma ssubst_trivial4 :
   forall t sub, disjoint (dom_sub sub) (free_vars t) 
@@ -4839,6 +4609,7 @@ Proof using.
   apply in_dom_sub in Hin. sp.
 Qed.
 
+Notation ssubst_aux := (@ssubst_aux NVar _ Opid).
 Lemma ssubst_aux_trivial4 :
   forall t sub, disjoint (dom_sub sub) (free_vars t) 
     -> (forall v u, LIn (v, u) sub -> disjoint (free_vars u) (bound_vars t))
@@ -4853,6 +4624,7 @@ Proof using.
   apply in_dom_sub in Hin. sp.
 Qed.
 
+Notation sub_filter := (@sub_filter _ Opid).
 
 Lemma sub_filter_disjoint1:
   forall sub lf,
@@ -4881,6 +4653,7 @@ Proof using.
   rewrite map_length; auto; try omega.
 Qed.
 
+Notation var_ren := (@var_ren NVar Opid).
 
 
 Lemma in_var_ren: forall lvi lvo u t,
@@ -4895,6 +4668,7 @@ Proof using.
   eexists; eauto.
 Defined.
 
+Notation vterm := (@vterm NVar Opid).
 
 Lemma in_combine_vars_vterm: forall lvi lvo (u v: NVar) ,
   LIn (u,v) (combine lvi lvo) -> LIn (u, vterm v) (var_ren lvi lvo).
@@ -4966,6 +4740,8 @@ Proof using.
   apply disjoint_app_l; auto.
 Qed.
 
+Notation dom_sub := (@dom_sub NVar Opid).
+
 Lemma sub_find_first: forall sub v t,
   sub_find sub v= Some t
   -> {n: nat & (n < length sub) # nth n sub (v,t) =(v,t) # 
@@ -4973,9 +4749,12 @@ Lemma sub_find_first: forall sub v t,
 Proof using.
   introns K. rewrite (sub_lmap_find_first) in K.
   destruct (lmap_find_first deq_nvar sub v) as [s1s|n1n];
-  exrepnd;  allsimpl; allfold (@dom_sub NVar gts); inverts K.
+  exrepnd;  allsimpl; unfold  dom_sub in *; inverts K.
     exists n; sp.
 Qed.
+
+Notation sub_find := (@sub_find NVar _ Opid).
+
 
 Lemma sub_find_some2_first:
   forall lv lnt1 lnt2 v t1 t2,
@@ -5131,6 +4910,8 @@ Proof using.
   eexists; split; eauto.
 Qed.
 
+Notation bound_vars := (@bound_vars NVar _ Opid).
+
 Lemma boundvars_ssubst_bterm_aux_subset:
   forall bt sub,
   subset (bound_vars_bterm (ssubst_bterm_aux bt sub)) 
@@ -5165,6 +4946,7 @@ Lemma boundvars_ssubst_aux_vars:
   -> bound_vars (ssubst_aux nt (var_ren lvi lvo))
      = bound_vars nt.
 Proof using.
+  clear hdeq.
   nterm_ind1s nt as [v | o lbt Hind] Case; introv Hl; auto.
   - Case "vterm". simpl. rewrite sub_lmap_find. 
     destruct (lmap_find deq_nvar (var_ren lvi lvo) v) as [s1s| n1n];auto; exrepnd.
@@ -5185,7 +4967,7 @@ Lemma boundvars_ssubst_vars:
   -> disjoint lvo (bound_vars nt)
   -> bound_vars (ssubst nt (var_ren lvi lvo))
      = bound_vars nt.
-Proof using.
+Proof using hdeq.
   intros. change_to_ssubst_aux4.
   apply boundvars_ssubst_aux_vars;try(sp;fail);
   try(rw disjoint_sub_as_flat_map;disjoint_reasoningv).
@@ -5197,7 +4979,7 @@ Lemma boundvars_ssubst_vars2:
   -> disjoint_bv_sub nt sub
   -> bound_vars (ssubst nt sub)
      = bound_vars nt.
-Proof using.
+Proof using hdeq.
   introv Ha Hd. change_to_ssubst_aux4.
   pose proof (get_sub_dom_vars_eta _ Ha) as XX.
   exrepnd. GC. revert Hd. intro Hd. allrw XX0.
@@ -5325,7 +5107,7 @@ Ltac disjoint_sub_filter :=
 
 
 
-Lemma ssubst_aux_nest_swap2: forall t sub1 sub2,
+Lemma ssubst_aux_nest_swap2: forall t (sub1 sub2:@Substitution Opid),
   let lvi1 := dom_sub sub1 in
   let lvi2 := dom_sub sub2 in
   let lnt1 := range sub1 in
@@ -5351,13 +5133,13 @@ Proof using.
   Case "vterm".
 
   - simpl. destructr (sub_find sub1 v) as  [s1|n1].
-    + symmetry in HeqHdeq. applydup sub_find_some in HeqHdeq.
+    + symmetry in HeqHdeq. applydup @sub_find_some in HeqHdeq.
       simpl. rw Xsub1eta in HeqHdeq0.
       apply in_combine in HeqHdeq0. repnd.
       assert (disjoint lvi1 lvi2) as XX by   disjoint_reasoningv.
       apply XX in HeqHdeq1.
       destructr (sub_find (combine lvi2 lnt2) v) as  [s2|n2];
-      [ symmetry in HeqHdeq2; applydup sub_find_some in HeqHdeq2;
+      [ symmetry in HeqHdeq2; applydup @sub_find_some in HeqHdeq2;
         apply in_combine in HeqHdeq3; repnd; sp | ];[].
       simpl. rw Xsub2eta. rewrite <- HeqHdeq2. simpl. rw  HeqHdeq.
         rewrite ssubst_aux_trivial4; auto.
@@ -5374,7 +5156,7 @@ Proof using.
       destructr (sub_find (combine lvi2 lnt2) v) as  [s2|n2];simpl;
       [|rewrite HeqHdeq;rewrite <- HeqHdeq0; sp];[].
       simpl. rewrite <- HeqHdeq0.
-      applysym sub_find_some in HeqHdeq0.
+      applysym @sub_find_some in HeqHdeq0.
       apply in_combine in HeqHdeq0. repnd.
       rewrite ssubst_aux_trivial4; auto.
       * rw <- Heqlvi1. revert HeqHdeq0. apply disjoint_flat_map_r.
@@ -5420,7 +5202,7 @@ Proof using.
     rewrite_once Xsub2eta;[| | | | |]; disjoint_reasoningv; disjoint_sub_filter.
 Qed.
 
-Lemma ssubst_nest_swap2: forall t sub1 sub2,
+Lemma ssubst_nest_swap2: forall t (sub1 sub2 : @Substitution Opid),
   let lvi1 := dom_sub sub1 in
   let lvi2 := dom_sub sub2 in
   let lnt1 := range sub1 in
@@ -5545,7 +5327,7 @@ Proof using.
     repeat(rewrite <- sub_filter_app_r).
     eapply Hind; eauto;[disjoint_reasoningv|].
     rw disjoint_flat_map_r in Hdisf. apply Hdisf in Hinb.
-    simpl in Hinb. rw <- disjoint_remove_nvars_l in Hinb.
+    simpl in Hinb. rw <- @disjoint_remove_nvars_l in Hinb.
     apply remove_nvars_unchanged in Hdisb1.
     rewrite Hdisb1 in Hinb. trivial.
 
@@ -5585,8 +5367,8 @@ Proof using.
         in s3s0;spc.
         rw combine_nth in s3s2;spc. inverts s3s2 as s3s3 s3s4.
         simpl.  rewrite  Hl1 in s1s0.
-        fold (@dom_sub NVar gts) in *. 
-        allunfold (@var_ren NVar). spcls. 
+        fold dom_sub in *. 
+        unfold var_ren in *. spcls. 
         assert (n0<n \/ n0=n \/ n<n0) as Htri by omega.
         (dorn Htri);[|(dorn Htri)];
           try (apply s1s1 in Htri); cpx;
@@ -5596,17 +5378,17 @@ Proof using.
       * rename HeqHdeq into n3n. symmetry in n3n. 
         apply sub_find_sub_filter_none in n3n. dorn n3n; [ |sp(**see s1s*)].
         apply sub_find_none2 in n3n.        
-        clear s1s1. apply nth_in2 in s1s3;[| congruence]. allunfold (@var_ren NVar).
+        clear s1s1. apply nth_in2 in s1s3;[| congruence]. unfold var_ren in *.
         simpl. spcls. sp.
     + rename HeqHdeq into n2n. symmetry in n2n.
       apply sub_find_sub_filter_none in n2n. dorn n2n.
       * apply sub_find_none2 in n2n. 
-        apply nth_in2 in s1s4;[| congruence]. allunfold (@var_ren NVar).
+        apply nth_in2 in s1s4;[| congruence]. unfold var_ren in *.
         simpl. spcls. sp. 
       * apply nth_in2 in s1s4;[| congruence].
         assert (disjoint lvio lf) as X99 by disjoint_reasoningv.
         apply X99 in s1s4; sp.
-  - apply disjoint_singleton_r in Hdisf. allfold (@dom_sub NVar gts).
+  - apply disjoint_singleton_r in Hdisf. fold dom_sub in *.
     assert ((dom_sub (combine lvi lnt)) = lvi) as Xrw  by (spcls;sp).
     rename HeqHdeq into n1n. symmetry in n1n. 
     apply sub_find_sub_filter_none in n1n. 
@@ -5637,7 +5419,7 @@ Lemma ssubst_nest_same_str :
   -> disjoint lvio (free_vars t)
   -> ssubst (ssubst t (filt_var_ren lvi lvio lf)) (filt_combine lvio lnt lf)
      = ssubst t (filt_combine lvi lnt lf).
-Proof using.
+Proof using hdeq.
   intros. change_to_ssubst_aux8;
   try(apply ssubst_aux_nest_same_str;try(sp;fail));
   apply disjoint_sym;
@@ -5663,7 +5445,7 @@ Lemma ssubst_nest_vars_same_str :
   -> disjoint lvio (free_vars t)
   -> ssubst (ssubst t (filt_var_ren lvi lvio lf)) (filt_var_ren lvio lvo lf)
      = ssubst t (filt_var_ren lvi lvo lf).
-Proof using.
+Proof using hdeq.
     intros. apply ssubst_nest_same_str;spc; spcls;sp.
 Qed.
   
@@ -5676,7 +5458,7 @@ Lemma ssubst_nest_same :
   -> disjoint lvio (free_vars t)
   -> ssubst (ssubst t (var_ren lvi lvio)) (combine lvio lnt)
      = ssubst t (combine lvi lnt).
-Proof using.
+Proof using hdeq.
   intros.
   pose proof (sub_filter_nil_r (var_ren lvi lvio)) as K.
   rewrite <- K. clear K.
@@ -5718,9 +5500,10 @@ Lemma ssubst_nest_vars_same :
   -> disjoint lvio (free_vars t)
   -> ssubst (ssubst t (var_ren lvi lvio)) (var_ren lvio lvo)
      = ssubst t (var_ren lvi lvo).
-Proof using.
+Proof using hdeq.
     intros. apply ssubst_nest_same;spc;spcls;sp.
 Qed.
+
 Lemma ssubst_aux_nest_vars_same :
   forall t lvi lvio lvo,
   length lvio=length lvi
@@ -5754,7 +5537,7 @@ Proof using. nterm_ind1 nt as [vn | o lbt Hind] Case; introv Hdis Hin.
           || (rw not_eq_beq_var_false in Hin;auto)).
       + right. exists vs ts. sp; auto.
       + cases (sub_find sub vn) as Hf.
-          * applydup sub_find_some in Hf.
+          * applydup @sub_find_some in Hf.
              right; exists vn n; split; auto. right;auto. simpl. split; auto.
           * left;split;auto. allsimpl;subst. introv Hc. dorn Hc; subst; sp.
             subst. apply sub_find_none2 in Hf. sp.
@@ -5773,9 +5556,9 @@ Proof using. nterm_ind1 nt as [vn | o lbt Hind] Case; introv Hdis Hin.
          rewrite <- dom_sub_sub_filter.
          apply in_remove_nvars. sp.
     + right. parallel vs Hr. parallel ts Hr. repnd. sp;auto.
-      * rw in_sub_filter in Hr0. repnd; auto.
+      * rw @in_sub_filter in Hr0. repnd; auto.
       * simpl. apply lin_flat_map. eexists; split; eauto. simpl.
-        apply in_remove_nvars. split; auto. rw in_sub_filter in Hr0.
+        apply in_remove_nvars. split; auto. rw @in_sub_filter in Hr0.
         repnd; auto.
     + eapply disjoint_bv_sub_ot in Hdis; eauto.
 Qed.
@@ -5809,25 +5592,6 @@ Proof using.
   introv Hdis Hlen.
   rewrite ssubst_ssubst_aux_hide. unfold ssubsthide. rw flat_map_free_var_vars_range;sp.
   cases_if; sp.
-Qed.
-
-Lemma sub_mk_renames2_length2 : forall lva1 lva2 lv lsr ssr, 
-(lsr, ssr) = sub_mk_renames2 lv lva1 lva2
-  -> length lsr = length lv.
-Proof using.
-introv HH. pose proof (sub_mk_renames2_length lv lva1 lva2) as XX.
-  rw <- HH in XX. sp.
-Qed.
-
-Lemma cover_vars_dom_csub_eq :
-  forall t s1 s2,
-    cover_vars t s1
-    -> dom_csub s1 = dom_csub s2
-    -> cover_vars t s2.
-Proof using.
-  introv cv eq.
-  allrw cover_vars_eq.
-  rw <- eq; sp.
 Qed.
 
 
@@ -5870,23 +5634,23 @@ Proof using.
   nterm_ind1 nt as [v | o lbt Hind] Case. introv.
   - simpl. dsub_find2 sv.
     symmetry in Heqsv. 
-    + rw sub_find_app. rw <- Heqsv;sp.
+    + rw @sub_find_app. rw <- Heqsv;sp.
     + simpl. introv Hdis Hdbv Hprog. disjoint_reasoningv.
-      dsub_find sa;sp. applysym sub_find_some in 
+      dsub_find sa;sp. applysym @sub_find_some in 
       Heqsa.  apply in_dom_sub in Heqsa;sp.
       rewrite dom_sub_app in Heqsa.
       rw in_app_iff in Heqsa.
       cpx.
   - introv Hpr Hbv Hps. simpl. f_equal. apply eq_maps.
     intros bt Hin. destruct bt as [blv bnt].
-    simpl. f_equal. rw sub_filter_app.
+    simpl. f_equal. rw @sub_filter_app.
     Hint Resolve sub_filter_sat.
     eapply Hind; unfold prog_sub, disjoint_bv_sub in *; eauto.
     + allsimpl. 
       apply lin_lift with (f:=fun t : BTerm => ssubst_bterm_aux t sub) in Hin.
     eapply disjoint_flat_map_l in Hpr; eauto;[].
       allsimpl. apply disjoint_remove_nvars_l in Hpr.
-      rw dom_sub_sub_filter in Hpr. sp.
+      rw @dom_sub_sub_filter in Hpr. sp.
     + apply sub_filter_sat. sp.
       eapply sub_range_sat_implies; eauto.
       introv Hdis. allsimpl.
@@ -5894,7 +5658,7 @@ Proof using.
       allsimpl. disjoint_reasoningv.
 Qed.
 
-Lemma range_app: forall (s1 s2 : Substitution), range (s1++s2) =
+Lemma range_app: forall (s1 s2 : @Substitution Opid), range (s1++s2) =
   (range s1) ++ (range s2).
 Proof using.
   introv. unfold range. rw map_app.
@@ -5915,14 +5679,14 @@ Theorem sub_keep_first_nest:
     -> sub_keep_first (sub_keep_first sub vs1) vs2 =sub_keep_first sub vs2.
 Proof using.
   induction sub as [| (hv,ht) sub Hind]; introv Hin; [reflexivity | allsimpl].
-  simpl. allrw memvar_dmemvar. 
-  cases_ifd h1v; simpl; repeat (rw memvar_dmemvar); cases_ifd h2v;
-  repeat (rw memvar_dmemvar); try(cases_ifd h3v);cpx.
+  simpl. allrw @memvar_dmemvar. 
+  cases_ifd h1v; simpl; repeat (rw @memvar_dmemvar); cases_ifd h2v;
+  repeat (rw @memvar_dmemvar); try(cases_ifd h3v);cpx.
   - f_equal. rw Hind;try(spc;fail).  introv H2in.
-    allrw in_remove_nvars. repnd. apply Hin in H2in0.
+    allrw @in_remove_nvars. repnd. apply Hin in H2in0.
     dorn H2in0;[left;split|right];cpx.   
   - rw Hind;try(spc;fail).  introv H2in.
-    allrw in_remove_nvars. repnd. applydup Hin in H2in.
+    allrw @in_remove_nvars. repnd. applydup Hin in H2in.
     dorn H2in0;[left;split|right];cpx;[].
     simpl. introv Hc; dorn Hc; subst; sp.
   - provefalse. apply Hin in h2vt. dorn h2vt;sp. 
@@ -5946,7 +5710,7 @@ Proof using.
   - Case "vterm". simpl.
     dsub_find2 ds.
     + apply sub_keep_first_singleton_r_some in Heqds.
-      rw Heqds. simpl. rw beq_deq. cases_if; sp.
+      rw Heqds. simpl. rw @beq_deq. cases_if; sp.
     + apply sub_keep_first_singleton_r_none in Heqds.
       rw Heqds; sp.
 
@@ -5967,7 +5731,7 @@ Proof using.
         (flat_map free_vars_bterm lbt)) (free_vars nt)) =
            sub_keep_first (sub_filter sub lv) (free_vars nt)) as Hskeq. 
        + apply sub_keep_first_nest. introv Hinf. destruct (in_nvar_list_dec v lv). 
-          * right. rw <- dom_sub_sub_filter. intro HC. apply in_remove_nvars in HC. sp. 
+          * right. rw <- @dom_sub_sub_filter. intro HC. apply in_remove_nvars in HC. sp. 
           * left. apply lin_flat_map. eexists; split; eauto. 
                     simpl. apply in_remove_nvars; split; trivial.  
        + rw Hskeq. 
@@ -6041,36 +5805,6 @@ Qed.
 
 Hint Resolve disjoint_sym_eauto disjoint_flat_map_r : slow.
 
-Lemma cover_vars_upto_var :
-  forall vs v sub,
-    cover_vars_upto (mk_var v) sub vs
-    <=> LIn v (vs ++ dom_csub sub).
-Proof using.
-  intros; unfold cover_vars_upto; simpl.
-  rewrite assert_sub_vars, fold_subset.
-  rewrite subsetv_singleton_l; sp.
-Qed.
-
-Lemma cover_vars_upto_csub_filter_disjoint :
-  forall t s vs1 vs2,
-    eq_set vs1 vs2
-    -> disjoint (free_vars t) vs1
-    -> (cover_vars_upto t (csub_filter s vs1) vs2
-        <=> cover_vars t s).
-Proof using.
-  introv eqv disj.
-  unfold cover_vars_upto.
-  rw cover_vars_eq.
-  allrw assert_sub_vars; split; intros Hyp ? Hypp; sp; allrw in_app_iff;
-  allrw dom_csub_csub_filter; allrw in_remove_nvars.
-  applydup Hyp in Hypp; allrw in_app_iff; sp.
-  apply disj in Hypp.
-  allrw (@eqsetv_prop NVar).
-  apply eqv in H; sp.
-  allrw in_remove_nvars; sp.
-  applydup Hyp in Hypp.
-  apply disj in Hypp; sp.
-Qed.
 
 Lemma le_sub_range_rel : forall R1 R2, le_bin_rel R1 R2
   -> le_bin_rel (sub_range_rel R1) (sub_range_rel R2).
@@ -6106,11 +5840,10 @@ Lemma isprogram_ssubst3 :
     -> prog_sub sub
     -> isprogram (ssubst t sub).
 Proof using.
-  introv Hpr Hps.
-  apply isprogram_ssubst; eauto with slow;[].
-  repnud Hpr.
-  rw Hpr0.
-  introv Hin; inverts Hin.
+  introv Hpr Hps. destruct Hpr.
+  apply @isprogram_ssubst; eauto with slow; [].
+  rewrite H.
+  simpl. tauto.
 Qed.
 
 Lemma sub_filter_pair_dom : forall lvf R lvi lnta lntb,
@@ -6129,7 +5862,7 @@ Proof using.
   - repeat apply ex_intro with (x:=nil). dands; spc. apply binrel_list_nil.
   - simpl. destruct lnta as [|ha lnta];invertsn Hl;
      destruct lntb as [| hb  lntb];invertsn Hl0;  allsimpl.
-    rw memvar_dmemvar. rw memvar_dmemvar. 
+    rw @memvar_dmemvar. rw @memvar_dmemvar. 
     apply binrel_list_cons in Hl1. repnd. duplicate Hl0.
     cases_ifd Ha; eapply Hind with (lnta := lnta) in Hl0 ; eauto;[].
     exrepnd. exists (v::lvi') (ha :: lnta') (hb :: lntb').
@@ -6140,12 +5873,12 @@ Qed.
 Lemma ssubst_bterm_trivial : forall bt sub,
   isprogram_bt bt
   -> prog_sub sub
-  -> ssubst_bterm_aux bt sub = bt.
+  -> @ssubst_bterm_aux NVar _ Opid bt sub = bt.
 Proof using.
   introv Hpr Hps.
   destruct bt as [lv nt].
   simpl. f_equal.
-  rw ssubst_aux_trivial. sp.
+  rw @ssubst_aux_trivial. sp.
   introv Hin.
   apply in_sub_filter in Hin.
   repnd.
@@ -6153,10 +5886,12 @@ Proof using.
   split; auto;[].
   repnud Hpr.
   invertsn Hpr0.
-  rw nil_remove_nvars_iff in Hpr0.
+  rw @nil_remove_nvars_iff in Hpr0.
   spc.
 Qed.
-Ltac disjoint_flat3 := allunfold disjoint_bv_sub; allunfold sub_range_sat; allsimpl;
+
+
+Ltac disjoint_flat3 := allunfold @disjoint_bv_sub; allunfold @sub_range_sat; allsimpl;
   match goal with
 |[ H: (LIn (_,?t) ?sub), H2 : (disjoint (flat_map ?f (range ?sub)) ?l)  |- disjoint (?f ?t) ?l ] =>
   exact ((snd (disjoint_sub_as_flat_map _ _ _) H2 _ _ H))
@@ -6240,9 +5975,9 @@ Proof using.
   destruct bt as [lv nt].
   simpl. f_equal.
   rw sub_filter_swap.
-  rw <- sub_filter_app_r.
+  rw <- @sub_filter_app_r.
   rw sub_filter_app_as_remove_nvars.
-  rw sub_filter_app_r.
+  rw @sub_filter_app_r.
   rewrite <- ssubst_aux_sub_filter2 with (l:= (remove_nvars lv lvf));sp.
   - apply sub_filter_sat. disjoint_flat. sp.
   - simpl in Hdis. clear Hbv. eapply disjoint_flat_map_l in Hdis;eauto.
@@ -6251,7 +5986,7 @@ Qed.
   
 
 Lemma ssubst_bterm_aux_trivial : forall bt,
-  ssubst_bterm_aux bt [] = bt.
+  @ssubst_bterm_aux NVar _ Opid bt [] = bt.
 Proof using.
   introv. destruct bt.
   simpl. f_equal. 
@@ -6259,7 +5994,7 @@ Proof using.
 Qed.
 
 Lemma closed_sub :
-  forall sub,
+  forall (sub : @Substitution Opid),
     (forall v t, LIn (v, t) sub -> isprogram t)
     -> flat_map free_vars (range sub) = [].
 Proof using.
@@ -6271,7 +6006,7 @@ Proof using.
 Qed.
 
 Lemma disjoint_sub_if_program :
-  forall sub,
+  forall (sub : @Substitution Opid),
     (forall (v : NVar) (t : NTerm),
        LIn (v, t) sub -> isprogram t)
     -> forall t, disjoint (bound_vars t) (flat_map free_vars (range sub)).
@@ -6291,31 +6026,6 @@ Proof using.
   apply disjoint_sub_if_program; sp.
 Qed.
 
-Lemma cover_vars_cvterm2 :
-  forall v1 v2 t u1 u2,
-    cover_vars (get_cvterm [v1,v2] t) [(v1, u1), (v2, u2)].
-Proof using.
-  destruct t; sp; simpl.
-  rw isprog_vars_eq in i; sp.
-  unfold cover_vars, over_vars.
-  rewrite assert_sub_vars. cpx.
-Qed.
-
-
-
-Lemma substc_cnewvar :
-  forall a t,
-    substc a (cnewvar t) (mk_cv [cnewvar t] t) = t.
-Proof using.
-  introv; destruct_cterms.
-  apply cterm_eq; simpl.
-  unfold cnewvar; simpl.
-  apply ssubst_trivial; simpl; sp; cpx.
-  rw isprogram_eq; sp.
-  allapply newvar_prop; sp.
-Qed.
-
-
 
 Lemma fold_subst :
   forall t v u, ssubst t [(v,u)] = subst t v u.
@@ -6333,15 +6043,6 @@ Proof using.
 Qed.
 
 
-
-Lemma dom_sub_map_range {gtsi} {gtso} : forall (f : @NTerm gtsi -> @NTerm gtso) sub,
-   dom_sub (map_sub_range f sub) = dom_sub sub.
-Proof using.
-  induction sub; auto.
-  simpl. f_equal. auto.
-Qed.
-
-
 Lemma sub_range_sat_cons: forall h t (P : NTerm-> Prop),
   sub_range_sat (h::t) P  <=> (P (snd h) # sub_range_sat t P).
 Proof using.
@@ -6351,13 +6052,8 @@ Proof using.
   introv Hin; in_reasoning. cpx. cpx.
 Qed.
 
-Lemma map_sub_range_combine {gtsi} {gtso} : forall (f : @terms.NTerm NVar gtsi -> @terms.NTerm NVar gtso) lv nt,
-    map_sub_range f (combine lv nt) = combine lv (map f nt). 
-Proof using.
-  induction lv; auto. intros. simpl.
-  destruct nt; auto. simpl.
-  f_equal; auto.
-Qed.
+
+
 
 Ltac simpl_sub5 :=
 (match goal with
@@ -6432,18 +6128,6 @@ Proof using.
 Qed.
 
 
-Lemma csub_filter_trivial :
-  forall s vs,
-    disjoint vs (dom_csub s)
-    -> csub_filter s vs = s.
-Proof using.
-  induction s; introv disj; sp; allsimpl.
-  allrw disjoint_cons_r; repnd.
-  discover; allrw.
-  boolvar; cpx.
-  auto.
-Qed.
-
 Lemma eqsetv_sub_keep_first :
   forall sub la lb,
     eq_set la lb
@@ -6451,8 +6135,8 @@ Lemma eqsetv_sub_keep_first :
 Proof using.
   induction sub as [| (v,t) sub Hind]; introv Heq;auto.
   simpl. duplicate Heq. rw (@eqsetv_prop NVar) in Heq.
-  rw memvar_dmemvar.
-  rw memvar_dmemvar.
+  rw @memvar_dmemvar.
+  rw @memvar_dmemvar.
   dtiffs2.
   cases_if; cases_if; try (provefalse; eauto;fail); erewrite Hind; eauto 2 with eqsetv.
 Qed.
@@ -6461,6 +6145,7 @@ Lemma in_range_iff :
   forall (t : NTerm) (sub : Substitution),
     LIn t (range sub) <=> {v : NVar $ LIn (v, t) sub}.
 Proof using.
+  clear gts.
   induction sub; simpl; split; intro k; sp; allsimpl; subst; discover; sp; cpx;
      eauto.
   apply IHsub in H. sp. exists v; sp. firstorder.
@@ -6473,20 +6158,6 @@ Proof using.
   introv.
   unfold prog_sub, sub_range_sat; simpl; split; intro k; sp; cpx; discover; sp; cpx;
      eauto.
-Qed.
-
-Lemma prog_sub_eq :
-  forall sub,
-    (forall t, LIn t (range sub) -> isprogram t)
-      <=> prog_sub sub.
-Proof using.
-  induction sub; simpl; split; intro k; introv; sp; subst; allsimpl; sp; cpx.
-
-  apply k; right; rw in_range_iff; exists v; sp.
-
-  allrw prog_sub_cons; sp.
-
-  allrw prog_sub_cons; sp; discover; sp; eauto; firstorder.
 Qed.
 
 Lemma simple_ssubst_snoc :
@@ -6594,28 +6265,16 @@ Qed.
 
 
 
-Lemma ssubst_aux_var_csub2sub_out :
-  forall v s,
-    !LIn v (dom_csub s)
-    -> ssubst_aux (mk_var v) (csub2sub s) = mk_var v.
-Proof using.
-  introv ni; simpl.
-  rw <- dom_csub_eq in ni.
-  apply sub_find_none_iff in ni.
-  rw ni; sp.
-Qed.
-
-
 Lemma sub_find_some_app2 :
-  forall v t sub1 sub2,
+  forall v t (sub1 sub2 : @Substitution Opid),
     !LIn v (dom_sub sub1)
     -> sub_find sub2 v = Some t
     -> sub_find (sub1 ++ sub2) v = Some t.
 Proof using.
   introv niv sf.
-  rw sub_find_app.
-  rw <- sub_find_none_iff in niv.
-  rw niv; sp.
+  rw @sub_find_app.
+  rw <- @sub_find_none_iff in niv.
+  rw @niv; sp.
 Qed.
 
 Lemma subset_free_vars_sub_aux_app2 :
@@ -6631,10 +6290,10 @@ Proof using.
     remember (sub_find sub2 n); destruct o; symmetry in Heqo.
     apply sub_find_some_app2 with (sub1 := sub1) in Heqo; auto.
     rw Heqo; auto.
-    rw sub_find_none_iff in Heqo.
+    rw @sub_find_none_iff in Heqo.
     assert (!LIn n (dom_sub (sub1 ++ sub2))) as nin
       by (rewrite dom_sub_app; rw in_app_iff; intro; sp).
-    rw <- sub_find_none_iff in nin.
+    rw <- @sub_find_none_iff in nin.
     rw nin; auto.
 
   - Case "oterm".
@@ -6643,59 +6302,32 @@ Proof using.
     destruct x; simpl.
     repeat (rw bvar_renamings_subst_isprogram; auto); simpl;
     try (sp; apply X with (v := v); rw in_app_iff; sp).
-    rw sub_filter_app.
+    rw @sub_filter_app.
 
     rewrite H with (lv := l); sp.
     apply k with (v := v).
-    allrw in_app_iff.
-    allrw in_sub_filter; sp.
-    allrw disjoint_flat_map_l.
+    allrw @in_app_iff.
+    allrw @in_sub_filter; sp.
+    allrw @disjoint_flat_map_l.
     apply_in_hyp p.
     allsimpl.
-    rw disjoint_remove_nvars_l in p.
-    rw <- dom_sub_sub_filter; auto.
+    rw @disjoint_remove_nvars_l in p.
+    rw <- @dom_sub_sub_filter; auto.
 Qed.
 
 Lemma subset_free_vars_sub_app2 :
-  forall t sub1 sub2,
+  forall t (sub1 sub2 : @Substitution Opid),
     (forall v t, LIn (v, t) (sub1 ++ sub2) -> isprogram t)
     -> disjoint (free_vars t) (dom_sub sub1)
     -> ssubst t (sub1 ++ sub2) = ssubst t sub2.
 Proof using.
   introv Hpr.
-  applydup (sub_app_sat_if isprogram) in Hpr.
+  applydup (@sub_app_sat_if NVar Opid  isprogram) in Hpr.
   repnd.
   change_to_ssubst_aux4.
   apply subset_free_vars_sub_aux_app2; sp.
 Qed.
 
-
-Lemma cover_vars_app_disjoint2 :
-  forall t sub1 sub2,
-    cover_vars t (sub1 ++ sub2)
-    -> disjoint (free_vars t) (dom_csub sub1)
-    -> cover_vars t sub2.
-Proof using.
-  introv cv disj.
-  allrw cover_vars_eq.
-  rw dom_csub_app in cv.
-  provesv.
-  allrw in_app_iff; sp.
-  unfold disjoint in disj.
-  discover; sp; firstorder.
-Qed.
-
-Lemma cover_vars_cons_disjoint :
-  forall t sub v u,
-    cover_vars t ((v,u) :: sub)
-    -> !LIn v (free_vars t)
-    -> cover_vars t sub.
-Proof using.
-  introv cv ni.
-  rw cons_as_app in cv.
-  apply cover_vars_app_disjoint2 in cv; sp.
-  simpl; unfold disjoint; simpl; sp; subst; sp.
-Qed.
 
 
 Lemma ssubst_vterm : forall v sub, 
@@ -6733,8 +6365,22 @@ Proof using.
   rewrite disjoint_flat_map_l in Hf.
   auto.
 Qed.
+End TempTemp.
 End SubstGeneric2.
 
+Lemma dom_sub_map_range {NVar} {gtsi} {gtso} : forall (f : @NTerm NVar gtsi -> @NTerm NVar gtso) sub,
+   dom_sub (map_sub_range f sub) = dom_sub sub.
+Proof using.
+  induction sub; auto.
+  simpl. f_equal. auto.
+Qed.
+Lemma map_sub_range_combine {NVar} {gtsi} {gtso} : forall (f : @NTerm NVar gtsi -> @NTerm NVar gtso) lv nt,
+    map_sub_range f (combine lv nt) = combine lv (map f nt). 
+Proof using.
+  induction lv; auto. intros. simpl.
+  destruct nt; auto. simpl.
+  f_equal; auto.
+Qed.
 
 Lemma sub_filter_map_range_comm {gtsi gtso NVar} `{Deq NVar}:
   forall sub (f: (@terms.NTerm NVar gtsi) -> (@NTerm NVar gtso)) l,
@@ -6746,7 +6392,7 @@ Proof using.
   destruct (memvar a0 l); auto.
 Qed.
 
-Lemma sub_find_some_map {NVar} `{Deq NVar} {gtsi gtso : GenericTermSig}
+Lemma sub_find_some_map {NVar} `{Deq NVar} {gtsi gtso : Type}
  (f : @NTerm NVar gtsi -> @NTerm NVar gtso) v (sub : @Substitution NVar gtsi) (t: @NTerm NVar gtsi) :
  sub_find sub v = Some t
  -> sub_find (map_sub_range f sub) v = Some (f t).
@@ -6756,7 +6402,7 @@ Proof using.
   inverts Heq. auto.
 Qed.
 
-Lemma sub_find_none_map {NVar} `{Deq NVar} {gtsi gtso : GenericTermSig}
+Lemma sub_find_none_map {NVar} `{Deq NVar} {gtsi gtso : Type}
 (f : @NTerm NVar gtsi -> @NTerm NVar gtso) v (sub : @Substitution NVar gtsi) :
  sub_find sub v = None
  -> sub_find (map_sub_range f sub) v = None.
@@ -6768,7 +6414,6 @@ Qed.
 
 (** the stuff below are duplicates of above *)
 
-Hint Immediate cover_vars_cterm.
 Hint Rewrite (fun gs => @ssubst_nil gs).
 
 Hint Immediate prog_sub_csub2sub.

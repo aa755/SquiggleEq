@@ -28,13 +28,13 @@ Class GenericTermSig (Opid : Type) : Type :=
   A lambda takes one argument and that argument binds 1 variable. An application takes 2 arguments,
   each of which bind 0 variables.*)
   OpBindings : Opid -> list nat;
-  opid_dec : forall x y : Opid, {x = y} + {x <> y};
 }.
 
+Generalizable Variable Opid.
 
 Section terms.
 
-Context {NVar VarClass} `{VarType NVar VarClass} {Opid:Type} {gts : GenericTermSig Opid}.
+Context {NVar VarClass} `{VarType NVar VarClass} `{Deq Opid} {gts : GenericTermSig Opid}.
 
 Inductive NTerm : Type :=
 | vterm: NVar -> NTerm
@@ -241,7 +241,7 @@ Fixpoint bound_vars {NVar} `{Deq NVar} {Opid:Type} (t : NTerm) : list NVar :=
   end.
 
 Section termsCont.
-Context {NVar VarClass} `{VarType NVar VarClass} {Opid:Type} {gts : GenericTermSig Opid}.
+Context {NVar VarClass} `{VarType NVar VarClass} `{Deq Opid} {gts : GenericTermSig Opid}.
 Definition all_vars (t:@NTerm NVar Opid) : list NVar := free_vars t ++ bound_vars t.
 
 
