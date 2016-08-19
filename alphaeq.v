@@ -243,7 +243,8 @@ Lemma alpha3_ssubst_allvars_congr : forall nt1 nt2 lvi lvo lva,
   -> disjoint (lvi++lvo) (bound_vars nt1 ++ bound_vars nt2) 
   -> alpha_eq3 lva (ssubst_aux nt1 (var_ren lvi lvo))
                      (ssubst_aux nt2 (var_ren lvi lvo)).
-Proof using hdeq.
+Proof using .
+  clear hdeq.
   nterm_ind1s nt1 as [v1 | o1 lbt1 Hind] Case; introv Hllll Hal Hdis; inverts Hal as Hlen Hal.
   - Case "vterm"; apply alpha_eq3_refl.
   - Case "oterm". constructor;

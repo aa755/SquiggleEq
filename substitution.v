@@ -4299,6 +4299,86 @@ Proof using.
        rewrite map_length. omega.
 Qed.
 
+Lemma lin_combine_injective: forall {A B C D :Type} 
+  (fa: A->C) (fb: B->D) (pa: injective_fun fa)
+  (pb: injective_fun fb) (a:A) (b:B) (la: list A) (lb: list B),
+  LIn (a, b) (combine la lb)
+  <=> LIn (fa a,fb b) (combine (map fa la) (map fb lb)).
+Proof using.
+  induction la; intros; sp.
+  simpl. destruct lb; sp.
+  simpl. rw <- IHla. split; intro Hp; dorn Hp; cpx.
+  apply pa in H. apply pb in H0. subst.
+  sp.  
+Qed.
+
+Lemma combine_of_map_snd {A B C :Type} (f: B->C) (la:list A) lb :
+  combine la (map f lb) = map (fun x => (fst x, f (snd x))) (combine la lb).
+Proof.
+  revert lb.
+  induction la as [| a la Hind]; intros;[|destruct lb as [|b lb]]; simpl; auto.
+  f_equal.
+  eauto.
+Qed.
+
+Lemma lmap_find_injection:
+  forall {A B C: Type} (deqa : Deq A) 
+  (f: B->C)
+  (a:A) (la: list A)  (lb:list B) ,
+  option_map f (proj_as_option (lmap_find deqa (combine la lb) a))
+    = proj_as_option (lmap_find deqa (combine la (map f lb)) a).
+Proof using.
+  induction la as [|va la Hind]; intros; auto. 
+  allsimpl. destruct lb as [| b lb ]; auto.
+  simpl. destruct (decideP (va=a)) as [eq | neq]; subst; sp.
+  cases (lmap_find deqa (combine la (map f lb)) a); sp; simpl.
+  apply (apply_eq proj_as_option) in H. allsimpl.
+  rewrite <- Hind in H.
+  destruct (lmap_find deqa (combine la lb) a) as [ ex | nex];
+   allsimpl; sp.
+  destruct (lmap_find deqa (combine la lb) a) as [ex | nex];
+   allsimpl; sp.
+  allsimpl.  provefalse.
+  apply n. rewrite fst_split_as_map.
+  apply in_map_iff. exists (a,f b0).
+  split;[| refl].
+  rewrite combine_of_map_snd.
+  apply in_map_iff.
+  eexists. eauto.
+Qed.
+
+Print lmap_find_injection.
+
+Lemma lmap_apply_var: forall (lvi lvo : list NVar) v,
+ (fun t=> @ssubst_aux _ _ Opid t (var_ren lvi lvo)) (vterm v)
+  = vterm (lmap_apply deq_nvar (combine lvi lvo) v).
+Proof using.
+ intros. simpl. unfold ssubst. simpl. rewrite sub_lmap_find.
+  unfold lmap_apply.
+  unfold var_ren. rewrite <- (@lmap_find_injection NVar).
+  cases(lmap_find deq_nvar (combine lvi lvo) v); exrepnd; simpl; auto.
+Qed.
+
+Lemma lmap_apply_var2: forall (lvi lvo : list NVar) v,
+ (fun t=> @ssubst _ _ _ _ Opid t (var_ren lvi lvo)) (vterm v)
+  = vterm (lmap_apply deq_nvar (combine lvi lvo) v).
+Proof using.
+ intros. simpl. unfold ssubst. simpl. rewrite sub_lmap_find.
+  unfold lmap_apply.
+  unfold var_ren. rewrite <- (@lmap_find_injection NVar).
+  cases(lmap_find deq_nvar (combine lvi lvo) v); exrepnd; simpl; auto.
+Qed.
+  
+Lemma lmap_lapply_var_map: forall (lvi lvo lv : list NVar),
+ map (fun t:NTerm=> ssubst_aux t (var_ren lvi lvo)) (map (@vterm NVar Opid) lv)
+  = map (@vterm NVar Opid) (lmap_lapply deq_nvar (combine lvi lvo) lv).
+Proof using.
+  induction lv as [|v lv Hind];auto.
+  simpl. rewrite Hind. f_equal.
+  rewrite <- lmap_apply_var; refl.
+Qed.
+
+(*
 Theorem freevars_ssubst_aux_allvars:
    forall (t : NTerm) sub
      (p : allvars_sub sub),
@@ -4336,8 +4416,7 @@ Proof using hdeq.
      unfold all_vars in Hdis. simpl in Hdis. 
      repeat(rw disjoint_app_r in Hdis).
     pose proof (allvars_sub_filter lvi lvo lv) as Halv.
-
-     rewrite map_removevars.
+  rewrite map_removevars.
     erewrite Hind with (p:=Halv)  ; eauto. clear Hind.
     unfold lvmap_lapply. 
     remember (free_vars nt) as fnt.
@@ -4419,69 +4498,114 @@ Proof using hdeq.
             apply Hvo in Hin1. sp.
             rewrite map_length. omega.
 Qed.
+*)
 
-(* Print Assumptions freevars_ssubst_allvars. *)
-
-Lemma lin_combine_injective: forall {A B C D :Type} 
-  (fa: A->C) (fb: B->D) (pa: injective_fun fa)
-  (pb: injective_fun fb) (a:A) (b:B) (la: list A) (lb: list B),
-  LIn (a, b) (combine la lb)
-  <=> LIn (fa a,fb b) (combine (map fa la) (map fb lb)).
+Lemma ssubst_vterm : forall v (sub : @Substitution Opid), 
+  ssubst (vterm v) sub = ssubst_aux (vterm v) sub.
 Proof using.
-  induction la; intros; sp.
-  simpl. destruct lb; sp.
-  simpl. rw <- IHla. split; intro Hp; dorn Hp; cpx.
-  apply pa in H. apply pb in H0. subst.
-  sp.  
+  intros.
+  change_to_ssubst_aux4.
 Qed.
 
-  
-Lemma lmap_find_injection:
-  forall {A B C: Type} (deqa : Deq A) 
-  (f: B->C) (p: forall a1 a2, (f a1= f a2) -> a1=a2)
-  (a:A) (la: list A)  (lb:list B) ,
-  option_map f (proj_as_option (lmap_find deqa (combine la lb) a))
-    = proj_as_option (lmap_find deqa (combine la (map f lb)) a).
+Theorem freevars_ssubst_allvars9:
+   forall (t : NTerm) (lvi lvo: list NVar),
+      no_repeats lvo
+       -> disjoint lvo (all_vars t)
+       -> free_vars (ssubst_aux t (var_ren lvi lvo)) 
+          = lvmap_lapply (combine lvi lvo) (free_vars t).
 Proof using.
-  induction la as [|va la Hind]; intros; auto. 
-  allsimpl. destruct lb as [| b lb ]; auto.
-  simpl. destruct (decideP (va=a)) as [eq | neq]; subst; sp.
-  cases (lmap_find deqa (combine la (map f lb)) a); sp; simpl.
-  apply (apply_eq proj_as_option) in H. allsimpl.
-  rewrite <- Hind in H.
-  destruct (lmap_find deqa (combine la lb) a) as [ ex | nex];
-   allsimpl; sp.
-  destruct (lmap_find deqa (combine la lb) a) as [ex | nex];
-   allsimpl; sp.
-  allsimpl.  provefalse.
-  apply n. rewrite fst_split_as_map.
-  apply in_map_iff. exists (a,f b0).
-  split;auto. assert (a= (fun x=>x) a) as Hr; auto. 
-  rewrite <- (map_id  la).
-  assert (injective_fun (fun x:A => x)) as Hi
-  by (introv; simpl; sp).
-  pose proof (tiff_fst (lin_combine_injective (fun x:A => x) f Hi p
-  _ _ _ _) i). allsimpl. auto.
-Qed.
+  clear varclass VarClass.
+  nterm_ind1 t as [v | o lbt Hind] Case;
+  introv Hnr Hdis.
+  - Case "vterm".
+    simpl. 
+    unfold lmap_apply.
+    rewrite sub_lmap_find.
+    unfold var_ren.
+    rewrite <- lmap_find_injection.
+    destruct (lmap_find deq_nvar (combine lvi lvo) v); trivial.
+    destruct s. refl.
+  - Case "oterm".
+    induction lbt as [|bt lbt IHlbt]; auto.
+    allsimpl. repeat(rewrite map_app).
+    rwsimpl Hdis.
+    rewrite IHlbt;
+    [ | intros; eapply Hind; eauto; fail| rwsimplC; disjoint_reasoningv].
+    clear IHlbt.
+    unfold lvmap_lapply in *.
+    rewrite map_app.
+    f_equal.
+    destruct bt as [lv nt].
+    simpl.
+    pose proof (allvars_sub_filter lvi lvo lv) as Halv.
+    pose proof (get_sub_dom_vars_eta _ Halv) as Heta.
+    exrepnd.
+    rewrite Heta0.
+    erewrite Hind; eauto. clear Hind.
+    unfold lvmap_lapply. 
+    remember (free_vars nt) as fnt.
+    pose proof (@transport _ _ _ (fun vs => subsetv fnt vs) 
+                           Heqfnt (subsetv_refl fnt)) as Hsub.
+    allsimpl.
+     clear Heqfnt. repnd.
+    induction fnt as [| vnt fnt Hfntind];
+       [repeat(rewrite diff_nil || 
+         rewrite remove_nvars_nil_r); refl;fail
+         | simpl].
+     apply subset_cons_l in Hsub; repnd.
+     rewrite diff_cons_r.
+     setoid_rewrite Hfntind; auto.
+     setoid_rewrite Hfntind; auto. clear Hfntind.
+     rewrite memberb_din. 
+     cases_if_sum Hmemd.
+     + f_equal. rewrite remove_nvars_cons_r.
+        rewrite memvar_dmemvar.
+        cases_if_sum Hmemdin;auto.
+        provefalse. rewrite @lin_lift_vterm in Hmemd.
+        rewrite <- lmap_apply_var in Hmemd.
+        rewrite <- Heta0 in Hmemd.
+        simpl in Hmemd.
+        cases (sub_find (@sub_filter _ Opid (var_ren lvi lvo) lv)
+           vnt) as Hs; exrepnd; allsimpl;
+        [ |rewrite <- lin_lift_vterm in Hmemd; sp].
+        subst. apply sub_find_some in Hs.
+        apply in_sub_filter in Hs; repnd.
+        apply in_combine in Hs0. repnd.
+        apply in_map_iff in Hs0. exrepnd.
+        subst. apply lin_lift_vterm in Hmemd.
+        rwsimpl Hdis.
+        disjoint_reasoningv.
+        apply Hdis1 in Hmemd; auto.
 
-Print lmap_find_injection.
-Lemma lmap_apply_var: forall (lvi lvo : list NVar) v,
- (fun t=> @ssubst _ _ _ _ Opid t (var_ren lvi lvo)) (vterm v)
-  = vterm (lmap_apply deq_nvar (combine lvi lvo) v).
-Proof using hdeq.
- intros. simpl. unfold ssubst. simpl. rewrite sub_lmap_find.
-  unfold lmap_apply.
-  unfold var_ren. rewrite <- (@lmap_find_injection NVar); [| introv H; inverts H;sp].
-  cases(lmap_find deq_nvar (combine lvi lvo) v); exrepnd; simpl; auto.
-Qed.
-  
-Lemma lmap_lapply_var_map: forall (lvi lvo lv : list NVar),
- map (fun t:NTerm=> ssubst_aux t (var_ren lvi lvo)) (map (@vterm NVar Opid) lv)
-  = map (@vterm NVar Opid) (lmap_lapply deq_nvar (combine lvi lvo) lv).
-Proof using hdeq varclass VarClass.
-  induction lv as [|v lv Hind];auto.
-  simpl. rewrite Hind. f_equal.
-  rewrite <- lmap_apply_var; refl.
+     + rewrite remove_nvars_cons_r.
+         rewrite memvar_dmemvar.
+         cases_if_sum Hmemdin; auto.
+         * provefalse.
+           rewrite (@lin_lift_vterm NVar Opid) in Hmemd.
+           rewrite <- lmap_apply_var in Hmemd.
+           rewrite <- Heta0 in Hmemd.
+           simpl in Hmemd.
+           cases (sub_find (@sub_filter _ Opid (var_ren lvi lvo) lv) vnt) as Hs;
+            [|rewrite <- lin_lift_vterm in Hmemd; sp; fail].
+           subst. apply sub_find_some in Hs. apply in_sub_filter in Hs; repnd;
+           apply in_combine in Hs0. repnd. sp.
+
+         * simpl. f_equal. 
+           apply (@vterm_inj _ Opid).
+           do 2 rewrite <- lmap_apply_var.
+           simpl. rewrite <- Heta0.
+           rewrite sub_find_sub_filter_eta; auto.
+
+     +  eauto using no_repeats_sub_filter.
+     + rwsimpl Hdis. repeat (disjoint_reasoning).
+       introv Hin Hc. eapply lin_lift_vterm in Hin.
+       apply combine_in_right with (l1:=lvi0) in Hin;[| spcls; omega].
+       exrepnd. unfold var_ren in Heta0.
+       rewrite <- Heta0 in Hin0.
+       apply in_sub_filter in Hin0. repnd.
+       apply in_combine in Hin1. repnd.
+       apply lin_lift_vterm in Hin1.
+       apply Hdis0 in Hin1. sp.
 Qed.
 
 
@@ -4492,22 +4616,18 @@ Theorem freevars_ssubst_allvars2:
        -> disjoint lvo (all_vars t)
        -> free_vars (ssubst t (var_ren lvi lvo) ) 
           = lvmap_lapply (combine lvi lvo) (free_vars t).
-Proof using hdeq varclass VarClass.
+Proof using.
   clear gts.
   introv Hleq Hnr Hdis.
   rewrite ssubst_ssubst_aux_hide.
   unfold ssubsthide. cases_ifn Hd.
   Focus 2. allunfold (@var_ren NVar). spcls. spcls.
-  provefalse. apply Hd. disjoint_reasoningv. 
-
-  pose proof (freevars_ssubst_aux_allvars 
-   t (var_ren lvi lvo) (allvars_combine lvi lvo)) as HH.
-   rewrite get_sub_dom_vars_ren in HH; auto.
-   allsimpl. pose proof (HH Hnr Hdis) as HH1.
-   clear HH.
-   rewrite lmap_lapply_var_map in HH1.
-   eapply map_eq_lift_vterm; eauto.
+  provefalse. apply Hd. disjoint_reasoningv.
+  apply freevars_ssubst_allvars9; trivial.
 Qed.
+
+(* Print Assumptions freevars_ssubst_allvars. *)
+
 
 Lemma ssubst_aux_trivial5 :
   (forall t (sub : @Substitution Opid),
@@ -4967,7 +5087,7 @@ Lemma boundvars_ssubst_vars:
   -> disjoint lvo (bound_vars nt)
   -> bound_vars (ssubst nt (var_ren lvi lvo))
      = bound_vars nt.
-Proof using hdeq.
+Proof using.
   intros. change_to_ssubst_aux4.
   apply boundvars_ssubst_aux_vars;try(sp;fail);
   try(rw disjoint_sub_as_flat_map;disjoint_reasoningv).
@@ -4979,7 +5099,7 @@ Lemma boundvars_ssubst_vars2:
   -> disjoint_bv_sub nt sub
   -> bound_vars (ssubst nt sub)
      = bound_vars nt.
-Proof using hdeq.
+Proof using.
   introv Ha Hd. change_to_ssubst_aux4.
   pose proof (get_sub_dom_vars_eta _ Ha) as XX.
   exrepnd. GC. revert Hd. intro Hd. allrw XX0.
@@ -5419,7 +5539,7 @@ Lemma ssubst_nest_same_str :
   -> disjoint lvio (free_vars t)
   -> ssubst (ssubst t (filt_var_ren lvi lvio lf)) (filt_combine lvio lnt lf)
      = ssubst t (filt_combine lvi lnt lf).
-Proof using hdeq.
+Proof using.
   intros. change_to_ssubst_aux8;
   try(apply ssubst_aux_nest_same_str;try(sp;fail));
   apply disjoint_sym;
@@ -5445,7 +5565,7 @@ Lemma ssubst_nest_vars_same_str :
   -> disjoint lvio (free_vars t)
   -> ssubst (ssubst t (filt_var_ren lvi lvio lf)) (filt_var_ren lvio lvo lf)
      = ssubst t (filt_var_ren lvi lvo lf).
-Proof using hdeq.
+Proof using.
     intros. apply ssubst_nest_same_str;spc; spcls;sp.
 Qed.
   
@@ -5458,7 +5578,7 @@ Lemma ssubst_nest_same :
   -> disjoint lvio (free_vars t)
   -> ssubst (ssubst t (var_ren lvi lvio)) (combine lvio lnt)
      = ssubst t (combine lvi lnt).
-Proof using hdeq.
+Proof using.
   intros.
   pose proof (sub_filter_nil_r (var_ren lvi lvio)) as K.
   rewrite <- K. clear K.
@@ -5500,7 +5620,7 @@ Lemma ssubst_nest_vars_same :
   -> disjoint lvio (free_vars t)
   -> ssubst (ssubst t (var_ren lvi lvio)) (var_ren lvio lvo)
      = ssubst t (var_ren lvi lvo).
-Proof using hdeq.
+Proof using.
     intros. apply ssubst_nest_same;spc;spcls;sp.
 Qed.
 
@@ -6330,12 +6450,7 @@ Qed.
 
 
 
-Lemma ssubst_vterm : forall v sub, 
-  ssubst (vterm v) sub = ssubst_aux (vterm v) sub.
-Proof using.
-  intros.
-  change_to_ssubst_aux4.
-Qed.
+
 
 Require Import Morphisms.
 
