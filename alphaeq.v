@@ -1942,6 +1942,8 @@ match goal with
 end. 
 
 
+(*
+
 Lemma alpha_lsubst_congr_bterm_aux : forall (o:Opid) lva lvb nta ntb sub,
   alpha_eq_bterm (bterm lva nta) 
                  (bterm lvb ntb)
@@ -1951,7 +1953,21 @@ Lemma alpha_lsubst_congr_bterm_aux : forall (o:Opid) lva lvb nta ntb sub,
 Proof.
   introv o Hbal Hdis.
   assert (alpha_eq (oterm o [(bterm lva nta)]) 
-                  (oterm o [(bterm lvb ntb)])) as Hal by prove_alpha_eq3.
+                  (oterm o [(bterm lvb ntb)])) as Hal.
+                  match goal with 
+| [  |- alpha_eq (oterm ?o _) (oterm ?o _)] =>
+      let Hlt := fresh "XXHlt" in
+      let n := fresh "XXn" in
+      constructor; [simpl; congruence| ];[]; unfold selectbt;
+      simpl; intros n Hlt;
+        repeat(destruct n as [| n];simpl;try(omega);try(apply alphaeqbt_nilv2;auto)); auto;
+      try ( let Hyp := (get_alphabt_hyp Hlt)  in 
+        unfold selectbt in Hlt;
+        apply Hyp in Hlt; allsimpl; auto
+      ); cpx
+end. 
+                  prove_alpha_eq3.
+                  prove_alpha_eq3.
 
   apply lsubst_alpha_congr2 with (sub:=sub)  in Hal.
   pose proof (lsubst_sub_filter_alpha (oterm o [bterm lva nta]) sub lva) as Htra.
@@ -3265,3 +3281,4 @@ Proof.
   apply alpha_eq_bterm_congr.
   apply alpha_eq_sym; auto.
 Qed.
+*)
