@@ -250,3 +250,60 @@ Definition closed (t : @NTerm NVar Opid) := free_vars t = [].
 Definition isprogram (t : @NTerm NVar Opid) := closed t # nt_wf t.
 
 End termsCont.
+
+Fixpoint tmap {V1 V2 O1 O2  :Type} (fv: V1 -> V2) (fo : O1 -> O2) (t : @NTerm V1 O1) 
+  : (@NTerm V2 O2) :=
+match t with
+| vterm v =>  vterm (fv v)
+| oterm o lbt => oterm (fo o) (map (tmap_bterm fv fo) lbt)
+end
+with 
+tmap_bterm {V1 V2 O1 O2  :Type} (fv: V1 -> V2) (fo : O1 -> O2) (t : @BTerm V1 O1) 
+  : (@BTerm V2 O2) :=
+match t with
+| bterm lv nt => bterm (map fv lv) (tmap fv fo nt)
+end.
+
+Definition tvmap {V1 V2 O  :Type} (fv: V1 -> V2) : (@NTerm V1 O) -> (@NTerm V2 O) :=
+tmap fv id.
+
+Require Import String.
+
+SearchAbout (list string -> string).
+
+
+Definition flatten (l:list string) : string :=
+  List.fold_left append  l EmptyString.
+
+Fixpoint flattenDelim (d:string) (l:list string) {struct l}: string :=
+match l with 
+| nil => EmptyString
+| h::tl => match tl with
+          | nil => h
+          | m::tm => flatten [h;d; flattenDelim d tl]
+          end
+end.
+(*
+Eval vm_compute in (flattenDelim "," []).
+Eval vm_compute in (flattenDelim "," ["hello"]).
+Eval vm_compute in (flattenDelim "," ["hello"; "how"]).
+Eval vm_compute in (flattenDelim "," ["hello"; "how" ; "are"]).
+*)
+
+Fixpoint tprint {V O  :Type} (fv: V -> string) (fo : O -> string) (t : @NTerm V O) 
+  : string :=
+match t with
+| vterm v =>  fv v
+| oterm o lbt => 
+  flatten ["{"; (fo o); "["; flattenDelim "," (map (bprint fv fo) lbt); "]}"]
+end
+with 
+bprint {V O  :Type} (fv: V -> string) (fo : O -> string) (t : @BTerm V O) 
+  : string :=
+match t with
+| bterm lv nt =>  
+  let pv := flattenDelim " " (map fv lv) in
+  let pt := tprint fv fo nt in
+    flatten ["("; pv; "." ; pt; ")"]
+end.
+

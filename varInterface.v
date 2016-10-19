@@ -1330,6 +1330,14 @@ Proof.
   auto.
 Qed.
 
+Definition freshVar  (o : VClass) (lx : list NVar) : NVar.
+Proof.
+  pose proof (freshCorrect 1 (Some o) lx nil) as Hfr. simpl in Hfr.
+  apply  proj1, proj2, proj2 in Hfr.
+  apply (listHead (freshVars 1 (Some o) lx nil)).
+  rewrite Hfr. constructor.
+Defined.
+
 
 End Vars.
 
@@ -1503,7 +1511,6 @@ Proof.
   Local Transparent beq_var.
    apply decide_decideP.
   Local Opaque beq_var.
-   
 Qed.
 
 End Vars2Class.
