@@ -34,6 +34,7 @@ Generalizable Variable Opid.
 
 Section terms.
 
+
 Context {NVar VarClass} `{VarType NVar VarClass} `{Deq Opid} {gts : GenericTermSig Opid}.
 
 Inductive NTerm : Type :=
@@ -96,6 +97,12 @@ Definition isvariable (t : NTerm) :=
     | vterm _ => True
     | _ => False
   end.
+
+Definition getOpid (n: NTerm) : option Opid :=
+match n with
+| vterm _ => None
+| oterm o _ => Some o
+end. 
 
 
 (*Notation "x # b" := (bterm [x] b) (at level 70, right associativity).
@@ -266,6 +273,7 @@ end.
 
 Definition tvmap {V1 V2 O  :Type} (fv: V1 -> V2) : (@NTerm V1 O) -> (@NTerm V2 O) :=
 tmap fv id.
+
 
 Require Import String.
 

@@ -1373,6 +1373,9 @@ Proof using.
   firstorder.
 Qed.
 
+
+
+
 Lemma prog_sub_flatmap_range : forall (sub : @Substitution Opid), prog_sub sub
     -> flat_map free_vars (range sub) =[].
 Proof using.
@@ -6496,7 +6499,20 @@ Proof using.
   rewrite disjoint_flat_map_l in Hf.
   auto.
 Qed.
+
 End TempTemp.
+
+Lemma getopid_ssubst_aux_var_ren : forall (a : NTerm) sub,
+   allvars_sub sub
+  -> getOpid (ssubst_aux a sub) = getOpid a.
+Proof using varcl freshv.
+  intros nt sub H.
+  destruct nt; auto.
+   apply isvarc_ssubst_vterm with (v:=n) in H.
+    simpl in *. unfold isvarc in H. dsub_find sc; auto.
+    destruct scs; auto. contradiction.
+Qed.
+
 End SubstGeneric2.
 
 Lemma dom_sub_map_range {NVar} {gtsi} {gtso} : forall (f : @NTerm NVar gtsi -> @NTerm NVar gtso) sub,

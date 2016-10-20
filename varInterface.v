@@ -1248,7 +1248,8 @@ Qed.
 Lemma  varsOfClassApp : forall (lv1 lv2 :list NVar) (vc : VClass),
 varsOfClass (lv1++lv2) vc
 <-> ((varsOfClass lv1 vc) # (varsOfClass lv2 vc)).
-Proof.
+Proof using.
+  clear H1 H2.
   unfold varsOfClass, lforall.
   setoid_rewrite in_app_iff.
   firstorder.

@@ -139,6 +139,7 @@ with alpha_eq_bterm3 (lva: list NVar) : BTerm -> BTerm -> [univ] :=
 *)
 
 
+
  (* Definition alphaeq  (t1 t2 :NTerm) := alpha_eq t1 t2. *)
 Definition alphaeqbt  (t1 t2 :BTerm) := alpha_eq_bterm  t1 t2.
     
@@ -1356,6 +1357,12 @@ Definition ssubst_ssubst_bterm_aux_alpha := fun s => snd (ssubst_ssubst_aux_alph
 Global Instance equivAlphaEq : Equivalence alpha_eq.
 Proof using.
   constructor; eauto with core slow.
+Qed.
+
+Global Instance alphaGetOpid : Proper (alpha_eq ==> eq) getOpid.
+Proof.
+  intros ? ? Hal.
+  inverts Hal; refl.
 Qed.
 
 Global Instance equivAlphaEqBterm : Equivalence alpha_eq_bterm.

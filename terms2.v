@@ -1797,6 +1797,18 @@ Proof using.
   assumption.
 Qed.
 
+Lemma map0lbt : forall (lbt: list BTerm),
+map num_bvars lbt = repeat 0 (Datatypes.length lbt)
+->  lbt = map (bterm []) (map get_nt lbt).
+Proof using.
+  induction lbt; simpl; auto.
+  intro Hn.
+  destruct a. inverts Hn as Hn Hnn. unfold num_bvars in Hn.
+  simpl in Hn. dlist_len_name l Hh.
+  simpl. f_equal. eauto.
+Qed.
+
+
 Definition allvars_bterm : forall lv nt,
   eq_set 
     (all_vars_bt (bterm lv nt))
