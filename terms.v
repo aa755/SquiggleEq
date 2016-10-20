@@ -298,20 +298,23 @@ Eval vm_compute in (flattenDelim "," ["hello"; "how"]).
 Eval vm_compute in (flattenDelim "," ["hello"; "how" ; "are"]).
 *)
 
-Fixpoint tprint {V O  :Type} (fv: V -> string) (fo : O -> string) (t : @NTerm V O) 
+Definition newLineChar : Ascii.ascii := Ascii.ascii_of_nat 10.
+Definition newLineString : string := String newLineChar EmptyString.
+
+Fixpoint tprint {V O  :Type} (spaces:string) (fv: V -> string) (fo : O -> string) (t : @NTerm V O) 
   : string :=
 match t with
-| vterm v =>  fv v
+| vterm v =>  flatten [fv v; newLineString]
 | oterm o lbt => 
-  flatten ["{"; (fo o); "["; flattenDelim "," (map (bprint fv fo) lbt); "]}"]
+  flatten [(fo o); newLineString; flatten (map (bprint (append " " spaces) fv fo) lbt)]
 end
 with 
-bprint {V O  :Type} (fv: V -> string) (fo : O -> string) (t : @BTerm V O) 
+bprint {V O  :Type} (spaces:string) (fv: V -> string) (fo : O -> string) (t : @BTerm V O) 
   : string :=
 match t with
 | bterm lv nt =>  
   let pv := flattenDelim " " (map fv lv) in
-  let pt := tprint fv fo nt in
-    flatten ["("; pv; "." ; pt; ")"]
+  let pt := tprint spaces fv fo nt in
+    flatten [spaces; pv; "." ; pt]
 end.
 
