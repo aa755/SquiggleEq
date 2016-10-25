@@ -17,6 +17,8 @@ Require Import Coq.Classes.DecidableClass.
 Require Import Coq.Classes.Morphisms.
 
 Require Import list.
+Set Universe Polymorphism.
+
 
 (* get rid of it eventually *)
 Notation subsetv := subset (only parsing).

@@ -3933,14 +3933,14 @@ Proof using.
     remember (sub_find sub n); destruct o; symmetry in Heqo; simpl;
     rewrite remove_nvars_cons_r.
     + applydup sub_find_some_implies_memvar_true in Heqo.
-      rewrite Heqo0.
+      setoid_rewrite Heqo0.
       rewrite remove_nvars_nil_r; simpl.
       applydup sub_keep_first_singleton_r_some in Heqo.
       rewrite Heqo1; simpl.
       rewrite app_nil_r; auto.
 
     + applydup sub_find_none_implies_memvar_false in Heqo.
-      rewrite Heqo0.
+      setoid_rewrite Heqo0.
       rewrite remove_nvars_nil_r.
       applydup sub_keep_first_singleton_r_none in Heqo.
       rewrite Heqo1; simpl; sp.

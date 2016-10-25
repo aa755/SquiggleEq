@@ -1,5 +1,6 @@
 Require Import SquiggleEq.varInterface.
 Require Import SquiggleEq.UsefulTypes.
+Set Universe Polymorphism.
 
 Section VarPair.
 
@@ -7,7 +8,7 @@ Context {Var T2 vc} {deqnvar : Deq Var} {varcl freshv}
 {varclass: @VarType Var vc deqnvar varcl freshv} {deqt2 : Deq T2} (def: T2).
 
 
-Definition NVar : Type := (Var * T2).
+Notation NVar := (Var * T2)%type.
 
 
 
