@@ -11,14 +11,14 @@ Definition NVar : Type := (Var * T2).
 
 
 
-Global Instance varClassNVar : VarClass NVar vc :=
+Instance varClassNVar : VarClass NVar vc :=
 fun p => varClass (fst p).
 
 
 Require  Import SquiggleEq.list.
 Require  Import Coq.Lists.List.
 
-Global Instance freshVarsNVar : FreshVars NVar vc:=
+Instance freshVarsNVar : FreshVars NVar vc:=
 fun (n:nat) 
   (c : option vc) (avoid suggested : list NVar)
 =>
@@ -52,8 +52,9 @@ Proof.
   eapply HfreshVars in Hin; eauto.
 Qed.
 
-Global Instance vartypePos : VarType NVar vc.
+Instance vartypePos : VarType NVar vc.
   apply Build_VarType.
   exact freshVarsPosCorrect.
 Defined.
 
+End VarPair.
