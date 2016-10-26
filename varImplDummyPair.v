@@ -1,6 +1,5 @@
 Require Import SquiggleEq.varInterface.
 Require Import SquiggleEq.UsefulTypes.
-Set Universe Polymorphism.
 
 Section VarPair.
 
