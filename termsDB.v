@@ -79,11 +79,6 @@ Definition get_bvars  (bt: DBTerm ) : list Name :=
 
 Definition num_bvars  (bt: DBTerm ) : nat := length (get_bvars bt).
 
-
-(** % \noindent \\* % We define
-    a predicate [nt_wf] on [NTerm] such that
-    [nt_wf nt] asserts that [nt] is a well-formed term.  %\\* %
-*)
 Inductive nt_wf: DTerm -> [univ] :=
 | wfvt: forall nv : N, nt_wf (vterm nv)
 | wfot: forall (o: Opid) (lnt: list DBTerm),
@@ -131,14 +126,48 @@ match e with
 | bterm m t => bterm m (subst_aux v (NLength m+k) t)%N
 end.
 
+Require Import ExtLib.Data.Map.FMapPositive.
 
+Definition lookupNDef {Name:Type} (def: Name) (names : pmap Name) (var:N) : Name :=
+  opExtract def (pmap_lookup (N.succ_pos var) names).
 
+Definition insertN {Name:Type} (names : pmap Name) (nvar:N*Name): pmap Name :=
+  let (var,name) := nvar in
+  pmap_insert (N.succ_pos var) name names.
+
+Definition insertNs {Name:Type} (names : pmap Name) (nvars: list (N*Name)): pmap Name :=
+fold_left insertN nvars names.
+
+Open Scope N_scope.
+
+Fixpoint fromDB {Name Opid NVar : Type} (defn: Name) (mkVar : (N * Name) -> NVar) 
+  (max : N) 
+  (names: pmap Name) (e:@DTerm Opid Name) {struct e}
+  : (@NTerm NVar Opid) :=
+match e with
+| vterm n => terms.vterm (mkVar (max-n-1,lookupNDef defn names (max-n-1)))
+| oterm o lbt => terms.oterm o (map (fromDB_bt defn mkVar max names) lbt)
+end
+with fromDB_bt {Name Opid NVar : Type} (defn: Name) (mkVar : (N * Name) -> NVar) 
+  (max : N) 
+  (names: pmap Name) (e:@DBTerm Opid Name) {struct e}
+    : (@BTerm NVar Opid) :=
+match e with
+| bterm ln dt => 
+    let len := length ln in
+    let vars := (seq N.succ max len) in
+    let nvars := (combine vars ln) in
+    let names := insertNs names nvars in
+    let bvars := map mkVar nvars in
+    terms.bterm bvars (fromDB defn mkVar (max+ N.of_nat len) names dt)
+end.
 
 Section DBToNamed.
 Context {NVar VarClass} `{VarType NVar VarClass} `{Deq Opid} {gts : GenericTermSig Opid}.
 Definition all_vars (t:@NTerm NVar Opid) : list NVar := free_vars t ++ bound_vars t.
 
 End DBToNamed.
+
 
 
 
