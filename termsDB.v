@@ -19,18 +19,19 @@ Require Import Eqdep_dec.
 Require Import varInterface.
 Require Import terms.
 
-Generalizable Variable Opid.
+Generalizable Variables Opid Name.
 
 Section terms.
 
 
-Context `{Deq Opid} {gts : GenericTermSig Opid}.
+Context `{Deq Opid} `{Deq Name} {gts : GenericTermSig Opid}.
 
 Inductive DTerm : Type :=
 | vterm: N (* generalize over N?*) -> DTerm
 | oterm: Opid -> list DBTerm -> DTerm
 with DBTerm : Type :=
-| bterm: N -> DTerm -> DBTerm.
+| bterm: list Name -> DTerm -> DBTerm.
+(* binders have names, but only for readability.*)
 
 Definition isvar (t : DTerm) :=
   match t with
@@ -71,10 +72,13 @@ Definition get_nt  (bt: DBTerm ) : DTerm :=
  | bterm _ nt => nt
  end.
 
-Definition num_bvars  (bt: DBTerm ) : N :=
+Definition get_bvars  (bt: DBTerm ) : list Name :=
  match bt with
  | bterm n _ => n
  end.
+
+Definition num_bvars  (bt: DBTerm ) : nat := length (get_bvars bt).
+
 
 (** % \noindent \\* % We define
     a predicate [nt_wf] on [NTerm] such that
@@ -85,31 +89,33 @@ Inductive nt_wf: DTerm -> [univ] :=
 | wfot: forall (o: Opid) (lnt: list DBTerm),
         (forall l, LIn l lnt -> bt_wf l)
          -> map (num_bvars) lnt 
-            = map N.of_nat (OpBindings o)
+            = (OpBindings o)
          -> nt_wf (oterm o lnt)
 with bt_wf : DBTerm -> [univ] :=
-| wfbt : forall (lnv : N) (nt: DTerm),
+| wfbt : forall (lnv : list Name) (nt: DTerm),
          nt_wf nt -> bt_wf (bterm lnv nt).
 
 Open Scope N_scope.
+
+(* move to list.v *)
+Definition NLength {A:Type} (lv: list A) : N := N.of_nat (length lv).
 
 (** Just decidability of equality on variables suffices for these definitions.
   The full [VarType] may not be needed until [ssubst]*)
 Inductive fvars_below : N -> DTerm -> Prop :=
 | var_below: forall i j, j < i -> fvars_below i (vterm j)
 | ot_below: forall i (o: Opid) (lnt: list DBTerm),
-  (forall l, LIn l lnt -> bt_wf l)
-  -> map (num_bvars) lnt 
-      = map N.of_nat (OpBindings o)
+  (forall l, In l lnt -> fvars_below_bt i l)
   -> fvars_below i (oterm o lnt)
 with fvars_below_bt : N->DBTerm -> Prop :=
-| bt_below : forall (i n : N) (nt: DTerm),
-         fvars_below (n+i) nt -> fvars_below_bt i (bterm n nt).
+| bt_below : forall (i : N) (lv: list Name) (nt: DTerm),
+  fvars_below (NLength lv +i) nt -> fvars_below_bt i (bterm lv nt).
 
 
 End terms.
 
-Fixpoint subst_aux {Opid:Type}(v:DTerm) k (e:@DTerm Opid): @DTerm Opid:=
+Fixpoint subst_aux {Opid Name:Type}(v:DTerm) k (e:@DTerm Opid Name)
+  : @DTerm Opid Name:=
 match e with
 | vterm i => 
   match N.compare i k with
@@ -119,9 +125,10 @@ match e with
   end
 | oterm o lbt => oterm o (map (subst_aux_bt v k) lbt)
 end
-with subst_aux_bt {Opid:Type} (v:@DTerm Opid) k (e:@DBTerm Opid): @DBTerm Opid:=
+with subst_aux_bt {Opid Name:Type} (v:@DTerm Opid Name) 
+    k (e:@DBTerm Opid Name): @DBTerm Opid Name:=
 match e with
-| bterm m t => bterm m (subst_aux v (m+k) t)%N
+| bterm m t => bterm m (subst_aux v (NLength m+k) t)%N
 end.
 
 
