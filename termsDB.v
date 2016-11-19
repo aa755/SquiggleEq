@@ -18,6 +18,7 @@ Require Import Recdef.
 Require Import Eqdep_dec.
 Require Import varInterface.
 Require Import terms.
+Require Import substitution.
 
 Generalizable Variables Opid Name.
 
@@ -328,14 +329,17 @@ let id := (getId v) in
 Require Import Nsatz.
 Require Import Psatz.
 
+Let fromDB := (@fromDB Name Opid NVar def mkNVar).
+Let fromDB_bt:= (@fromDB_bt Name Opid NVar def mkNVar).
+
 Lemma fromDB_fvars: 
   (forall (s : DTerm) (n:N),
     fvars_below n s
-    -> forall names, fvarsProp n names (@free_vars _ _ Opid (fromDB def mkNVar n names s)))
+    -> forall names, fvarsProp n names (@free_vars _ _ Opid (fromDB n names s)))
   *
   (forall (s : DBTerm) (n:N),
     fvars_below_bt n s
-    -> forall names, fvarsProp n names (@free_vars_bterm _ _ Opid (fromDB_bt def mkNVar n names s))).
+    -> forall names, fvarsProp n names (@free_vars_bterm _ _ Opid (fromDB_bt n names s))).
 Proof using getIdCorr.
   apply NTerm_BTerm_ind; unfold fvarsProp.
 - intros n nv Hfb ? ? Hin.
@@ -380,7 +384,43 @@ Proof using getIdCorr.
     exrepnd. rewrite Hcc1. assumption.
 Qed.
 
-End DBToNamed.
+SearchAbout ssubst_aux ssubst.
+Lemma fromDB_ssubst:
+  forall (v : DTerm),
+  let var n names : NVar := (mkNVar (n,lookupNDef def names n)) in
+(* exp_wf 0 ls : not needed for proof, but needed for sbst to be meaningful *)
+  (forall (e : DTerm) (nf ns:N) names, (* ns cant be 0 because it increased during recursion *)
+    fvars_below nf e
+    -> fromDB nf names (subst_aux v ns e)
+       = substitution.ssubst_aux 
+            (fromDB nf names e) [(var (nf - ns - 1)%N names,fromDB nf names v)])
+  *
+  (forall (e : DBTerm) (nf ns:N) names,
+    fvars_below_bt nf e
+    -> fromDB_bt nf names (subst_aux_bt v ns e)
+       = substitution.ssubst_bterm_aux 
+            (fromDB_bt nf names e) [(var (nf - ns - 1)%N names,fromDB nf names v)]).
+Proof using.
+  intros. apply NTerm_BTerm_ind; unfold fvarsProp.
+- intros ? ? ? ? Hfb. simpl.
+  inverts Hfb.
+  remember (n ?= ns) as nc. symmetry in Heqnc. destruct nc.
+  + rewrite N.compare_eq_iff in Heqnc. subst. unfold var.
+    autorewrite with SquiggleEq. refl.
+  + rewrite N.compare_lt_iff in Heqnc. unfold fromDB. simpl.
+    rewrite not_eq_beq_var_false; auto. unfold var.
+    intros Hc. apply (f_equal getId) in Hc.
+    repeat rewrite getIdCorr in Hc.
+    assert (ns < nf) by admit. lia.
+  + rewrite N.compare_gt_iff in Heqnc. unfold fromDB. simpl.
+    rewrite not_eq_beq_var_false; auto. unfold var.
+    intros Hc. apply (f_equal getId) in Hc.
+    repeat rewrite getIdCorr in Hc.
+SearchAbout beq_var false.
+    rewrite .
+
+
+End DBToNamed. 
 
 
 
