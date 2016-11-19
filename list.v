@@ -3232,6 +3232,26 @@ Proof using.
   clear Hinb IHl. intros Hc. apply Hin. apply in_map. assumption.
 Qed.
 
+(* Move to Coq.Lists.List ? *)
+Lemma seq_add : forall n m s,
+  List.seq s (n+m) = (List.seq s n)++(List.seq (s+n) m).
+Proof using.
+  intros ?. induction n; simpl; intros m s;
+    [ rewrite <- plus_n_O; reflexivity | ].
+  f_equal. rewrite IHn. f_equal. simpl.
+  rewrite plus_n_Sm. reflexivity.
+Qed.
+
+(* Move to Coq.Lists.List ? *)
+Lemma fold_right_map {A B C: Type} 
+  (f: B -> C -> C) (m: A->B) (s:C) (l: list A) :
+fold_right f s (map m l)
+= fold_right (fun a c => f (m a) c) s l.
+Proof using.
+  induction l; simpl;congruence.
+Qed.
+
+
 
 
 

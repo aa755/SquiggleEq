@@ -24,7 +24,7 @@ Generalizable Variables Opid Name.
 Section terms.
 
 
-Context `{Deq Opid} `{Deq Name} {gts : GenericTermSig Opid}.
+Context `{Deq Name} `{Deq Opid} {gts : GenericTermSig Opid}.
 
 Inductive DTerm : Type :=
 | vterm: N (* generalize over N?*) -> DTerm
@@ -47,26 +47,6 @@ match n with
 end. 
 
 
-(*Notation "x # b" := (bterm [x] b) (at level 70, right associativity).
-(*Check [[ btermO (vterm(nvar 0))]] *)
-(* Notation "< N >" := (btermO N). *)
-Notation "\\ f" :=
-  (oterm (Can NLambda) [[f]]) (at level 70, right associativity).
-
-*)
-
-
-(* ------ CONSTRUCTORS ------ *)
-
-
-(* --- primitives --- *)
-
-
-(* end hide *)
-(** %\noindent% Whenever we talk about the [NTerm] of a [BTerm], this is
-what we would mean:
-
-*)
 Definition get_nt  (bt: DBTerm ) : DTerm :=
  match bt with
  | bterm _ nt => nt
@@ -142,7 +122,7 @@ Open Scope N_scope.
 
 Fixpoint fromDB {Name Opid NVar : Type} (defn: Name) (mkVar : (N * Name) -> NVar) 
   (max : N) 
-  (names: pmap Name) (e:@DTerm Opid Name) {struct e}
+  (names: pmap Name) (e:@DTerm Name Opid) {struct e}
   : (@NTerm NVar Opid) :=
 match e with
 | vterm n => terms.vterm (mkVar (max-n-1,lookupNDef defn names (max-n-1)))
@@ -150,7 +130,7 @@ match e with
 end
 with fromDB_bt {Name Opid NVar : Type} (defn: Name) (mkVar : (N * Name) -> NVar) 
   (max : N) 
-  (names: pmap Name) (e:@DBTerm Opid Name) {struct e}
+  (names: pmap Name) (e:@DBTerm Name Opid) {struct e}
     : (@BTerm NVar Opid) :=
 match e with
 | bterm ln dt => 
@@ -162,9 +142,221 @@ match e with
     terms.bterm bvars (fromDB defn mkVar (max+ N.of_nat len) names dt)
 end.
 
+(* copied from terms2.v *)
+Fixpoint size {NVar Opid:Type} (t : @DTerm NVar Opid) : nat :=
+  match t with
+  | vterm _ => 1
+  | oterm op bterms => S (addl (map (@size_bterm NVar _) bterms))
+  end
+ with size_bterm {NVar Opid:Type} (bt: @DBTerm NVar Opid) :nat :=
+  match bt with
+  | bterm lv nt => @size NVar Opid nt
+  end.
+
+Require Import Coq.Unicode.Utf8.
+
 Section DBToNamed.
-Context {NVar VarClass} `{VarType NVar VarClass} `{Deq Opid} {gts : GenericTermSig Opid}.
-Definition all_vars (t:@NTerm NVar Opid) : list NVar := free_vars t ++ bound_vars t.
+
+Context {Name NVar VarClass : Type} {deqv vcc fvv}
+  `{vartyp: @VarType NVar VarClass deqv vcc fvv} `{deqo: Deq Opid} {gts : GenericTermSig Opid} (def:Name).
+
+(* copied from terms2.v *)
+Lemma size_subterm2 :
+  forall (o:Opid) (lb : list DBTerm) (b : DBTerm) ,
+    LIn b lb
+    ->  (size_bterm b <  @size Name _ (oterm o lb))%nat.
+Proof using.
+  simpl. induction lb; intros ? Hin; inverts Hin as; simpl; try omega.
+  intros Hin. apply IHlb in Hin; omega.
+Qed.
+
+Lemma size_subterm3 :
+  forall (o:Opid) (lb : list DBTerm) (nt : DTerm) (lv : list Name) ,
+    In (bterm lv nt) lb
+    ->  (size nt <  size (oterm o lb))%nat.
+Proof using.
+ introv X.
+ apply size_subterm2 with (o:=o) in X. auto.
+Qed.
+
+
+Lemma NTerm_better_ind3 :
+  forall P : (@DTerm Name Opid) -> Type,
+    (forall n : N, P (vterm n))
+    -> (forall (o : Opid) (lbt : list DBTerm),
+          (forall (nt: DTerm),
+              (size nt < size (oterm o lbt))%nat
+              -> P nt
+          )
+          -> P (oterm o lbt)
+       )
+    -> forall t : DTerm, P t.
+Proof using.
+ intros P Hvar Hbt.
+ assert (forall n t, size t = n -> P t) as Hass.
+ Focus 2. intros. apply Hass with (n := size t) ; eauto; fail.
+ 
+ induction n as [n Hind] using comp_ind_type.
+ intros t Hsz.
+ destruct t.
+ apply Hvar.
+ apply Hbt. introv Hs.
+ apply Hind with (m := size nt) ; auto.
+ subst.
+ assert(size nt < size (oterm o l))%nat; auto.
+Qed.
+
+
+Lemma NTerm_better_ind2 :
+  forall P : (@DTerm Name Opid) -> Type,
+    (forall n : N, P (vterm n))
+    -> (forall (o : Opid) (lbt : list DBTerm),
+          (forall (nt nt': DTerm) (lv: list Name),
+             (LIn (bterm lv nt) lbt)
+              -> (size nt' <= size nt)%nat
+              -> P nt'
+          )
+          -> P (oterm o lbt)
+       )
+    -> forall t : DTerm, P t.
+Proof using.
+ intros P Hvar Hbt.
+ apply  NTerm_better_ind3; eauto.
+ intros ? ? H.
+ apply Hbt.
+ intros ? ? ? Hin Hs. apply H.
+ eapply le_lt_trans;[apply Hs|].
+ eapply size_subterm3; eauto.
+Qed.
+
+(* TODO: this is structurally recursive use fix to make it compute *)
+Lemma NTerm_BTerm_ind :
+  forall (PN :  (@DTerm Name Opid) -> Type) (PB : DBTerm -> Type),
+    (forall n : N, PN (vterm n))
+    -> (forall (o : Opid) (lbt : list DBTerm),
+          (forall b,
+             (LIn b lbt) -> PB b
+          )
+          -> PN (oterm o lbt)
+       )
+    -> (forall (lv: list Name) (nt : DTerm),
+          PN nt -> PB (bterm lv nt)
+       )
+    -> ((forall t : DTerm, PN t) *  (forall t : DBTerm, PB t)).
+Proof using.
+   introv Hv Hind Hb.
+   assert (forall A B, A -> (A -> B) -> (A*B)) as H by tauto.
+   apply H; clear H.
+- apply  NTerm_better_ind2; auto. 
+   introv Hx. apply Hind. introv Hin. destruct b. eauto.
+- intro Hnt. intro b. destruct b. eauto.
+Qed.
+
+  Lemma pmap_lookup_insert_neq {T}
+  : ∀ (m : pmap T) (k : positive) (v : T) (k' : positive),
+      k ≠ k' →
+        pmap_lookup k' (pmap_insert k v m) = pmap_lookup k' m.
+  Proof.
+    intros.
+    remember (pmap_lookup k' m).
+    destruct o; [
+      apply pmap_lookup_insert_Some_neq; intuition |
+      apply pmap_lookup_insert_None_neq; intuition].
+  Qed.
+
+  Lemma lookupNDef_insert_neq {T}
+  : ∀ (m : pmap T) (k : N) (v def : T) (p : N*T),
+      fst p ≠ k →
+        lookupNDef def (insertN m p) k = lookupNDef def m k.
+  Proof.
+    intros. unfold lookupNDef, insertN. f_equal. destruct p.
+    apply pmap_lookup_insert_neq. intros Hc.
+    apply injectiveNsuccpos in Hc. contradiction.
+  Qed.
+
+  Lemma lookupNDef_inserts_neq {T}
+  : ∀ (k : N) (v def : T) (p : list (N*T)) (m : pmap T),
+      disjoint (map fst p) [k] →
+        lookupNDef def (insertNs m p) k = lookupNDef def m k.
+  Proof.
+    intros ? ? ?. induction p;[reflexivity| intros ? Hd].
+    simpl in *. apply disjoint_cons_l in Hd.
+    rewrite IHp;[| tauto].
+    apply lookupNDef_insert_neq; auto. simpl in *.
+    rewrite N.eq_sym_iff in Hd. tauto.
+  Qed.
+
+
+  Variable mkNVar: (N * Name) -> NVar.
+  Variable getId: NVar -> N.
+  Hypothesis getIdCorr: forall p n, getId (mkNVar (p,n)) = p.
+
+
+Let fvarsProp (n:N) names (vars : list NVar): Prop := 
+lforall
+(fun v => 
+let id := (getId v) in
+  (id < N.succ n)%N 
+  /\ v = mkNVar (id,(lookupNDef def names id))
+) vars.
+
+Require Import Nsatz.
+Require Import Psatz.
+
+Lemma fromDB_fvars: 
+  (forall (s : DTerm) (n:N),
+    fvars_below n s
+    -> forall names, fvarsProp n names (@free_vars _ _ Opid (fromDB def mkNVar n names s)))
+  *
+  (forall (s : DBTerm) (n:N),
+    fvars_below_bt n s
+    -> forall names, fvarsProp n names (@free_vars_bterm _ _ Opid (fromDB_bt def mkNVar n names s))).
+Proof using.
+  apply NTerm_BTerm_ind; unfold fvarsProp.
+- intros n nv Hfb ? ? Hin.
+  simpl in *. rewrite or_false_r  in Hin. subst.
+  repeat rewrite getIdCorr in *. split; [ | refl].
+  lia.
+- intros ? ? Hind n Hfb ? ? Hin.
+  simpl in *. rewrite flat_map_map in Hin.
+  apply in_flat_map in Hin.
+  exrepnd. unfold compose in *. simpl in *.
+  inverts Hfb.
+  apply Hind in Hin0; eauto.
+- intros ? ? Hind n Hfb ? ? Hin.
+  simpl in *.
+  rewrite N.add_comm in Hin.
+  apply in_remove_nvars in Hin. repnd.
+  invertsn Hfb.
+  apply Hind in Hin0; [ | assumption].
+  clear Hind Hfb. exrepnd.
+  rewrite Hin0.
+  rewrite Hin0 in Hin.
+  rewrite Hin0 in Hin1.
+  clear Hin0.
+  repeat rewrite getIdCorr in *.
+  pose proof (N.ltb_spec0 (getId a) (N.succ n)) as Hc.
+  destruct (getId a <? N.succ n); inverts Hc;[ clear Hin Hin1 | ].
+  + split;[ assumption |]. 
+    rewrite lookupNDef_inserts_neq; auto.
+    rewrite <- combine_map_fst;[| rewrite seq_length; refl].
+    intros ? Hin Hinc. apply in_seq_Nplus in Hin.
+    apply in_single in Hinc. subst. repnd.
+    
+    SearchAbout seq.
+    
+apply N.lt_nge. intros Hinc. apply Hin. clear Hin.
+    apply in_map.
+  assert (false.)
+  SearchAbout LIn map.
+  rewrite in_seq_mkvar_map in Hin by assumption.
+  rewrite <- seq_shift in Hin.
+  setoid_rewrite in_seq_Nplus in Hin. lia.
+  
+  
+
+
+
 
 End DBToNamed.
 

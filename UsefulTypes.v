@@ -562,4 +562,14 @@ match sop with
 end.
 
 
+Lemma injectiveNsuccpos:  injective_fun N.succ_pos.
+Proof.
+  intros a b Heq.
+  apply (f_equal Npos) in Heq.
+  do 2 rewrite N.succ_pos_spec in Heq.
+  apply N.succ_inj in Heq.
+  assumption.
+Qed.
+
+
 
