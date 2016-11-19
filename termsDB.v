@@ -265,7 +265,7 @@ Qed.
   Qed.
 
   Lemma lookupNDef_insert_neq {T}
-  : ∀ (m : pmap T) (k : N) (v def : T) (p : N*T),
+  : ∀ (m : pmap T) (k : N) (def : T) (p : N*T),
       fst p ≠ k →
         lookupNDef def (insertN m p) k = lookupNDef def m k.
   Proof.
@@ -274,8 +274,18 @@ Qed.
     apply injectiveNsuccpos in Hc. contradiction.
   Qed.
 
+  (* move to a pmap file? *)
+  Lemma lookupNDef_insert_eq {T}
+  : ∀ (m : pmap T) (def : T) (p : N*T),
+        lookupNDef def (insertN m p) (fst p) = snd p.
+  Proof.
+    intros.  unfold lookupNDef, insertN.
+    destruct p. simpl. rewrite pmap_lookup_insert_eq.
+    refl.
+  Qed.
+
   Lemma lookupNDef_inserts_neq {T}
-  : ∀ (k : N) (v def : T) (p : list (N*T)) (m : pmap T),
+  : ∀ (k : N)  (def : T) (p : list (N*T)) (m : pmap T),
       disjoint (map fst p) [k] →
         lookupNDef def (insertNs m p) k = lookupNDef def m k.
   Proof.
@@ -284,6 +294,21 @@ Qed.
     rewrite IHp;[| tauto].
     apply lookupNDef_insert_neq; auto. simpl in *.
     rewrite N.eq_sym_iff in Hd. tauto.
+  Qed.
+
+  Lemma lookupNDef_inserts_eq {T}
+  : ∀ k (def : T) (p : list (N*T)) (m : pmap T),
+    In k (map fst p)
+    -> exists v, lookupNDef def (insertNs m p) k = v /\ In (k,v) p.
+  Proof.
+    intros ? ?. induction p; simpl; auto;[ tauto |].
+    intros ? Hin.
+    destruct (in_dec N.eq_dec k (map fst p)) as [Hd | Hd].
+  - eapply IHp with (m:=(insertN m a)) in Hd.
+    exrepnd. eexists; eauto.
+  - dorn Hin;[| tauto]. subst. rewrite lookupNDef_inserts_neq; 
+      [| repeat disjoint_reasoning; auto].
+    rewrite lookupNDef_insert_eq. exists (snd a); cpx.
   Qed.
 
 
@@ -296,7 +321,7 @@ Let fvarsProp (n:N) names (vars : list NVar): Prop :=
 lforall
 (fun v => 
 let id := (getId v) in
-  (id < N.succ n)%N 
+  (id <  n)%N 
   /\ v = mkNVar (id,(lookupNDef def names id))
 ) vars.
 
@@ -311,11 +336,12 @@ Lemma fromDB_fvars:
   (forall (s : DBTerm) (n:N),
     fvars_below_bt n s
     -> forall names, fvarsProp n names (@free_vars_bterm _ _ Opid (fromDB_bt def mkNVar n names s))).
-Proof using.
+Proof using getIdCorr.
   apply NTerm_BTerm_ind; unfold fvarsProp.
 - intros n nv Hfb ? ? Hin.
   simpl in *. rewrite or_false_r  in Hin. subst.
   repeat rewrite getIdCorr in *. split; [ | refl].
+  inverts Hfb.
   lia.
 - intros ? ? Hind n Hfb ? ? Hin.
   simpl in *. rewrite flat_map_map in Hin.
@@ -335,28 +361,24 @@ Proof using.
   rewrite Hin0 in Hin1.
   clear Hin0.
   repeat rewrite getIdCorr in *.
-  pose proof (N.ltb_spec0 (getId a) (N.succ n)) as Hc.
-  destruct (getId a <? N.succ n); inverts Hc;[ clear Hin Hin1 | ].
+  pose proof (N.ltb_spec0 (getId a) n) as Hc.
+  destruct (getId a <? n); invertsn Hc;[ clear Hin Hin1 | ].
   + split;[ assumption |]. 
     rewrite lookupNDef_inserts_neq; auto.
     rewrite <- combine_map_fst;[| rewrite seq_length; refl].
     intros ? Hin Hinc. apply in_seq_Nplus in Hin.
-    apply in_single in Hinc. subst. repnd.
-    
-    SearchAbout seq.
-    
-apply N.lt_nge. intros Hinc. apply Hin. clear Hin.
-    apply in_map.
-  assert (false.)
-  SearchAbout LIn map.
-  rewrite in_seq_mkvar_map in Hin by assumption.
-  rewrite <- seq_shift in Hin.
-  setoid_rewrite in_seq_Nplus in Hin. lia.
-  
-  
-
-
-
+    apply in_single in Hinc. subst. lia.
+  + provefalse. apply Hin. apply in_map.
+    clear Hin. apply N.nlt_ge in Hc.
+    rewrite N.add_comm in Hin1.
+    pose proof (conj Hc Hin1) as Hcc. rewrite <- in_seq_Nplus in Hcc.
+    clear Hc Hin1.
+    pose proof (combine_map_fst (seq N.succ n (length lv)) lv 
+      (seq_length _ _ _ _)) as He.
+    rewrite He in Hcc.
+    apply lookupNDef_inserts_eq with (m:=names) (def0:=def) in Hcc.
+    exrepnd. rewrite Hcc1. assumption.
+Qed.
 
 End DBToNamed.
 
