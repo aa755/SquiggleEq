@@ -444,20 +444,20 @@ Proof.
   simpl.
 *)
 Local Opaque N.sub.
+Local Opaque N.add.
 Open Scope N_scope.
 Lemma fromDB_ssubst:
   forall (v : DTerm),
   let var n names : NVar := (mkNVar (n,lookupNDef def names n)) in
-(* exp_wf 0 ls : not needed for proof, but needed for sbst to be meaningful *)
-  (forall (e : DTerm) (nf:N) names, (* ns cant be 0 because it increased during recursion *)
+  (forall (e : DTerm) (nf:N) names,
     fvars_below 1 e
-    -> fromDB 0 names (subst_aux v 0 e)
+    -> fromDB 1 names (subst_aux v 0 e)
        = substitution.ssubst_aux 
             (fromDB 1 names e) [(var 0%N names,fromDB 0%N names v)])
   *
   (forall (e : DBTerm) names,
     fvars_below_bt 1 e
-    -> fromDB_bt 0 names (subst_aux_bt v 0 e)
+    -> fromDB_bt 1 names (subst_aux_bt v 0 e)
        = substitution.ssubst_bterm_aux 
             (fromDB_bt 1 names e) [(var 0 names,fromDB 0 names v)]).
 Proof using.
@@ -468,12 +468,14 @@ Proof using.
   + rewrite N.compare_eq_iff in Heqnc. subst. unfold var.
     assert (1 - 0 - 1 = 0)%N as Heq by lia.
     rewrite Heq.
-    autorewrite with SquiggleEq. refl.
+    autorewrite with SquiggleEq. admit (* alpha equal *).
   + rewrite N.compare_lt_iff in Heqnc. lia.
   + rewrite N.compare_gt_iff in Heqnc. lia.
 - admit.
 - intros ? ? ? ? Hfb. simpl. unfold fromDB_bt. simpl.
-  f_equal. 
+  f_equal;[]. unfold var.
+  rewrite (fun v vars => proj2 (assert_memvar_false v vars));[| admit].
+  SearchAbout memvar false.
 
 Lemma fromDB_ssubst:
   forall (v : DTerm),
