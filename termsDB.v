@@ -19,7 +19,8 @@ Require Import Eqdep_dec.
 Require Import varInterface.
 Require Import terms.
 Require Import substitution.
-
+Require Import Nsatz.
+Require Import Psatz.
 Generalizable Variables Opid Name.
 
 Section terms.
@@ -257,7 +258,7 @@ Qed.
   : ∀ (m : pmap T) (k : positive) (v : T) (k' : positive),
       k ≠ k' →
         pmap_lookup k' (pmap_insert k v m) = pmap_lookup k' m.
-  Proof.
+  Proof using.
     intros.
     remember (pmap_lookup k' m).
     destruct o; [
@@ -269,7 +270,7 @@ Qed.
   : ∀ (m : pmap T) (k : N) (def : T) (p : N*T),
       fst p ≠ k →
         lookupNDef def (insertN m p) k = lookupNDef def m k.
-  Proof.
+  Proof using.
     intros. unfold lookupNDef, insertN. f_equal. destruct p.
     apply pmap_lookup_insert_neq. intros Hc.
     apply injectiveNsuccpos in Hc. contradiction.
@@ -279,7 +280,7 @@ Qed.
   Lemma lookupNDef_insert_eq {T}
   : ∀ (m : pmap T) (def : T) (p : N*T),
         lookupNDef def (insertN m p) (fst p) = snd p.
-  Proof.
+  Proof using.
     intros.  unfold lookupNDef, insertN.
     destruct p. simpl. rewrite pmap_lookup_insert_eq.
     refl.
@@ -289,13 +290,29 @@ Qed.
   : ∀ (k : N)  (def : T) (p : list (N*T)) (m : pmap T),
       disjoint (map fst p) [k] →
         lookupNDef def (insertNs m p) k = lookupNDef def m k.
-  Proof.
+  Proof using.
     intros ? ? ?. induction p;[reflexivity| intros ? Hd].
     simpl in *. apply disjoint_cons_l in Hd.
     rewrite IHp;[| tauto].
     apply lookupNDef_insert_neq; auto. simpl in *.
     rewrite N.eq_sym_iff in Hd. tauto.
   Qed.
+
+  Lemma lookupNDef_inserts_neq_seq {T}
+  : ∀ (k : N)  (def : T) (m : pmap T) len lv n,
+  k < n →
+  lookupNDef def (insertNs m (combine (seq N.succ n len) lv)) k
+  = lookupNDef def m k.
+  Proof using.
+    intros. apply lookupNDef_inserts_neq.
+    intros  ? Hin Hinc.
+    apply in_single_iff in Hinc. subst.
+    apply in_map_iff in Hin. exrepnd. subst.
+    simpl. apply in_combine in Hin1. repnd.
+    apply in_seq_Nplus in Hin0.
+    repnd. simpl in *. lia.
+  Qed.
+
 
   Lemma lookupNDef_inserts_eq {T}
   : ∀ k (def : T) (p : list (N*T)) (m : pmap T),
@@ -337,12 +354,10 @@ let id := (getId v) in
   /\ v = mkNVar (id,(lookupNDef def names id))
 ) vars.
 
-Require Import Nsatz.
-Require Import Psatz.
+
 
 Let fromDB := (@fromDB Name Opid NVar def mkNVar).
 Let fromDB_bt:= (@fromDB_bt Name Opid NVar def mkNVar).
-
 
 
 Lemma fromDB_fvars: 
@@ -380,11 +395,8 @@ Proof using getIdCorr.
   repeat rewrite getIdCorr in *.
   pose proof (N.ltb_spec0 (getId a) n) as Hc.
   destruct (getId a <? n); invertsn Hc;[ clear Hin Hin1 | ].
-  + split;[ assumption |]. 
-    rewrite lookupNDef_inserts_neq; auto.
-    rewrite <- combine_map_fst;[| rewrite seq_length; refl].
-    intros ? Hin Hinc. apply in_seq_Nplus in Hin.
-    apply in_single in Hinc. subst. lia.
+  + split;[ assumption |].
+    rewrite lookupNDef_inserts_neq_seq; auto.
   + provefalse. apply Hin. apply in_map.
     clear Hin. apply N.nlt_ge in Hc.
     rewrite N.add_comm in Hin1.
@@ -459,6 +471,28 @@ Proof.
 Local Opaque N.sub.
 Local Opaque N.add.
 Open Scope N_scope.
+
+Lemma InMkVarCombine : forall i n li ln,
+length li = length ln
+-> LIn (mkNVar (i, n)) (map mkNVar (combine li ln))
+-> LIn i li.
+Proof using getIdCorr getId.
+  intros ? ? ? ? Hl Hin.
+  apply in_map_iff in Hin.
+  exrepnd. apply (f_equal getId) in Hin0.
+  repeat rewrite getIdCorr in Hin0. subst.
+  eapply in_combine_l; eauto.
+Qed.
+
+Lemma InMkVarCombine2 : forall i n li ln,
+length li = length ln
+-> ¬ LIn i li
+-> ¬ LIn (mkNVar (i, n)) (map mkNVar (combine li ln)).
+Proof using getIdCorr getId.
+  intros ? ? ? ? Hl Hin Hc. apply InMkVarCombine in Hc; auto.
+Qed.
+
+
 Lemma fromDB_ssubst:
   forall (v : DTerm),
   let var n names : NVar := (mkNVar (n,lookupNDef def names n)) in
@@ -488,50 +522,32 @@ Proof using.
     rewrite not_eq_beq_var_false;[refl|].
     unfold var. apply mkNVarInj1. lia. 
   + rewrite N.compare_gt_iff in Heqnc. lia.
-- intros ? ? ? ? ? Hfb. unfold fromDB. simpl. f_equal.
+- intros ? ? Hind ? ? Hfb. unfold fromDB. simpl. f_equal.
   repeat rewrite map_map. unfold compose. simpl.
-  apply eq_maps. inverts Hfb. eauto.
-- intros ? ? ? ? Hfb. simpl. unfold fromDB_bt. simpl.
-  f_equal;[]. unfold var.
-  rewrite (fun v vars => proj2 (assert_memvar_false v vars));[| admit].
+  apply eq_maps. invertsn Hfb.
+(* info eauto : *)
+  intros ? Hee0.
+  apply Hind.
+   exact Hee0.
+   apply Hfb.
+    exact Hee0.
 
-Lemma fromDB_ssubst:
-  forall (v : DTerm),
-  let var n names : NVar := (mkNVar (n,lookupNDef def names n)) in
-(* exp_wf 0 ls : not needed for proof, but needed for sbst to be meaningful *)
-  (forall (e : DTerm) (nf:N) names, (* ns cant be 0 because it increased during recursion *)
-    fvars_below nf e
-    -> fromDB (nf -1)%N names (subst_aux v (nf -1)%N e)
-       = substitution.ssubst_aux 
-            (fromDB nf names e) [(var 0%N names,fromDB 0%N names v)])
-  *
-  (forall (e : DBTerm) (nf ns:N) names,
-    fvars_below_bt nf e
-    -> fromDB_bt nf names (subst_aux_bt v ns e)
-       = substitution.ssubst_bterm_aux 
-            (fromDB_bt nf names e) [(var (nf - ns - 1)%N names,fromDB nf names v)]).
-Proof using.
-  intros. apply NTerm_BTerm_ind; unfold fvarsProp.
-- intros ? ? ? Hfb. simpl.
-  inverts Hfb.
-  remember (n ?= nf -1) as nc. symmetry in Heqnc. destruct nc.
-  + rewrite N.compare_eq_iff in Heqnc. subst. unfold var.
-    assert (nf - (nf - 1) - 1 = 0)%N as Heq by lia.
-    rewrite Heq.
-    autorewrite with SquiggleEq. admit. (* alpha *)
-  + rewrite N.compare_lt_iff in Heqnc. unfold fromDB. simpl.
-    rewrite not_eq_beq_var_false; auto.
-    *  
- unfold var.
-    intros Hc. apply (f_equal getId) in Hc.
-    repeat rewrite getIdCorr in Hc.
-    assert (ns < nf) by admit. lia.
-  + rewrite N.compare_gt_iff in Heqnc. unfold fromDB. simpl.
-    rewrite not_eq_beq_var_false; auto. unfold var.
-    intros Hc. apply (f_equal getId) in Hc.
-    repeat rewrite getIdCorr in Hc.
-SearchAbout beq_var false.
-    rewrite .
+- intros ? ? Hind ? ? Hfb. simpl. unfold fromDB_bt. simpl.
+  f_equal;[]. unfold var.
+  rewrite (fun v vars => proj2 (assert_memvar_false v vars));
+    [| apply InMkVarCombine2;
+        [ apply seq_length | rewrite in_seq_Nplus; lia]
+    ].
+  rewrite <- N.add_assoc.
+  unfold fromDB in Hind.
+  invertsn Hfb. fold (NLength lv).
+  replace (NLength lv + nf) with (nf + NLength lv) by lia.
+  replace ((NLength lv + (1 + nf))) with (1 + (nf + NLength lv)) in Hfb by lia.
+  rewrite Hind by assumption. f_equal.
+  unfold var. f_equal.
+  f_equal;[do 2 f_equal; apply lookupNDef_inserts_neq_seq; lia| ].
+  unfold fromDB.
+Qed.
 
 
 End DBToNamed. 
