@@ -488,7 +488,9 @@ Proof using.
     rewrite not_eq_beq_var_false;[refl|].
     unfold var. apply mkNVarInj1. lia. 
   + rewrite N.compare_gt_iff in Heqnc. lia.
-- 
+- intros ? ? ? ? ? Hfb. unfold fromDB. simpl. f_equal.
+  repeat rewrite map_map. unfold compose. simpl.
+  apply eq_maps. inverts Hfb. eauto.
 - intros ? ? ? ? Hfb. simpl. unfold fromDB_bt. simpl.
   f_equal;[]. unfold var.
   rewrite (fun v vars => proj2 (assert_memvar_false v vars));[| admit].
