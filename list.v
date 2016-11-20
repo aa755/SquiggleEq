@@ -3251,7 +3251,14 @@ Proof using.
   induction l; simpl;congruence.
 Qed.
 
-
-
+Require Import Coq.Unicode.Utf8.
+Lemma  fold_left_right_rev:
+  ∀ (A B : Type) (f : A → B → B) (l : list A) (i : B),
+  fold_right f i l = fold_left (λ (x : B) (y : A), f y x) (rev l) i.
+Proof.
+  intros.
+  rewrite <- (rev_involutive l) at 1.
+  apply fold_left_rev_right.
+Qed.
 
 

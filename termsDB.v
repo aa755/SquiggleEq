@@ -384,16 +384,75 @@ Proof using getIdCorr.
     exrepnd. rewrite Hcc1. assumption.
 Qed.
 
-SearchAbout ssubst_aux ssubst.
+
+Definition subst_aux_list : DTerm -> (list DTerm) -> (@DTerm Name Opid) :=
+  fold_right  (fun v e => subst_aux v 0 e).
+
+Definition subst_aux_bt_list : DBTerm -> (list DTerm) -> (@DBTerm Name Opid) :=
+  fold_right  (fun v e => subst_aux_bt v 0 e).
+
+Fixpoint subst_aux_list2_aux (e: DTerm)  (l:list DTerm) (n:N): (@DTerm Name Opid) :=
+match l with
+| [] => e
+| h::tl => subst_aux_list2_aux (subst_aux h n e) tl (N.pred n)
+end.
+
+Fixpoint subst_aux_bt_list2_aux (e: DBTerm)  (l:list DTerm) (n:N): (@DBTerm Name Opid) :=
+match l with
+| [] => e
+| h::tl => subst_aux_bt_list2_aux (subst_aux_bt h n e) tl (N.pred n)
+end.
+
+Definition subst_aux_list2 (e: DTerm)  (l:list DTerm): (@DTerm Name Opid) :=
+  subst_aux_list2_aux e l (N.pred (NLength l)).
+
+Definition subst_aux_bt_list2 (e: DBTerm)  (l:list DTerm): (@DBTerm Name Opid) :=
+  subst_aux_bt_list2_aux e l (N.pred (NLength l)).
+
+(*
+Lemma  fold_left_right_rev:
+  ∀ (A B : Type) (f : A → B → B) (l : list A) (i : B),
+  fold_right f i l = fold_left (λ (x : B) (y : A), f y x) (rev l) i.
+Proof.
+  intros.
+  rewrite <- (rev_involutive l) at 1.
+  apply fold_left_rev_right.
+Qed.
+
+*)
+(*
+Lemma subst_aux_list_same_aux  (l:list DTerm):
+let len := NLength l in
+(forall (e:DTerm), 
+  fvars_below len e
+  -> subst_aux_list e l = subst_aux_list2 e l)
+*
+(forall (e:DBTerm), 
+  fvars_below_bt len e
+  -> subst_aux_bt_list e l = subst_aux_bt_list2 e l).
+simpl.
+Proof.
+  induction l; [tauto |].
+  unfold subst_aux_list.
+  unfold subst_aux_list.
+  apply NTerm_BTerm_ind.
+- unfold subst_aux_list. intros ? Hfb.
+  rewrite fold_left_right_rev. simpl.
+  SearchAbout fold_right rev. 
+
+ intros ? Hfb. simpl.
+  simpl.
+*)
+
 Lemma fromDB_ssubst:
   forall (v : DTerm),
   let var n names : NVar := (mkNVar (n,lookupNDef def names n)) in
 (* exp_wf 0 ls : not needed for proof, but needed for sbst to be meaningful *)
-  (forall (e : DTerm) (nf ns:N) names, (* ns cant be 0 because it increased during recursion *)
+  (forall (e : DTerm) (nf nsi nso:N) names, (* ns cant be 0 because it increased during recursion *)
     fvars_below nf e
-    -> fromDB nf names (subst_aux v ns e)
+    -> fromDB nso (* 0 initially *) names (subst_aux v nsi (* typically 0*) e)
        = substitution.ssubst_aux 
-            (fromDB nf names e) [(var (nf - ns - 1)%N names,fromDB nf names v)])
+            (fromDB nf names e) [(var (nf - nsi - 1)%N names,fromDB nso (* 0 initially *) names v)])
   *
   (forall (e : DBTerm) (nf ns:N) names,
     fvars_below_bt nf e
@@ -402,9 +461,9 @@ Lemma fromDB_ssubst:
             (fromDB_bt nf names e) [(var (nf - ns - 1)%N names,fromDB nf names v)]).
 Proof using.
   intros. apply NTerm_BTerm_ind; unfold fvarsProp.
-- intros ? ? ? ? Hfb. simpl.
+- intros ? ? ? ? ? Hfb. simpl.
   inverts Hfb.
-  remember (n ?= ns) as nc. symmetry in Heqnc. destruct nc.
+  remember (n ?= nsi) as nc. symmetry in Heqnc. destruct nc.
   + rewrite N.compare_eq_iff in Heqnc. subst. unfold var.
     autorewrite with SquiggleEq. refl.
   + rewrite N.compare_lt_iff in Heqnc. unfold fromDB. simpl.
