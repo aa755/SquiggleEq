@@ -318,6 +318,17 @@ Qed.
   Hypothesis getIdCorr: forall p n, getId (mkNVar (p,n)) = p.
 
 
+Lemma mkNVarInj1 : forall i1 i2 n1 n2,
+  i1 <> i2
+  -> mkNVar (i1, n1) ≠ mkNVar (i2, n2).
+Proof using getId getIdCorr.
+  intros ? ? ? ? Heq.
+  intros Hc. apply (f_equal getId) in Hc.
+  repeat rewrite getIdCorr in Hc.
+  contradiction.
+Qed.
+
+
 Let fvarsProp (n:N) names (vars : list NVar): Prop := 
 lforall
 (fun v => 
@@ -331,6 +342,8 @@ Require Import Psatz.
 
 Let fromDB := (@fromDB Name Opid NVar def mkNVar).
 Let fromDB_bt:= (@fromDB_bt Name Opid NVar def mkNVar).
+
+
 
 Lemma fromDB_fvars: 
   (forall (s : DTerm) (n:N),
@@ -450,28 +463,32 @@ Lemma fromDB_ssubst:
   forall (v : DTerm),
   let var n names : NVar := (mkNVar (n,lookupNDef def names n)) in
   (forall (e : DTerm) (nf:N) names,
-    fvars_below 1 e
-    -> fromDB 1 names (subst_aux v 0 e)
+    fvars_below (1+nf) e
+(* it remains to show that increasing the first argument of fromDB results in alpha equal terms *)
+    -> fromDB (1+nf) names (subst_aux v nf e)
        = substitution.ssubst_aux 
-            (fromDB 1 names e) [(var 0 names,fromDB 1 names v)])
+            (fromDB (1+nf) names e) [(var 0 names,fromDB (1+nf) names v)])
   *
-  (forall (e : DBTerm) names,
-    fvars_below_bt 1 e
-    -> fromDB_bt 1 names (subst_aux_bt v 0 e)
+  (forall (e : DBTerm) (nf:N) names,
+    fvars_below_bt (1+nf) e
+    -> fromDB_bt (1+nf) names (subst_aux_bt v nf e)
        = substitution.ssubst_bterm_aux 
-            (fromDB_bt 1 names e) [(var 0 names,fromDB 1 names v)]).
+            (fromDB_bt (1+nf) names e) [(var 0 names,fromDB (1+nf) names v)]).
 Proof using.
   intros. apply NTerm_BTerm_ind; unfold fvarsProp.
 - intros ? ? ? Hfb. simpl.
   inverts Hfb.
-  remember (n ?= 0) as nc. symmetry in Heqnc. destruct nc.
+  remember (n ?= nf) as nc. symmetry in Heqnc. destruct nc.
   + rewrite N.compare_eq_iff in Heqnc. subst. unfold var.
-    assert (1 - 0 - 1 = 0)%N as Heq by lia.
-    rewrite Heq.
+    replace (1 + nf - nf - 1) with 0  by lia.
     autorewrite with SquiggleEq. refl.
-  + rewrite N.compare_lt_iff in Heqnc. lia.
+  + rewrite N.compare_lt_iff in Heqnc.
+    unfold fromDB. simpl.
+    replace (1 + nf - n - 1)  with (nf -n) by lia.
+    rewrite not_eq_beq_var_false;[refl|].
+    unfold var. apply mkNVarInj1. lia. 
   + rewrite N.compare_gt_iff in Heqnc. lia.
-- admit.
+- 
 - intros ? ? ? ? Hfb. simpl. unfold fromDB_bt. simpl.
   f_equal;[]. unfold var.
   rewrite (fun v vars => proj2 (assert_memvar_false v vars));[| admit].
