@@ -531,11 +531,9 @@ Proof using.
   + rewrite N.compare_gt_iff in Heqnc. lia.
 - intros ? ? Hind ? ? Hfb. unfold fromDB. simpl.
   repeat rewrite map_map.
-  constructor;[repeat rewrite map_length; refl | ].
-SearchAbout alpha_eq terms.oterm.
-   f_equal.
+  apply alpha_eq_map_bt.
    unfold compose. simpl.
-  apply eq_maps. invertsn Hfb.
+  invertsn Hfb.
 (* info eauto : *)
   intros ? Hee0.
   apply Hind.
@@ -554,10 +552,9 @@ SearchAbout alpha_eq terms.oterm.
   invertsn Hfb. fold (NLength lv).
   replace (NLength lv + nf) with (nf + NLength lv) by lia.
   replace ((NLength lv + (1 + nf))) with (1 + (nf + NLength lv)) in Hfb by lia.
-  rewrite Hind by assumption. f_equal.
-  unfold var. f_equal.
-  f_equal;[do 2 f_equal; apply lookupNDef_inserts_neq_seq; lia| ].
-  unfold fromDB.
+  rewrite Hind by assumption.
+  apply alpha_eq_bterm_congr. unfold var.
+  rewrite lookupNDef_inserts_neq_seq by lia.
 Qed.
 
 

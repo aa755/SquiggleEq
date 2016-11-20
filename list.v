@@ -2017,18 +2017,9 @@ Proof. induction l2; intros ? Hlen ?   Hin. inverts Hin as Hin;
    simpl. right; auto. omega.
 Qed.
 
-(** just like nth, but no need to provide a default element *)
-Fixpoint select {A:Type} (n:nat) (l:list A): option A :=
-   match n with
-  | 0 => match l with
-         | [] => None
-         | x :: _ => Some x
-         end
-  | S m => match l with
-           | [] => None
-           | _ :: t => select m t 
-           end
-  end.
+(** nth_error was aleady in the library. *)
+Definition select {A:Type} (n:nat) (l:list A): option A  :=
+nth_error l n.
 
 Lemma nth_select1: forall {A:Type} (n:nat) (l:list A)  (def: A),
   n < length l -> select  n l= Some (nth n l def).
@@ -3259,6 +3250,16 @@ Proof.
   intros.
   rewrite <- (rev_involutive l) at 1.
   apply fold_left_rev_right.
+Qed.
+
+(* Move *)
+Lemma map_nth2:
+  forall (A B : Type) (f : A -> B) (l : list A) (d : A)  (db: B) (n : nat),
+  n < length l
+  -> nth n (map f l) db = f (nth n l d).
+Proof using.
+  intros. rewrite nth_indep with (d':= (f d));[| rewrite map_length; assumption].
+  apply map_nth.
 Qed.
 
 

@@ -2396,6 +2396,8 @@ Proof using.
   simpl. eapply alpha_eq_bterm_preserves_size; eauto.
 Qed.
 
+
+
 Lemma alpha_eq_map_bt {T}: forall o (f g : T -> BTerm) lbt,
   (forall b, In b lbt -> alpha_eq_bterm (f b) (g b))
   -> alpha_eq (oterm o (map f lbt)) (oterm o (map g lbt)).
@@ -2405,26 +2407,15 @@ Proof using.
   intros ? Hin. pose proof Hin as Hinb.
   apply nth_error_Some in Hin.
   remember (nth_error lbt n) as nn.
+  unfold selectbt.
   destruct nn as [b|]; cpx;[]. clear Hin.
-SearchAbout nth_error map.
-SearchAbout nth_error nth.
-Print select.
-Locate select.
-Print nth_error.
-  applysym nth_error_In in Heqnn. apply Hbt in Heqnn.
-  SearchAbout nth map.
-  
-  SearchAbout nth_error.
-SearchAbout  nth_error.
- unfold selectbt.
-  SearchAbout nth map.
- rewrite selectbt_map.
- apply nth_In in Hin.
-SearchAbout LIn lt.
-  apply selectbt_in in Hin.
-  SearchAbout selectbt.
-
-
+  do 2 rewrite map_nth2 with (d:=b) by assumption.
+  apply nth_select1 with (def:=b) in Hinb.
+  setoid_rewrite <- Heqnn in Hinb.
+  symmetry in Heqnn. apply nth_error_In in Heqnn.
+  apply Hbt in Heqnn. clear Hbt. invertsn Hinb.
+  do 2 rewrite <- Hinb. assumption.
+Qed.
 
 Hint Resolve alpha_eq_bterm_preserves_size : slow.
 Hint Resolve alpha_eq_preserves_size : slow.
