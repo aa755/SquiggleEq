@@ -453,13 +453,13 @@ Lemma fromDB_ssubst:
     fvars_below 1 e
     -> fromDB 1 names (subst_aux v 0 e)
        = substitution.ssubst_aux 
-            (fromDB 1 names e) [(var 0%N names,fromDB 0%N names v)])
+            (fromDB 1 names e) [(var 0 names,fromDB 1 names v)])
   *
   (forall (e : DBTerm) names,
     fvars_below_bt 1 e
     -> fromDB_bt 1 names (subst_aux_bt v 0 e)
        = substitution.ssubst_bterm_aux 
-            (fromDB_bt 1 names e) [(var 0 names,fromDB 0 names v)]).
+            (fromDB_bt 1 names e) [(var 0 names,fromDB 1 names v)]).
 Proof using.
   intros. apply NTerm_BTerm_ind; unfold fvarsProp.
 - intros ? ? ? Hfb. simpl.
@@ -468,14 +468,13 @@ Proof using.
   + rewrite N.compare_eq_iff in Heqnc. subst. unfold var.
     assert (1 - 0 - 1 = 0)%N as Heq by lia.
     rewrite Heq.
-    autorewrite with SquiggleEq. admit (* alpha equal *).
+    autorewrite with SquiggleEq. refl.
   + rewrite N.compare_lt_iff in Heqnc. lia.
   + rewrite N.compare_gt_iff in Heqnc. lia.
 - admit.
 - intros ? ? ? ? Hfb. simpl. unfold fromDB_bt. simpl.
   f_equal;[]. unfold var.
   rewrite (fun v vars => proj2 (assert_memvar_false v vars));[| admit].
-  SearchAbout memvar false.
 
 Lemma fromDB_ssubst:
   forall (v : DTerm),
