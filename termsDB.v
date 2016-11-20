@@ -444,6 +444,7 @@ Proof.
   simpl.
 *)
 Local Opaque N.sub.
+Open Scope N_scope.
 Lemma fromDB_ssubst:
   forall (v : DTerm),
   let var n names : NVar := (mkNVar (n,lookupNDef def names n)) in
@@ -454,11 +455,11 @@ Lemma fromDB_ssubst:
        = substitution.ssubst_aux 
             (fromDB 1 names e) [(var 0%N names,fromDB 0%N names v)])
   *
-  (forall (e : DBTerm) (nf ns:N) names,
-    fvars_below_bt nf e
-    -> fromDB_bt nf names (subst_aux_bt v ns e)
+  (forall (e : DBTerm) names,
+    fvars_below_bt 1 e
+    -> fromDB_bt 0 names (subst_aux_bt v 0 e)
        = substitution.ssubst_bterm_aux 
-            (fromDB_bt nf names e) [(var (nf - ns - 1)%N names,fromDB nf names v)]).
+            (fromDB_bt 1 names e) [(var 0 names,fromDB 0 names v)]).
 Proof using.
   intros. apply NTerm_BTerm_ind; unfold fvarsProp.
 - intros ? ? ? Hfb. simpl.
@@ -471,7 +472,8 @@ Proof using.
   + rewrite N.compare_lt_iff in Heqnc. lia.
   + rewrite N.compare_gt_iff in Heqnc. lia.
 - admit.
-- intros ? ? ? ? ? ? Hfb. simpl. 
+- intros ? ? ? ? Hfb. simpl. unfold fromDB_bt. simpl.
+  f_equal. 
 
 Lemma fromDB_ssubst:
   forall (v : DTerm),
