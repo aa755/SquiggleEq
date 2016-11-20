@@ -492,6 +492,12 @@ Proof using getIdCorr getId.
   intros ? ? ? ? Hl Hin Hc. apply InMkVarCombine in Hc; auto.
 Qed.
 
+Require Import alphaeq.
+
+Infix "≡" := alpha_eq (at level 100).
+
+Open Scope program_scope.
+Infix "∘≡" := alpha_eq_bterm (at level 100).
 
 Lemma fromDB_ssubst:
   forall (v : DTerm),
@@ -500,13 +506,14 @@ Lemma fromDB_ssubst:
     fvars_below (1+nf) e
 (* it remains to show that increasing the first argument of fromDB results in alpha equal terms *)
     -> fromDB (1+nf) names (subst_aux v nf e)
-       = substitution.ssubst_aux 
+       ≡
+       substitution.ssubst_aux 
             (fromDB (1+nf) names e) [(var 0 names,fromDB (1+nf) names v)])
   *
   (forall (e : DBTerm) (nf:N) names,
     fvars_below_bt (1+nf) e
     -> fromDB_bt (1+nf) names (subst_aux_bt v nf e)
-       = substitution.ssubst_bterm_aux 
+       ∘≡ substitution.ssubst_bterm_aux 
             (fromDB_bt (1+nf) names e) [(var 0 names,fromDB (1+nf) names v)]).
 Proof using.
   intros. apply NTerm_BTerm_ind; unfold fvarsProp.
@@ -522,8 +529,12 @@ Proof using.
     rewrite not_eq_beq_var_false;[refl|].
     unfold var. apply mkNVarInj1. lia. 
   + rewrite N.compare_gt_iff in Heqnc. lia.
-- intros ? ? Hind ? ? Hfb. unfold fromDB. simpl. f_equal.
-  repeat rewrite map_map. unfold compose. simpl.
+- intros ? ? Hind ? ? Hfb. unfold fromDB. simpl.
+  repeat rewrite map_map.
+  constructor;[repeat rewrite map_length; refl | ].
+SearchAbout alpha_eq terms.oterm.
+   f_equal.
+   unfold compose. simpl.
   apply eq_maps. invertsn Hfb.
 (* info eauto : *)
   intros ? Hee0.
