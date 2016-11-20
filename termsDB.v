@@ -443,16 +443,16 @@ Proof.
  intros ? Hfb. simpl.
   simpl.
 *)
-
+Local Opaque N.sub.
 Lemma fromDB_ssubst:
   forall (v : DTerm),
   let var n names : NVar := (mkNVar (n,lookupNDef def names n)) in
 (* exp_wf 0 ls : not needed for proof, but needed for sbst to be meaningful *)
-  (forall (e : DTerm) (nf nsi nso:N) names, (* ns cant be 0 because it increased during recursion *)
-    fvars_below nf e
-    -> fromDB nso (* 0 initially *) names (subst_aux v nsi (* typically 0*) e)
+  (forall (e : DTerm) (nf:N) names, (* ns cant be 0 because it increased during recursion *)
+    fvars_below 1 e
+    -> fromDB 0 names (subst_aux v 0 e)
        = substitution.ssubst_aux 
-            (fromDB nf names e) [(var (nf - nsi - 1)%N names,fromDB nso (* 0 initially *) names v)])
+            (fromDB 1 names e) [(var 0%N names,fromDB 0%N names v)])
   *
   (forall (e : DBTerm) (nf ns:N) names,
     fvars_below_bt nf e
@@ -461,13 +461,46 @@ Lemma fromDB_ssubst:
             (fromDB_bt nf names e) [(var (nf - ns - 1)%N names,fromDB nf names v)]).
 Proof using.
   intros. apply NTerm_BTerm_ind; unfold fvarsProp.
-- intros ? ? ? ? ? Hfb. simpl.
+- intros ? ? ? Hfb. simpl.
   inverts Hfb.
-  remember (n ?= nsi) as nc. symmetry in Heqnc. destruct nc.
+  remember (n ?= 0) as nc. symmetry in Heqnc. destruct nc.
   + rewrite N.compare_eq_iff in Heqnc. subst. unfold var.
+    assert (1 - 0 - 1 = 0)%N as Heq by lia.
+    rewrite Heq.
     autorewrite with SquiggleEq. refl.
+  + rewrite N.compare_lt_iff in Heqnc. lia.
+  + rewrite N.compare_gt_iff in Heqnc. lia.
+- admit.
+- intros ? ? ? ? ? ? Hfb. simpl. 
+
+Lemma fromDB_ssubst:
+  forall (v : DTerm),
+  let var n names : NVar := (mkNVar (n,lookupNDef def names n)) in
+(* exp_wf 0 ls : not needed for proof, but needed for sbst to be meaningful *)
+  (forall (e : DTerm) (nf:N) names, (* ns cant be 0 because it increased during recursion *)
+    fvars_below nf e
+    -> fromDB (nf -1)%N names (subst_aux v (nf -1)%N e)
+       = substitution.ssubst_aux 
+            (fromDB nf names e) [(var 0%N names,fromDB 0%N names v)])
+  *
+  (forall (e : DBTerm) (nf ns:N) names,
+    fvars_below_bt nf e
+    -> fromDB_bt nf names (subst_aux_bt v ns e)
+       = substitution.ssubst_bterm_aux 
+            (fromDB_bt nf names e) [(var (nf - ns - 1)%N names,fromDB nf names v)]).
+Proof using.
+  intros. apply NTerm_BTerm_ind; unfold fvarsProp.
+- intros ? ? ? Hfb. simpl.
+  inverts Hfb.
+  remember (n ?= nf -1) as nc. symmetry in Heqnc. destruct nc.
+  + rewrite N.compare_eq_iff in Heqnc. subst. unfold var.
+    assert (nf - (nf - 1) - 1 = 0)%N as Heq by lia.
+    rewrite Heq.
+    autorewrite with SquiggleEq. admit. (* alpha *)
   + rewrite N.compare_lt_iff in Heqnc. unfold fromDB. simpl.
-    rewrite not_eq_beq_var_false; auto. unfold var.
+    rewrite not_eq_beq_var_false; auto.
+    *  
+ unfold var.
     intros Hc. apply (f_equal getId) in Hc.
     repeat rewrite getIdCorr in Hc.
     assert (ns < nf) by admit. lia.
