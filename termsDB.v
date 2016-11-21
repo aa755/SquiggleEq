@@ -523,28 +523,49 @@ Proof.
 
 
 Lemma fromDBHigherAlphaAux : 
-let seqq nf n names := map (var names) (seq N.succ (n-nf) (N.to_nat nf)) in
+let vr n1 n2 names1 names2 nf :=
+ map 
+    (fun n => (var names2 (n2-n-1), terms.vterm (var names1 (n1-n-1))))
+    (seq N.succ 0 (N.to_nat nf)) in
 (forall v (nf n1 n2 : N) names1 names2,
 fvars_below nf v
 -> nf <= n1
 -> nf <= n2
--> ssubst_aux (fromDB n2 names2 v) 
-    (var_ren  (seqq nf n2 names2) (seqq nf n1 names1))
+-> ssubst_aux (fromDB n2 names2 v) (vr n1 n2 names1 names2 nf)
    ≡ fromDB n1 names1 v) *
 
 (forall v (nf n1 n2 : N) names1 names2,
 fvars_below_bt nf v
 -> nf <= n1
 -> nf <= n2
--> ssubst_bterm_aux (fromDB_bt n2 names2 v) 
-    (var_ren  (seqq nf n2 names2) (seqq nf n1 names1))
+-> ssubst_bterm_aux (fromDB_bt n2 names2 v) (vr n1 n2 names1 names2 nf)
    ∘≡ fromDB_bt n1 names1 v)
 .
 Proof using.
-  simpl. clear fvarsProp.
+  clear fvarsProp.
+  intro.
   apply NTerm_BTerm_ind.
-- intros ? ? ? ? ? ? Hfb H1le H2le.
-  simpl. invertsn Hfb. admit.
+- intros ? ? ? ? ? ? Hfb H1le H2le. simpl.
+  invertsn Hfb. simpl.
+  dsub_find sss; symmetry in Heqsss.
+  + apply sub_find_some in Heqsss.
+    unfold vr in Heqsss.
+    apply List.in_map_iff in Heqsss.
+    exrepnd. rewrite in_seq_Nplus in Heqsss0.
+    rewrite Nnat.N2Nat.id in Heqsss0.
+    unfold var in Heqsss1. pose proof Heqsss1 as Hs.
+    apply (f_equal fst) in Hs.
+    apply (f_equal getId) in Hs.
+    simpl in Hs.
+    repeat rewrite getIdCorr in Hs.
+    assert (x=n) by lia. subst.
+    inverts Heqsss1. refl.
+  + provefalse. apply sub_find_none2 in Heqsss.
+    apply Heqsss. unfold vr, dom_sub, lmap.dom_lmap, var.
+    rewrite map_map. unfold compose. simpl.
+    apply List.in_map_iff. exists n.
+    rewrite in_seq_Nplus.
+    dands; trivial; lia.
 - admit.
 - intros ? ? Hind ? ? ? ? ? Hfb H1le H2le.
   unfold fromDB_bt.
