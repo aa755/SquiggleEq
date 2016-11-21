@@ -499,11 +499,13 @@ Infix "≡" := alpha_eq (at level 100).
 Open Scope program_scope.
 Infix "∘≡" := alpha_eq_bterm (at level 100).
 
-Lemma fromDBHigherAlpha : forall v (nf n nh : N) names namesExtra,
+Lemma fromDBHigherAlpha : forall v (nf n1 n2 : N) names1 names2,
 fvars_below nf v
--> nf <= n <= nh
--> fromDB nh (insertNs names namesExtra) v
-   ≡ fromDB n names v.
+-> nf <= n1
+-> nf <= n2
+-> (forall ni, ni <= nf -> lookupNDef def names1 ni = lookupNDef def names2 ni)
+-> fromDB n2 names2 v
+   ≡ fromDB n1 names1 v.
 Admitted.
 
 
@@ -570,7 +572,9 @@ Proof using gts getIdCorr getId fvarsProp deqo.
   rewrite lookupNDef_inserts_neq_seq by lia.
   apply (fst subst_aux_alpha_sub). simpl.
   dands; trivial;[]. fold fromDB.
-  apply fromDBHigherAlpha with (nf:=0); auto. lia.
+  apply fromDBHigherAlpha with (nf:=0); auto; try lia;[].
+  intros ? ?. symmetry.
+  apply lookupNDef_inserts_neq_seq. lia. 
 Qed.
 
 
