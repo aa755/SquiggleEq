@@ -1778,6 +1778,105 @@ Proof using.
   eauto with slow.
 Qed.
 
+
+Lemma sub_range_rel_sub_find: forall R s1 s2 (v:NVar) (t1: NTerm),
+sub_range_rel R s1 s2
+-> sub_find s1 v = Some t1
+-> exists t2, sub_find s2 v = Some t2 /\ R t1 t2.
+Proof using.
+  intros ? ? ? ? ?.
+  revert s2.
+  induction s1; intros ? Hr Hf; destruct s2; simpl in *; cpx.
+  destruct p. destruct a. simpl in *.
+  repnd. subst. destruct (beq_var n v); eauto.
+  inverts Hf. eexists; eauto.
+Qed.
+
+Lemma sub_range_rel_sub_none: forall R (s1 s2 : Substitution) (v:NVar),
+sub_range_rel R s1 s2
+-> sub_find s1 v = None
+-> sub_find s2 v = None.
+Proof using.
+  intros ? ? ? ?.
+  revert s2.
+  induction s1; intros ? Hr Hf; destruct s2; simpl in *; cpx.
+  destruct p. destruct a. simpl in *.
+  repnd. subst. destruct (beq_var n v); eauto.
+  inverts Hf. (* same as above proof *)
+Qed.
+
+
+Lemma sub_range_rel_sub_filter: forall R (s1 s2 : Substitution) (lv: list NVar),
+sub_range_rel R s1 s2
+-> sub_range_rel R (sub_filter s1 lv) (sub_filter s2 lv).
+Proof using.
+  intros ? ? ? ?.
+  revert s2.
+  induction s1; intros ? Hf; destruct s2; simpl in *; cpx.
+  destruct p. destruct a. simpl in *.
+  repnd. subst. destruct (memvar n lv); eauto.
+  eexists; eauto.
+Qed.
+
+Lemma alpha_eq_map_bt {T}: forall o (f g : T -> BTerm) lbt,
+  (forall b, In b lbt -> alpha_eq_bterm (f b) (g b))
+  -> alpha_eq (oterm o (map f lbt)) (oterm o (map g lbt)).
+Proof using.
+  intros ? ? ? ? Hbt.
+  constructor;repeat rewrite map_length in *; [refl |].
+  intros ? Hin. pose proof Hin as Hinb.
+  apply nth_error_Some in Hin.
+  remember (nth_error lbt n) as nn.
+  unfold selectbt.
+  destruct nn as [b|]; cpx;[]. clear Hin.
+  do 2 rewrite map_nth2 with (d:=b) by assumption.
+  apply nth_select1 with (def:=b) in Hinb.
+  setoid_rewrite <- Heqnn in Hinb.
+  symmetry in Heqnn. apply nth_error_In in Heqnn.
+  apply Hbt in Heqnn. clear Hbt. invertsn Hinb.
+  do 2 rewrite <- Hinb. assumption.
+Qed.
+
+Lemma subst_aux_alpha_sub:
+(forall (t : NTerm) (s2 s1 : Substitution),
+sub_range_rel alpha_eq s1 s2 
+  -> alpha_eq (ssubst_aux t s1) (ssubst_aux t s2))
+*
+(forall (t : BTerm) (s2 s1 : Substitution),
+sub_range_rel alpha_eq s1 s2 
+  -> alpha_eq_bterm (ssubst_bterm_aux t s1) (ssubst_bterm_aux t s2)).
+Proof using.
+  apply NTerm_BTerm_ind.
+- intros v ? ? Hs. 
+  simpl. dsub_find ss; symmetry in Heqss.
+  + eapply sub_range_rel_sub_find in Heqss; eauto.
+    exrepnd. rewrite Heqss1. assumption.
+  + eapply sub_range_rel_sub_none in Heqss; eauto.
+    rewrite Heqss. refl.
+- intros ? ? Hind ? ? ?. simpl.
+  apply alpha_eq_map_bt. eauto.
+- intros ? ? Hind ? ? Hs. simpl.
+  apply alpha_eq_bterm_congr.
+  apply Hind. apply sub_range_rel_sub_filter.
+  assumption.
+Qed.
+
+
+Global Instance properAlphaLSubstAux : 
+  Proper (eq ==> (sub_range_rel alpha_eq) ==> alpha_eq) ssubst_aux.
+Proof using.
+  intros ? ? ? ? ?. subst.
+  apply (fst subst_aux_alpha_sub).
+Qed.
+
+Global Instance properAlphaLSubstAuxBterm : 
+  Proper (eq ==> (sub_range_rel alpha_eq) ==> alpha_eq_bterm) ssubst_bterm_aux.
+Proof using.
+  intros ? ? ? ? ?. subst.
+  apply (snd subst_aux_alpha_sub).
+Qed.
+
+
 Ltac alpharw H := let X99:= fresh "Xalrw" in
 let lhs := get_alpha_lhs H in
 match goal with 
@@ -2398,24 +2497,7 @@ Qed.
 
 
 
-Lemma alpha_eq_map_bt {T}: forall o (f g : T -> BTerm) lbt,
-  (forall b, In b lbt -> alpha_eq_bterm (f b) (g b))
-  -> alpha_eq (oterm o (map f lbt)) (oterm o (map g lbt)).
-Proof using.
-  intros ? ? ? ? Hbt.
-  constructor;repeat rewrite map_length in *; [refl |].
-  intros ? Hin. pose proof Hin as Hinb.
-  apply nth_error_Some in Hin.
-  remember (nth_error lbt n) as nn.
-  unfold selectbt.
-  destruct nn as [b|]; cpx;[]. clear Hin.
-  do 2 rewrite map_nth2 with (d:=b) by assumption.
-  apply nth_select1 with (def:=b) in Hinb.
-  setoid_rewrite <- Heqnn in Hinb.
-  symmetry in Heqnn. apply nth_error_In in Heqnn.
-  apply Hbt in Heqnn. clear Hbt. invertsn Hinb.
-  do 2 rewrite <- Hinb. assumption.
-Qed.
+
 
 Hint Resolve alpha_eq_bterm_preserves_size : slow.
 Hint Resolve alpha_eq_preserves_size : slow.

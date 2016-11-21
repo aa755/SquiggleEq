@@ -499,8 +499,21 @@ Infix "≡" := alpha_eq (at level 100).
 Open Scope program_scope.
 Infix "∘≡" := alpha_eq_bterm (at level 100).
 
+Lemma fromDBHigherAlpha : forall v (nf n nh : N) names namesExtra,
+fvars_below nf v
+-> nf <= n <= nh
+-> fromDB nh (insertNs names namesExtra) v
+   ≡ fromDB n names v.
+Admitted.
+
+
+
+
+
 Lemma fromDB_ssubst:
   forall (v : DTerm),
+  fvars_below 0 v (* 0 can be generalized ? *)
+  ->
   let var n names : NVar := (mkNVar (n,lookupNDef def names n)) in
   (forall (e : DTerm) (nf:N) names,
     fvars_below (1+nf) e
@@ -515,14 +528,14 @@ Lemma fromDB_ssubst:
     -> fromDB_bt (1+nf) names (subst_aux_bt v nf e)
        ∘≡ substitution.ssubst_bterm_aux 
             (fromDB_bt (1+nf) names e) [(var 0 names,fromDB (1+nf) names v)]).
-Proof using.
-  intros. apply NTerm_BTerm_ind; unfold fvarsProp.
+Proof using gts getIdCorr getId fvarsProp deqo.
+  intros ? H0fb. intros. apply NTerm_BTerm_ind; unfold fvarsProp.
 - intros ? ? ? Hfb. simpl.
   inverts Hfb.
   remember (n ?= nf) as nc. symmetry in Heqnc. destruct nc.
   + rewrite N.compare_eq_iff in Heqnc. subst. unfold var.
     replace (1 + nf - nf - 1) with 0  by lia.
-    autorewrite with SquiggleEq. refl.
+    rewrite <- beq_var_refl. refl.
   + rewrite N.compare_lt_iff in Heqnc.
     unfold fromDB. simpl.
     replace (1 + nf - n - 1)  with (nf -n) by lia.
@@ -555,10 +568,13 @@ Proof using.
   rewrite Hind by assumption.
   apply alpha_eq_bterm_congr. unfold var.
   rewrite lookupNDef_inserts_neq_seq by lia.
+  apply (fst subst_aux_alpha_sub). simpl.
+  dands; trivial;[]. fold fromDB.
+  apply fromDBHigherAlpha with (nf:=0); auto. lia.
 Qed.
 
 
-End DBToNamed. 
+End DBToNamed.
 
 
 
