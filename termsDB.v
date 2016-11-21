@@ -612,6 +612,7 @@ Proof.
   simpl.
 *)
 
+Definition NbinderDepth (v:@DTerm Name Opid) := N.of_nat (binderDepth v).
 
 
 Lemma fromDBHigherAlphaAux : 
@@ -621,14 +622,14 @@ let vr n1 n2 names1 names2 nf :=
     (seq N.succ 0 (N.to_nat nf)) in
 (forall v (nf n1 n2 : N) names1 names2,
 fvars_below nf v
--> nf <= n1
+-> n2+ N.of_nat (binderDepth v) +  nf <= n1
 -> nf <= n2
 -> ssubst_aux (fromDB n2 names2 v) (vr n1 n2 names1 names2 nf)
    ≡ fromDB n1 names1 v) *
 
 (forall v (nf n1 n2 : N) names1 names2,
 fvars_below_bt nf v
--> nf <= n1
+-> n2+ N.of_nat (binderDepth_bt v) +  nf <= n1
 -> nf <= n2
 -> ssubst_bterm_aux (fromDB_bt n2 names2 v) (vr n1 n2 names1 names2 nf)
    ∘≡ fromDB_bt n1 names1 v)
@@ -663,14 +664,19 @@ Proof using.
     rewrite in_seq_Nplus.
     replace ((n2 + (nf - n - 1) - nf)) with (n2-n-1) by lia.
     dands; trivial; lia.
-- intros ? ? ? ? ?  ? ? ? Hfb. intros.  unfold fromDB. simpl.
+
+- intros ? ? Hind ? ?  ? ? ? Hfb H1le H2le.  unfold fromDB. simpl.
   repeat rewrite map_map.
   apply alpha_eq_map_bt.
-  unfold compose. simpl.
-  invertsn Hfb. eauto.
+  unfold compose. simpl in *.
+  invertsn Hfb.
+  intros ? Hin. apply Hind; auto.
+  apply (in_map binderDepth_bt) in Hin.
+  apply maxl_prop in Hin. lia.
+
 - intros ? ? Hind ? ? ? ? ? Hfb H1le H2le.
   unfold fromDB_bt.
-  invertsn Hfb.
+  invertsn Hfb. simpl in H1le.
   fold (@NLength Name lv).
   Local Opaque var. simpl.
   apply Hind with 
@@ -678,7 +684,8 @@ Proof using.
     (names2:= insertNs names2 (combine (seq N.succ n2 (length lv)) lv))
     (n1:= n1 + NLength lv)
     (n2:= n2 + NLength lv)
-    in Hfb; try lia;[].
+    in Hfb; unfold NLength; try lia;[].
+  clear Hind.
   simpl.
   unfold fromDB in Hfb.
   Fail Fail rewrite <- Hfb. (* we can rewrite here if we want *)
@@ -759,10 +766,21 @@ fvars_below 0 v
    ≡ fromDB n1 names1 v.
 Proof.
   intros ? ? ? ? ? Hfb.
-  rewrite <-  (fst fromDBHigherAlphaAux) with (nf:=0) (n2:=n1) (names2:=names1); auto;
-    simpl; try lia;[].
-  unfold var_ren. simpl.
-  rewrite ssubst_aux_nil.
+  pose proof (fst fromDBHigherAlphaAux v 0 
+    ((N.max n1 n2)+NbinderDepth v) n1 names2 names1 Hfb)  as H1b.
+  simpl in H1b.
+  rewrite ssubst_aux_nil in H1b.
+  unfold NbinderDepth in H1b. simpl in *.
+  rewrite H1b; try lia;[].
+
+  symmetry. clear H1b.
+  (* do the same on the other side *)
+  pose proof (fst fromDBHigherAlphaAux v 0 
+    ((N.max n1 n2)+NbinderDepth v) n2 names2 names2 Hfb)  as H1b.
+  simpl in H1b.
+  rewrite ssubst_aux_nil in H1b.
+  unfold NbinderDepth in H1b. simpl in *.
+  rewrite H1b; try lia;[].
   refl.
 Qed.
 
@@ -773,7 +791,6 @@ Lemma fromDB_ssubst:
   ->
   (forall (e : DTerm) (nf:N) names,
     fvars_below (1+nf) e
-(* it remains to show that increasing the first argument of fromDB results in alpha equal terms *)
     -> fromDB (1+nf) names (subst_aux v nf e)
        ≡
        substitution.ssubst_aux 
