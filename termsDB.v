@@ -167,6 +167,17 @@ Fixpoint size {NVar Opid:Type} (t : @DTerm NVar Opid) : nat :=
   | bterm lv nt => @size NVar Opid nt
   end.
 
+
+Fixpoint binderDepth {NVar Opid:Type} (t : @DTerm NVar Opid) : nat :=
+  match t with
+  | vterm _ => 0
+  | oterm op bterms => (maxl (map (@binderDepth_bt NVar _) bterms))
+  end
+ with binderDepth_bt {NVar Opid:Type} (bt: @DBTerm NVar Opid) :nat :=
+  match bt with
+  | bterm lv nt => length lv +  @binderDepth NVar Opid nt
+  end.
+
 Require Import Coq.Unicode.Utf8.
 
 Section DBToNamed.
@@ -357,6 +368,41 @@ Proof using getId getIdCorr.
   contradiction.
 Qed.
 
+Local Opaque N.sub.
+Local Opaque N.add.
+Open Scope N_scope.
+
+Lemma InMkVarCombine : forall i n li ln,
+length li = length ln
+-> LIn (mkNVar (i, n)) (map mkNVar (combine li ln))
+-> LIn i li.
+Proof using getIdCorr getId.
+  intros ? ? ? ? Hl Hin.
+  apply in_map_iff in Hin.
+  exrepnd. apply (f_equal getId) in Hin0.
+  repeat rewrite getIdCorr in Hin0. subst.
+  eapply in_combine_l; eauto.
+Qed.
+
+Lemma InMkVarCombine2 : forall i n li ln,
+length li = length ln
+-> ¬ LIn i li
+-> ¬ LIn (mkNVar (i, n)) (map mkNVar (combine li ln)).
+Proof using getIdCorr getId.
+  intros ? ? ? ? Hl Hin Hc. apply InMkVarCombine in Hc; auto.
+Qed.
+
+
+Lemma InMkVarCombine3 : forall a li ln,
+length li = length ln
+-> LIn a (map mkNVar (combine li ln))
+-> LIn (getId a) li.
+Proof using getIdCorr getId.
+  intros ? ? ? Hl Hin.
+  apply in_map_iff in Hin. exrepnd. subst.
+  apply in_combine_l in Hin1.
+  rewrite getIdCorr. assumption.
+Qed.
 
 Let fvarsProp (n:N) names (vars : list NVar): Prop := 
 lforall
@@ -421,6 +467,40 @@ Proof using getIdCorr.
     exrepnd. rewrite Hcc1. assumption.
 Qed.
 
+Let bvarsProp (n:N) (md:nat) (vars : list NVar): Prop := 
+lforall
+(fun v => 
+let id := (getId v) in
+  (n <= id < n + N.of_nat md)%N
+) vars.
+
+Lemma fromDB_bvars: 
+  (forall (s : DTerm) (n:N) names, 
+    bvarsProp n (binderDepth s) (@bound_vars _ _ Opid (fromDB n names s)))
+  *
+  (forall (s : DBTerm) (n:N) names, 
+    bvarsProp n (binderDepth_bt s) (@bound_vars_bterm _ _ Opid (fromDB_bt n names s))).
+Proof using getIdCorr.
+  clear fvarsProp.
+  apply NTerm_BTerm_ind; unfold bvarsProp.
+- intros n nv ? ? Hin. simpl in Hin. contradiction.
+- intros ? ? Hind n  ? ? Hin.
+  simpl in *. rewrite flat_map_map in Hin.
+  apply in_flat_map in Hin.
+  exrepnd. unfold compose in *. simpl in *.
+  apply Hind in Hin0; eauto.
+  dands; [tauto | ]. apply proj2 in Hin0.
+  apply (in_map binderDepth_bt) in Hin1.
+  apply maxl_prop in Hin1. lia.
+- intros ? ? Hind n ? ? Hin.
+  simpl in *.
+  apply in_app_or in Hin.
+  dorn Hin.
+  + apply InMkVarCombine3 in Hin;[| apply seq_length].
+    rewrite in_seq_Nplus in Hin. lia.
+  + apply Hind in Hin. clear Hind. lia.
+Qed.
+
 
 Definition subst_aux_list : DTerm -> (list DTerm) -> (@DTerm Name Opid) :=
   fold_right  (fun v e => subst_aux v 0 e).
@@ -480,29 +560,7 @@ Proof.
  intros ? Hfb. simpl.
   simpl.
 *)
-Local Opaque N.sub.
-Local Opaque N.add.
-Open Scope N_scope.
 
-Lemma InMkVarCombine : forall i n li ln,
-length li = length ln
--> LIn (mkNVar (i, n)) (map mkNVar (combine li ln))
--> LIn i li.
-Proof using getIdCorr getId.
-  intros ? ? ? ? Hl Hin.
-  apply in_map_iff in Hin.
-  exrepnd. apply (f_equal getId) in Hin0.
-  repeat rewrite getIdCorr in Hin0. subst.
-  eapply in_combine_l; eauto.
-Qed.
-
-Lemma InMkVarCombine2 : forall i n li ln,
-length li = length ln
--> ¬ LIn i li
--> ¬ LIn (mkNVar (i, n)) (map mkNVar (combine li ln)).
-Proof using getIdCorr getId.
-  intros ? ? ? ? Hl Hin Hc. apply InMkVarCombine in Hc; auto.
-Qed.
 
 Require Import alphaeq.
 
