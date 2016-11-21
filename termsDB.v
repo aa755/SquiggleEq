@@ -499,14 +499,40 @@ Infix "≡" := alpha_eq (at level 100).
 Open Scope program_scope.
 Infix "∘≡" := alpha_eq_bterm (at level 100).
 
-Lemma fromDBHigherAlpha : forall v (nf n1 n2 : N) names1 names2,
+Let var names n : NVar := (mkNVar (n,lookupNDef def names n)).
+
+Lemma fromDBHigherAlphaAux : 
+let seqq nf n names := map (var names) (seq N.succ (n-nf) (N.to_nat nf)) in
+(forall v (nf n1 n2 : N) names1 names2,
 fvars_below nf v
 -> nf <= n1
 -> nf <= n2
+-> (forall ni, ni < nf -> lookupNDef def names1 ni = lookupNDef def names2 ni)
+-> ssubst_aux (fromDB n2 names2 v) 
+    (var_ren  (seqq nf n2 names2) (seqq nf n1 names1))
+   ≡ fromDB n1 names1 v) *
+(forall v (nf n1 n2 : N) names1 names2,
+fvars_below_bt nf v
+-> nf <= n1
+-> nf <= n2
 -> (forall ni, ni <= nf -> lookupNDef def names1 ni = lookupNDef def names2 ni)
+-> fromDB_bt n2 names2 v
+   ∘≡ fromDB_bt n1 names1 v).
+Admitted.
+
+
+Lemma fromDBHigherAlpha : forall v (n1 n2 : N) names1 names2,
+fvars_below 0 v
 -> fromDB n2 names2 v
    ≡ fromDB n1 names1 v.
-Admitted.
+Proof.
+  intros ? ? ? ? ? Hfb.
+  rewrite <-  (fst fromDBHigherAlphaAux) with (nf:=0) (n2:=n1) (names2:=names1); auto;
+    simpl; intros; try lia;[].
+  unfold var_ren. simpl.
+  rewrite ssubst_aux_nil.
+  refl.
+Qed.
 
 
 
@@ -514,22 +540,21 @@ Admitted.
 
 Lemma fromDB_ssubst:
   forall (v : DTerm),
-  fvars_below 0 v (* 0 can be generalized ? *)
+  fvars_below 0 v
   ->
-  let var n names : NVar := (mkNVar (n,lookupNDef def names n)) in
   (forall (e : DTerm) (nf:N) names,
     fvars_below (1+nf) e
 (* it remains to show that increasing the first argument of fromDB results in alpha equal terms *)
     -> fromDB (1+nf) names (subst_aux v nf e)
        ≡
        substitution.ssubst_aux 
-            (fromDB (1+nf) names e) [(var 0 names,fromDB (1+nf) names v)])
+            (fromDB (1+nf) names e) [(var names 0,fromDB (1+nf) names v)])
   *
   (forall (e : DBTerm) (nf:N) names,
     fvars_below_bt (1+nf) e
     -> fromDB_bt (1+nf) names (subst_aux_bt v nf e)
        ∘≡ substitution.ssubst_bterm_aux 
-            (fromDB_bt (1+nf) names e) [(var 0 names,fromDB (1+nf) names v)]).
+            (fromDB_bt (1+nf) names e) [(var names 0,fromDB (1+nf) names v)]).
 Proof using gts getIdCorr getId fvarsProp deqo.
   intros ? H0fb. intros. apply NTerm_BTerm_ind; unfold fvarsProp.
 - intros ? ? ? Hfb. simpl.
@@ -572,9 +597,7 @@ Proof using gts getIdCorr getId fvarsProp deqo.
   rewrite lookupNDef_inserts_neq_seq by lia.
   apply (fst subst_aux_alpha_sub). simpl.
   dands; trivial;[]. fold fromDB.
-  apply fromDBHigherAlpha with (nf:=0); auto; try lia;[].
-  intros ? ?. symmetry.
-  apply lookupNDef_inserts_neq_seq. lia. 
+  apply fromDBHigherAlpha; auto; try lia.
 Qed.
 
 
