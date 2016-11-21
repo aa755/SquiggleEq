@@ -534,6 +534,7 @@ Proof.
 *)
 
 
+
 Lemma fromDBHigherAlphaAux : 
 let vr n1 n2 names1 names2 nf :=
  map 
@@ -630,7 +631,38 @@ Proof using.
           = k+n-nf) as Heq by (intros;lia).
   erewrite map_ext in Hfb;[| intros; do 2 rewrite Heq; refl].
   rewrite map_app in Hfb.
-  assert (n2 + NLength lv <= n1). (* add this assumption to the statement *)
+  apply prove_alpha_bterm3.
+  Focus 4.
+  rewrite ssubst_aux_app.
+  Focus 4.
+    simpl. apply disjoint_bv_vars.
+  (* need (n2 + binderDepth nt +  (NLength lv) <= n1) *)
+    admit. 
+  Focus 3.
+    simpl. (* need (n2 + binderDepth nt +  (NLength lv)  <= n1 -nf) *)
+    admit.
+  Focus 2.
+    unfold range. repeat rewrite flat_map_map.
+    unfold compose. simpl.
+    admit. (* easy : flat map of nil is nil *)
+   (* need (n2 + NLength lv  <= n1 -nf)  for ssubst_sub to be identity *)
+    admit.
+  Focus 3.
+    (* need (n2 + binderDepth nt +  (NLength lv)  <= n1 -nf),
+      the vars coming from substitution are already disjoint *)
+    admit.
+
+  repeat rewrite map_length, length_combine_eq; repeat rewrite seq_length; refl.
+
+  admit (* easy *).
+
+SearchAbout disjoint_bv_sub var_ren.
+  SearchAbout alpha_eq_bterm.
+  SearchAbout ssubst app.
+  SearchAbout ssubst_aux all_vars.
+  SearchAbout ssubst_aux app.
+
+ (* add this assumption to the statement *)
 
     (* the substitution in Hfb has more pairs. split it into 2 parts,
       one of which has size (length lv). use it for al_term with chained

@@ -3262,6 +3262,35 @@ Proof using.
   apply btchange_alpha_aux; auto; disjoint_reasoningv.
 Qed.
 
+
+Lemma prove_alpha_bterm2: forall lv1 lv2 nt1 nt2,
+  length lv1 = length lv2
+  -> no_repeats lv2
+  -> disjoint (free_vars nt1) lv2
+  -> alpha_eq (ssubst nt1 (var_ren lv1 lv2)) nt2
+  -> alpha_eq_bterm (bterm lv1 nt1) (bterm lv2 nt2).
+Proof using.
+  intros.
+  rewrite btchange_alpha with (lvn:=lv2) by assumption.
+  apply alpha_eq_bterm_congr. assumption.
+Qed.
+
+
+Lemma prove_alpha_bterm3: forall lv1 lv2 nt1 nt2,
+  length lv1 = length lv2
+  -> no_repeats lv2
+  -> disjoint (all_vars nt1) lv2
+  -> alpha_eq (ssubst_aux nt1 (var_ren lv1 lv2)) nt2
+  -> alpha_eq_bterm (bterm lv1 nt1) (bterm lv2 nt2).
+Proof using.
+  intros. disjoint_reasoningv.
+  rewrite btchange_alpha with (lvn:=lv2) by assumption.
+  apply alpha_eq_bterm_congr.
+  clear H3.
+  change_to_ssubst_aux8.
+  assumption.
+Qed.
+
 Lemma alpha_eq_bterm_single_change : forall e1 vx,
   subset (free_vars e1) [vx]
   -> forall vy, alpha_eq_bterm (bterm [vx] e1)
