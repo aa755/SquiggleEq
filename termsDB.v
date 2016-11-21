@@ -566,28 +566,50 @@ Proof using.
     apply List.in_map_iff. exists n.
     rewrite in_seq_Nplus.
     dands; trivial; lia.
-- admit.
+- intros ? ? ? ? ?  ? ? ? Hfb. intros.  unfold fromDB. simpl.
+  repeat rewrite map_map.
+  apply alpha_eq_map_bt.
+  unfold compose. simpl.
+  invertsn Hfb. eauto.
 - intros ? ? Hind ? ? ? ? ? Hfb H1le H2le.
   unfold fromDB_bt.
   invertsn Hfb.
   fold (@NLength Name lv).
+  Local Opaque var. simpl.
   apply Hind with 
     (names1:= insertNs names1 (combine (seq N.succ n1 (length lv)) lv))
     (names2:= insertNs names2 (combine (seq N.succ n2 (length lv)) lv))
     (n1:= n1 + NLength lv)
     (n2:= n2 + NLength lv)
     in Hfb; try lia.
-  Local Opaque var. simpl.
-  replace (n2 + NLength lv - (NLength lv + nf)) with (n2 - nf) in Hfb by lia.
-  replace (n1 + NLength lv - (NLength lv + nf)) with (n1 - nf) in Hfb by lia.
-  fold fromDB. fold (@NLength Name lv).
-  SearchAbout alpha_eq_bterm.
-  rewrite <- Hfb. clear Hfb. clear Hind.
+  simpl.
+  unfold fromDB in Hfb.
+  Fail Fail rewrite <- Hfb.
+  rewrite sub_filter_disjoint1.
+  Focus 2. 
+    unfold vr. unfold dom_sub, lmap.dom_lmap.
+    rewrite map_map. unfold compose.
+    Local Transparent var. simpl. unfold var.
+    apply disjoint_map with (f:= getId).
+    repeat rewrite map_map. unfold compose.
+    erewrite map_ext;[ | intro; rewrite getIdCorr; refl].
+    rewrite map_ext with (g:= fst);
+      [| intros xxx; destruct xxx; simpl;rewrite getIdCorr; refl].
+    rewrite <- combine_map_fst;[ | apply seq_length].
+    admit. (*lhs is less than n2. rhs is greater*)
 
+    fold (NLength lv).
+    unfold vr.
+    unfold vr in Hfb.
+    (* the substitution in Hfb has more pairs. split it into 2 parts,
+      one of which has size (length lv). use it for al_term with chained
+      substitutions with common middle.
+      see alphaeq.change_bvars_alpha_spec_aux for an example,
+      or other lemmas in alphaeq.v whose conclusion is alpha equality
+      but dont have any alpha equality hypotheses. *)
  
 Admitted.
-
-  Local Transparent var.
+SearchAbout alpha_eq_bterm var_ren.
 
 Lemma fromDBHigherAlpha : forall v (n1 n2 : N) names1 names2,
 fvars_below 0 v
