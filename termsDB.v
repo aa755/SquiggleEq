@@ -614,6 +614,65 @@ Proof.
 
 Definition NbinderDepth (v:@DTerm Name Opid) := N.of_nat (binderDepth v).
 
+(* comes up again and again *)
+Lemma lengthMapCombineSeq n2 lv:
+length (map mkNVar (combine (seq N.succ n2 (length lv)) lv)) = length lv.
+Proof using.
+  repeat rewrite map_length, length_combine_eq; 
+    repeat rewrite seq_length; refl.
+Qed.
+
+Lemma getIdMkVar x:
+getId (mkNVar x) = fst x.
+Proof using getId getIdCorr.
+  destruct x. simpl.
+  apply getIdCorr.
+Qed.
+
+
+Lemma mapGetIdMkVar  {T} lvn f:
+(map (λ x : T, getId (mkNVar (f x))) lvn)
+=(map (λ x : T, fst (f x)) lvn).
+Proof using getId getIdCorr.
+  intros.
+  Fail rewrite getIdMkVar.
+  Fail setoid_rewrite getIdMkVar.
+  apply map_ext.
+  intros.
+  rewrite getIdMkVar. refl.
+Qed.
+
+
+(* Move to list.v *)
+  Lemma seq_NoDup len start : NoDup (seq N.succ start len).
+  Proof using getIdCorr getId.
+    clear.
+   revert start; induction len; simpl; constructor; trivial.
+   rewrite in_seq_Nplus. intros (H,_).
+    lia.
+  Qed.
+
+  Lemma mapGetIdMapMkVarCombine n1 lv:
+    (map getId (map mkNVar (combine (seq N.succ n1 (length lv)) lv)))
+    = (seq N.succ n1 (length lv)).
+  Proof using getIdCorr.
+    rewrite map_map. unfold compose. simpl.
+    rewrite mapGetIdMkVar.
+    rewrite <- combine_map_fst2;[| rewrite seq_length; refl].
+    refl.
+  Qed.
+    
+
+
+Lemma NoDupMapCombineSeq n1 lv:
+NoDup (map mkNVar (combine (seq N.succ n1 (length lv)) lv)).
+Proof using getId getIdCorr.
+  apply (NoDup_map_inv getId).
+  rewrite map_map. unfold compose. simpl.
+  rewrite mapGetIdMkVar.
+  rewrite <- combine_map_fst2;[| rewrite seq_length; refl].
+  apply seq_NoDup.
+Qed.
 
 Lemma fromDBHigherAlphaAux : 
 let vr n1 n2 names1 names2 nf :=
@@ -690,16 +749,14 @@ Proof using.
   unfold fromDB in Hfb.
   Fail Fail rewrite <- Hfb. (* we can rewrite here if we want *)
   rewrite sub_filter_disjoint1.
-  Focus 2. 
+  Focus 2.
     unfold vr. unfold dom_sub, lmap.dom_lmap.
     rewrite map_map. unfold compose.
     Local Transparent var. simpl. unfold var.
     apply disjoint_map with (f:= getId).
+    rewrite mapGetIdMapMkVarCombine.
     repeat rewrite map_map. unfold compose.
-    erewrite map_ext;[ | intro; rewrite getIdCorr; refl].
-    rewrite map_ext with (g:= fst);
-      [| intros xxx; destruct xxx; simpl;rewrite getIdCorr; refl].
-    rewrite <- combine_map_fst;[ | apply seq_length].
+    rewrite mapGetIdMkVar. simpl.
     intros ? Hin Hinc. rewrite in_seq_Nplus in Hinc.
     apply in_map_iff in Hin. exrepnd.
     rewrite in_seq_Nplus in Hin1. lia.
@@ -717,7 +774,18 @@ Proof using.
           = k+n-nf) as Heq by (intros;lia).
   erewrite map_ext in Hfb;[| intros; do 2 rewrite Heq; refl].
   rewrite map_app in Hfb.
-  apply prove_alpha_bterm3.
+  apply prove_alpha_bterm3;
+    [ repeat rewrite lengthMapCombineSeq; refl
+      | apply NoDupMapCombineSeq
+      | 
+      |
+    ].
+  + apply (disjoint_map getId).
+    rewrite mapGetIdMapMkVarCombine.
+    intros ? Hin Hinc.
+    rewrite in_seq_Nplus in Hinc.
+    SearchAbout bound_vars ssubst_aux.
+ 
   Focus 4.
   rewrite ssubst_aux_app.
   Focus 4.
@@ -738,7 +806,6 @@ Proof using.
       the vars coming from substitution are already disjoint *)
     admit.
 
-  repeat rewrite map_length, length_combine_eq; repeat rewrite seq_length; refl.
 
   admit (* easy *).
 

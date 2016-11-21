@@ -5659,14 +5659,13 @@ Qed.
 
 Theorem free_vars_ssubst_aux2:
   forall nt sub,
-    disjoint_bv_sub nt sub
-    -> forall v,
+     forall v,
          LIn v (free_vars (ssubst_aux nt sub))
          -> (LIn v (free_vars nt) # ! LIn v (dom_sub sub))
                 [+] {v' : NVar
                      $ {t : NTerm
                      $ LIn (v',t) sub # LIn v' (free_vars nt) # LIn v (free_vars t)}}.
-Proof using. nterm_ind1 nt as [vn | o lbt Hind] Case; introv Hdis Hin.
+Proof using. nterm_ind1 nt as [vn | o lbt Hind] Case; introv Hin.
    Case "vterm". induction sub as [| (vs,ts) sub]. 
    - rw ssubst_aux_nil in Hin. left; split; auto; sp. 
    - destruct (eq_var_dec vn vs) as [? | Hneq];
@@ -5698,7 +5697,6 @@ Proof using. nterm_ind1 nt as [vn | o lbt Hind] Case; introv Hdis Hin.
       * simpl. apply lin_flat_map. eexists; split; eauto. simpl.
         apply in_remove_nvars. split; auto. rw @in_sub_filter in Hr0.
         repnd; auto.
-    + eapply disjoint_bv_sub_ot in Hdis; eauto.
 Qed.
 
 Theorem free_vars_ssubst2:
@@ -5714,10 +5712,7 @@ Proof using.
   introns Hd. change_to_ssubst_aux4.
   apply free_vars_ssubst_aux2;try(sp;fail);
   try(apply disjoint_sub_as_flat_map;disjoint_reasoning).
-  - rw disjoint_sub_as_flat_map. disjoint_reasoningv.
-
   - rw <- ssubst_ssubst_aux;sp; disjoint_reasoning.
-
 Qed.
 
 
@@ -6308,6 +6303,28 @@ Proof using.
   unfold subst.
   rw simple_ssubst_app; simpl; sp; cpx.
   rw snoc_as_append; sp.
+Qed.
+
+
+Lemma allvars_ssubst_aux :
+  forall nt sub v,
+  LIn v (all_vars (ssubst_aux nt sub))
+  -> LIn v (all_vars nt)[+]
+      {v' : NVar $
+      {t : NTerm $ LIn (v', t) sub # LIn v' (free_vars nt) # LIn v (all_vars t)}}.
+Proof using varclass varcl gts freshv VarClass.
+  intros ? ? ? Hin.
+  apply in_app_or in Hin.
+  dorn Hin.
+- apply free_vars_ssubst_aux2 in Hin.
+  unfold all_vars. rewrite in_app_iff.
+  setoid_rewrite in_app_iff. 
+  dorn Hin;[left | right]; exrepnd; firstorder.
+- apply boundvars_ssubst_aux in Hin.
+  unfold all_vars. rewrite in_app_iff.
+  setoid_rewrite in_app_iff. 
+  dorn Hin;[left | right]; exrepnd; try tauto.
+  apply sub_find_some in Hin0. eexists; eexists; eauto.
 Qed.
 
 (*

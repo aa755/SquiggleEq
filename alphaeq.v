@@ -511,10 +511,6 @@ rw <- X2X0.
       apply XXX in Hin4. sp.
 
 
-      unfold disjoint_bv_sub, sub_range_sat.
-      rewrite disjoint_sub_as_flat_map.
-      rewrite flat_map_free_var_vars_range;spc.
-      disjoint_reasoningv.
     
     Focus 2.
       setoid_rewrite disjoint_sub_as_flat_map.
@@ -536,9 +532,6 @@ rw <- X2X0.
       assert(disjoint lv blv1) as XXX by disjoint_reasoningv.
       apply XXX in Hin4. sp.
 
-      setoid_rewrite disjoint_sub_as_flat_map.
-      rewrite flat_map_free_var_vars_range;spc.
-      disjoint_reasoningv.
     
     Focus 2.
       setoid_rewrite disjoint_sub_as_flat_map.
@@ -1068,10 +1061,6 @@ Proof using. introv Hind Hlt1 H1len H2len H1dis H2dis Hall.
           subst. allsimpl. dorn Hin1;subst;try(sp;fail);[].
           apply Hfresh10;sp.
 
-         unfold disjoint_bv_sub.
-         setoid_rewrite disjoint_sub_as_flat_map.
-         spcls. disjoint_reasoningv.
-
       * unfold disjoint_bv_sub.
          setoid_rewrite disjoint_sub_as_flat_map.
          spcls.
@@ -1085,10 +1074,6 @@ Proof using. introv Hind Hlt1 H1len H2len H1dis H2dis Hall.
           subst. allsimpl. dorn Hin1;subst;try(sp;fail);[].
           apply Hfresh2;sp.
 
-         unfold disjoint_bv_sub.
-         setoid_rewrite disjoint_sub_as_flat_map.
-         spcls. disjoint_reasoningv.
-  
 Qed.
 
 
