@@ -3263,3 +3263,21 @@ Proof using.
 Qed.
 
 
+Require Import PArith.
+Require Import NArith.
+
+Open Scope N_scope.
+
+Lemma Nseq_add : forall (n m:nat) (s:N),
+  (seq N.succ s (n+m) = (seq N.succ s n)++(seq N.succ (s+N.of_nat n) m)).
+Proof using.
+  intros ?. induction n; intros m s;
+    [ rewrite N.add_0_r ; reflexivity | ].
+  rewrite Nat2N.inj_succ. simpl.
+  f_equal. rewrite IHn. do 2 f_equal.
+  lia.
+Qed.
+
+Close Scope N_scope.
+
+

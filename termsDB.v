@@ -77,6 +77,18 @@ Open Scope N_scope.
 (* move to list.v *)
 Definition NLength {A:Type} (lv: list A) : N := N.of_nat (length lv).
 
+Lemma NLength_length {A:Type} (lv: list A) : 
+  N.to_nat (NLength lv)
+  = length lv.
+Proof using.
+  unfold NLength.
+  lia.
+Qed.
+
+Hint Rewrite @NLength_length : list.
+Hint Rewrite @NLength_length : SquiggleEq.
+
+
 (** Just decidability of equality on variables suffices for these definitions.
   The full [VarType] may not be needed until [ssubst]*)
 Inductive fvars_below : N -> DTerm -> Prop :=
@@ -584,7 +596,7 @@ Proof using.
     in Hfb; try lia.
   simpl.
   unfold fromDB in Hfb.
-  Fail Fail rewrite <- Hfb.
+  Fail Fail rewrite <- Hfb. (* we can rewrite here if we want *)
   rewrite sub_filter_disjoint1.
   Focus 2. 
     unfold vr. unfold dom_sub, lmap.dom_lmap.
@@ -601,6 +613,9 @@ Proof using.
     fold (NLength lv).
     unfold vr.
     unfold vr in Hfb.
+    rewrite Nnat.N2Nat.inj_add in Hfb.
+    rewrite NLength_length in Hfb.
+    rewrite Nseq_add in Hfb.
     (* the substitution in Hfb has more pairs. split it into 2 parts,
       one of which has size (length lv). use it for al_term with chained
       substitutions with common middle.
