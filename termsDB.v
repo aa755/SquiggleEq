@@ -418,7 +418,7 @@ Let fromDB := (@fromDB Name Opid NVar def mkNVar).
 Let fromDB_bt:= (@fromDB_bt Name Opid NVar def mkNVar).
 
 
-Lemma fromDB_fvars: 
+Lemma fromDB_fvars:
   (forall (s : DTerm) (n:N),
     fvars_below n s
     -> forall names, fvarsProp n names (@free_vars _ _ Opid (fromDB n names s)))
@@ -500,6 +500,27 @@ Proof using getIdCorr.
     rewrite in_seq_Nplus in Hin. lia.
   + apply Hind in Hin. clear Hind. lia.
 Qed.
+
+
+Lemma fromDB_all_vars: forall (s : DTerm) (n:N),
+  fvars_below n s
+  -> forall names, 
+  lforall 
+    (fun v => getId v < n + N.of_nat (binderDepth s)) 
+    (@all_vars _ _ Opid (fromDB n names s)).
+Proof using getIdCorr.
+  intros. intros ? Hin.
+  apply in_app_or in Hin.
+  dorn Hin.
+- apply (fst fromDB_fvars) in Hin; trivial;[].
+  simpl in *. repnd. rewrite Hin.
+  rewrite getIdCorr.
+  lia.
+- apply (fst fromDB_bvars) in Hin; trivial;[].
+  simpl in *. repnd. tauto.
+Qed.
+
+
 
 
 Definition subst_aux_list : DTerm -> (list DTerm) -> (@DTerm Name Opid) :=
@@ -744,9 +765,6 @@ Proof.
   rewrite ssubst_aux_nil.
   refl.
 Qed.
-
-
-
 
 
 Lemma fromDB_ssubst:
