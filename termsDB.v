@@ -501,25 +501,72 @@ Infix "∘≡" := alpha_eq_bterm (at level 100).
 
 Let var names n : NVar := (mkNVar (n,lookupNDef def names n)).
 
+(*
+Lemma fromDBHigherAlpha : 
+(forall v (n1 n2 : N) names1 names2,
+fvars_below 0 v
+-> fromDB n2 names2 v
+   ≡ fromDB n1 names1 v)
+*
+(forall v (n1 n2 : N) names1 names2,
+fvars_below_bt 0 v
+-> fromDB_bt n2 names2 v
+   ∘≡ fromDB_bt n1 names1 v).
+Proof.
+  clear fvarsProp.
+  apply NTerm_BTerm_ind.
+- intros. inverts H. lia.
+- admit.
+- intros.  inverts H0. unfold fromDB_bt.
+  simpl.
+*)
+
+
 Lemma fromDBHigherAlphaAux : 
 let seqq nf n names := map (var names) (seq N.succ (n-nf) (N.to_nat nf)) in
 (forall v (nf n1 n2 : N) names1 names2,
 fvars_below nf v
 -> nf <= n1
 -> nf <= n2
--> (forall ni, ni < nf -> lookupNDef def names1 ni = lookupNDef def names2 ni)
 -> ssubst_aux (fromDB n2 names2 v) 
     (var_ren  (seqq nf n2 names2) (seqq nf n1 names1))
    ≡ fromDB n1 names1 v) *
+
 (forall v (nf n1 n2 : N) names1 names2,
 fvars_below_bt nf v
 -> nf <= n1
 -> nf <= n2
--> (forall ni, ni <= nf -> lookupNDef def names1 ni = lookupNDef def names2 ni)
--> fromDB_bt n2 names2 v
-   ∘≡ fromDB_bt n1 names1 v).
+-> ssubst_bterm_aux (fromDB_bt n2 names2 v) 
+    (var_ren  (seqq nf n2 names2) (seqq nf n1 names1))
+   ∘≡ fromDB_bt n1 names1 v)
+.
+Proof using.
+  simpl. clear fvarsProp.
+  apply NTerm_BTerm_ind.
+- intros ? ? ? ? ? ? Hfb H1le H2le.
+  simpl. invertsn Hfb. admit.
+- admit.
+- intros ? ? Hind ? ? ? ? ? Hfb H1le H2le.
+  unfold fromDB_bt.
+  invertsn Hfb.
+  fold (@NLength Name lv).
+  apply Hind with 
+    (names1:= insertNs names1 (combine (seq N.succ n1 (length lv)) lv))
+    (names2:= insertNs names2 (combine (seq N.succ n2 (length lv)) lv))
+    (n1:= n1 + NLength lv)
+    (n2:= n2 + NLength lv)
+    in Hfb; try lia.
+  Local Opaque var. simpl.
+  replace (n2 + NLength lv - (NLength lv + nf)) with (n2 - nf) in Hfb by lia.
+  replace (n1 + NLength lv - (NLength lv + nf)) with (n1 - nf) in Hfb by lia.
+  fold fromDB. fold (@NLength Name lv).
+  SearchAbout alpha_eq_bterm.
+  rewrite <- Hfb. clear Hfb. clear Hind.
+
+ 
 Admitted.
 
+  Local Transparent var.
 
 Lemma fromDBHigherAlpha : forall v (n1 n2 : N) names1 names2,
 fvars_below 0 v
@@ -528,7 +575,7 @@ fvars_below 0 v
 Proof.
   intros ? ? ? ? ? Hfb.
   rewrite <-  (fst fromDBHigherAlphaAux) with (nf:=0) (n2:=n1) (names2:=names1); auto;
-    simpl; intros; try lia;[].
+    simpl; try lia;[].
   unfold var_ren. simpl.
   rewrite ssubst_aux_nil.
   refl.
@@ -560,7 +607,7 @@ Proof using gts getIdCorr getId fvarsProp deqo.
 - intros ? ? ? Hfb. simpl.
   inverts Hfb.
   remember (n ?= nf) as nc. symmetry in Heqnc. destruct nc.
-  + rewrite N.compare_eq_iff in Heqnc. subst. unfold var.
+  + rewrite N.compare_eq_iff in Heqnc. subst.
     replace (1 + nf - nf - 1) with 0  by lia.
     rewrite <- beq_var_refl. refl.
   + rewrite N.compare_lt_iff in Heqnc.
