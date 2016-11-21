@@ -537,7 +537,7 @@ Proof.
 Lemma fromDBHigherAlphaAux : 
 let vr n1 n2 names1 names2 nf :=
  map 
-    (fun n => (var names2 (n2-n-1), terms.vterm (var names1 (n1-n-1))))
+    (fun n => (var names2 (n2+n-nf), terms.vterm (var names1 (n1+n-nf))))
     (seq N.succ 0 (N.to_nat nf)) in
 (forall v (nf n1 n2 : N) names1 names2,
 fvars_below nf v
@@ -570,13 +570,18 @@ Proof using.
     apply (f_equal getId) in Hs.
     simpl in Hs.
     repeat rewrite getIdCorr in Hs.
-    assert (x=n) by lia. subst.
-    inverts Heqsss1. refl.
+    repnd.
+    assert (x=nf-n-1) by lia. subst.
+    inverts Heqsss1. unfold fromDB. simpl.
+    replace ((n1 + (nf - n - 1) - nf)) with (n1-n-1) by lia.
+    refl.
   + provefalse. apply sub_find_none2 in Heqsss.
     apply Heqsss. unfold vr, dom_sub, lmap.dom_lmap, var.
     rewrite map_map. unfold compose. simpl.
-    apply List.in_map_iff. exists n.
+    apply List.in_map_iff.
+    exists (nf - n - 1).
     rewrite in_seq_Nplus.
+    replace ((n2 + (nf - n - 1) - nf)) with (n2-n-1) by lia.
     dands; trivial; lia.
 - intros ? ? ? ? ?  ? ? ? Hfb. intros.  unfold fromDB. simpl.
   repeat rewrite map_map.
@@ -593,7 +598,7 @@ Proof using.
     (names2:= insertNs names2 (combine (seq N.succ n2 (length lv)) lv))
     (n1:= n1 + NLength lv)
     (n2:= n2 + NLength lv)
-    in Hfb; try lia.
+    in Hfb; try lia;[].
   simpl.
   unfold fromDB in Hfb.
   Fail Fail rewrite <- Hfb. (* we can rewrite here if we want *)
@@ -608,14 +613,25 @@ Proof using.
     rewrite map_ext with (g:= fst);
       [| intros xxx; destruct xxx; simpl;rewrite getIdCorr; refl].
     rewrite <- combine_map_fst;[ | apply seq_length].
-    admit. (*lhs is less than n2. rhs is greater*)
+    intros ? Hin Hinc. rewrite in_seq_Nplus in Hinc.
+    apply in_map_iff in Hin. exrepnd.
+    rewrite in_seq_Nplus in Hin1. lia.
 
-    fold (NLength lv).
-    unfold vr.
-    unfold vr in Hfb.
-    rewrite Nnat.N2Nat.inj_add in Hfb.
-    rewrite NLength_length in Hfb.
-    rewrite Nseq_add in Hfb.
+  fold (NLength lv).
+  unfold vr.
+  unfold vr in Hfb.
+  rewrite Nnat.N2Nat.inj_add in Hfb.
+  rewrite NLength_length in Hfb.
+  rewrite plus_comm in Hfb.
+  rewrite Nseq_add in Hfb.
+  do 1 rewrite Nnat.N2Nat.id in Hfb.
+  rewrite N.add_0_l in Hfb.
+  assert (forall k n, (k + NLength lv + n - (NLength lv + nf))
+          = k+n-nf) as Heq by (intros;lia).
+  erewrite map_ext in Hfb;[| intros; do 2 rewrite Heq; refl].
+  rewrite map_app in Hfb.
+  assert (n2 + NLength lv <= n1). (* add this assumption to the statement *)
+
     (* the substitution in Hfb has more pairs. split it into 2 parts,
       one of which has size (length lv). use it for al_term with chained
       substitutions with common middle.
