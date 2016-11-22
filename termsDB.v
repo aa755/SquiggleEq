@@ -646,6 +646,17 @@ Proof using.
   intros. destruct k; refl.
 Qed.
 
+Lemma subst_aux_list_ot lbt o l:
+  subst_aux_list (oterm o lbt) l
+  = oterm o (map (fun b  => subst_aux_bt_list b l) lbt).
+Proof using.
+  clear.
+  induction l; [rewrite map_id;refl|].
+  simpl. rewrite IHl. simpl.
+  f_equal. apply map_map.
+Qed.
+  
+
 
 Lemma subst_aux_list_same_aux :
 let sub l := (combine (seq N.succ 0 (length l)) l) in
@@ -657,6 +668,7 @@ let sub l := (combine (seq N.succ 0 (length l)) l) in
   fvars_below_bt (NLength l) e
   -> subst_aux_bt_list e (rev l) = subst_aux_simpl_bt (sub l) e).
 Proof using.
+  clear.
   simpl.
   apply NTerm_BTerm_ind.
 - intros v ? Hfb.
@@ -666,7 +678,7 @@ Proof using.
   simpl in *. rewrite N.eqb_compare.
   remember (v ?= 0) as cc.
   destruct cc; symmetry in Heqcc.
-  + admit. (* no effect on closed terms suc as a. add assumption that l is closed *)
+  + admit. (* no effect on closed terms such as a. add assumption that l is closed *)
   + rewrite N.compare_lt_iff in Heqcc. lia.
   + rewrite N.compare_gt_iff in Heqcc.
     invertsn Hfb. unfold NLength in *. simpl in *.
@@ -685,6 +697,11 @@ Proof using.
     apply Heqss. clear Heqss.
     rewrite ALDomCombine;[ | autorewrite with list; refl].
     rewrite in_seq_Nplus. lia.
+- intros ? ? Hind ? Hfb. simpl.
+  rewrite subst_aux_list_ot. f_equal.
+  apply eq_maps. intros ? Hin. apply Hind; auto.
+  inverts Hfb. eauto.
+- intros ? ? Hind ? Hfb. simpl.
 Abort.
 
 
