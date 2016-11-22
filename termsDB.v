@@ -559,11 +559,11 @@ Hint Rewrite seq_length : list.
 
 
 
-Definition subst_aux_list : DTerm -> (list DTerm) -> (@DTerm Name Opid) :=
-  fold_right  (fun v e => subst_aux v 0 e).
+Definition subst_aux_list n : DTerm -> (list DTerm) -> (@DTerm Name Opid) :=
+  fold_right  (fun v e => subst_aux v n e).
 
-Definition subst_aux_bt_list : DBTerm -> (list DTerm) -> (@DBTerm Name Opid) :=
-  fold_right  (fun v e => subst_aux_bt v 0 e).
+Definition subst_aux_bt_list n : DBTerm -> (list DTerm) -> (@DBTerm Name Opid) :=
+  fold_right  (fun v e => subst_aux_bt v n e).
 
 
 Lemma combine_app : forall {A B} (la1 la2 : list A) {lb1 lb2 : list B},
@@ -646,44 +646,78 @@ Proof using.
   intros. destruct k; refl.
 Qed.
 
-Lemma subst_aux_list_ot lbt o l:
-  subst_aux_list (oterm o lbt) l
-  = oterm o (map (fun b  => subst_aux_bt_list b l) lbt).
+Lemma subst_aux_list_ot n lbt o l:
+  subst_aux_list n (oterm o lbt) l
+  = oterm o (map (fun b  => subst_aux_bt_list n b l) lbt).
 Proof using.
   clear.
   induction l; [rewrite map_id;refl|].
   simpl. rewrite IHl. simpl.
   f_equal. apply map_map.
 Qed.
-  
+
+Lemma subst_aux_list_bt n lv nt l:
+  subst_aux_bt_list n (bterm lv nt) l
+  = bterm lv (subst_aux_list (NLength lv + n) nt l).
+Proof using.
+  clear.
+  induction l; auto;[].
+  simpl. rewrite IHl. simpl.  clear IHl.
+  refl.
+Qed.
+
+Lemma subst_aux_closed  (v t : @DTerm Name Opid) n :
+fvars_below 0 t
+-> subst_aux v n t = t.
+Proof using.
+Admitted.
+
+Lemma subst_aux_list_closed  n (a : @DTerm Name Opid) l  :
+fvars_below 0 a
+-> fold_left (λ x y : DTerm, subst_aux y n x) l a = a.
+Proof using.
+  clear.
+  induction l; intro Hfb; auto.
+  unfold lforall in *.
+  simpl in *.
+  rewrite subst_aux_closed;[| apply Hfb; cpx].
+  eauto.
+Qed.
+
+
 
 
 Lemma subst_aux_list_same_aux :
-let sub l := (combine (seq N.succ 0 (length l)) l) in
-(forall (e:DTerm) (l:list DTerm),
-  fvars_below (NLength l) e
-  -> subst_aux_list e (rev l) = subst_aux_simpl (sub l) e)
+let sub n l := (combine (seq N.succ n (length l)) l) in
+(forall (e:DTerm) (l:list DTerm) n,
+  lforall (fvars_below 0) l
+  -> fvars_below (n + NLength l) e
+  -> subst_aux_list n e (rev l) = subst_aux_simpl (sub n l) e)
 *
-(forall (e:DBTerm) (l:list DTerm),
-  fvars_below_bt (NLength l) e
-  -> subst_aux_bt_list e (rev l) = subst_aux_simpl_bt (sub l) e).
+(forall (e:DBTerm) (l:list DTerm) n,
+  lforall (fvars_below 0) l
+  -> fvars_below_bt (n + NLength l) e
+  -> subst_aux_bt_list n e (rev l) = subst_aux_simpl_bt (sub n l) e).
 Proof using.
   clear.
   simpl.
   apply NTerm_BTerm_ind.
-- intros v ? Hfb.
+- intros v ? ? Hc Hfb.
   setoid_rewrite fold_left_rev_right. simpl.
   revert Hfb. revert v.
   induction l; intros ? ?; auto.
   simpl in *. rewrite N.eqb_compare.
-  remember (v ?= 0) as cc.
+  remember (v ?= n) as cc.
   destruct cc; symmetry in Heqcc.
-  + admit. (* no effect on closed terms such as a. add assumption that l is closed *)
-  + rewrite N.compare_lt_iff in Heqcc. lia.
+  + apply N.compare_eq_iff in Heqcc. subst.
+    apply subst_aux_list_closed. apply Hc. cpx.
+  + rewrite N.compare_lt_iff in Heqcc.
+    rewrite IHl;[| intros ? ?; apply Hc; cpx; fail| constructor; lia].
+    (* ALFind must resut None in both cases. *) admit.
   + rewrite N.compare_gt_iff in Heqcc.
     invertsn Hfb. unfold NLength in *. simpl in *.
-    rewrite IHl;[| constructor; lia].
-    rewrite <- (option_map_id (ALFind (combine (seq N.succ 0 (length l)) l) (v - 1))).
+    rewrite IHl;[|  intros ? ?; apply Hc; cpx; fail | constructor; lia].
+    rewrite <- (option_map_id (ALFind (combine (seq N.succ n (length l)) l) (v - 1))).
     rewrite <- ALFindMap with (fk:=N.succ) (DKB := _);
       [| apply injSucc].
     rewrite ALMapCombine.
@@ -697,11 +731,16 @@ Proof using.
     apply Heqss. clear Heqss.
     rewrite ALDomCombine;[ | autorewrite with list; refl].
     rewrite in_seq_Nplus. lia.
-- intros ? ? Hind ? Hfb. simpl.
+- intros ? ? Hind ? ? Hle Hfb. simpl.
   rewrite subst_aux_list_ot. f_equal.
   apply eq_maps. intros ? Hin. apply Hind; auto.
   inverts Hfb. eauto.
-- intros ? ? Hind ? Hfb. simpl.
+- intros ? ? Hind ? ? Hle Hfb. simpl.
+  rewrite subst_aux_list_bt. f_equal.
+  rewrite N.add_comm. inverts Hfb.
+  rewrite Hind;[| intros ? ?; apply Hle; cpx; fail| ].
+  apply Hind.
+  
 Abort.
 
 
