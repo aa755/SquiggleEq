@@ -352,6 +352,27 @@ Qed.
     rewrite lookupNDef_insert_eq. exists (snd a); cpx.
   Qed.
 
+
+Lemma fvars_below_mono:
+(forall (nt:@DTerm Name Opid) n m,
+n<=m
+-> fvars_below n nt
+-> fvars_below m nt)
+*
+(forall (nt:@DBTerm Name Opid) n m,
+n<=m
+-> fvars_below_bt n nt
+-> fvars_below_bt m nt).
+Proof using.
+  apply NTerm_BTerm_ind.
+- intros v n m ? Hfb. inverts Hfb. constructor. lia.
+- intros ? ? Hind  n m ? Hfb. invertsn Hfb.
+  constructor. eauto.
+- intros ? ? Hind  n m ? Hfb. invertsn Hfb.
+  constructor.  revert Hfb. apply Hind.
+  lia.
+Qed.
+
 Local Opaque lookupNDef.
 (* Local Opaque insertNs. *)
 Local Opaque insertN.
@@ -779,7 +800,7 @@ fvars_below_bt nf v
 -> ssubst_bterm_aux (fromDB_bt n2 names2 v) (vr n1 n2 names1 names2 nf)
    ∘≡ fromDB_bt n1 names1 v)
 .
-Proof using.
+Proof using gts getIdCorr getId.
   intro.
   apply NTerm_BTerm_ind.
 - intros ? ? ? ? ? ? Hfb H1le H2le. simpl.
@@ -877,7 +898,9 @@ Proof using.
     simpl in Hin1.
     rewrite N.add_comm in Hfbb.
     dorn Hin1.
-    * apply fromDB_all_vars in Hin1;[| admit (*fvars_below mono*)]. subst.
+    * apply fromDB_all_vars in Hin1;
+        [| eapply (fst fvars_below_mono); eauto; lia].
+       subst.
       unfold NLength in Hin1.
       lia.
     * exrepnd. subst. clear Hin3.
@@ -934,14 +957,13 @@ Proof using.
       rewrite in_seq_Nplus in Hin1. subst.
       unfold NLength in *.
       lia.
- 
-Admitted.
+Qed.
 
 Lemma fromDBHigherAlpha : forall v (n1 n2 : N) names1 names2,
 fvars_below 0 v
 -> fromDB n2 names2 v
    ≡ fromDB n1 names1 v.
-Proof.
+Proof using gts getIdCorr getId.
   intros ? ? ? ? ? Hfb.
   pose proof (fst fromDBHigherAlphaAux v 0 
     ((N.max n1 n2)+NbinderDepth v) n1 names2 names1 Hfb)  as H1b.
@@ -978,7 +1000,7 @@ Lemma fromDB_ssubst:
     -> fromDB_bt (1+nf) names (subst_aux_bt v nf e)
        ∘≡ substitution.ssubst_bterm_aux 
             (fromDB_bt (1+nf) names e) [(var names 0,fromDB (1+nf) names v)]).
-Proof using gts getIdCorr getId fvarsProp deqo.
+Proof using gts getIdCorr getId deqo.
   intros ? H0fb. intros. apply NTerm_BTerm_ind; unfold fvarsProp.
 - intros ? ? ? Hfb. simpl.
   inverts Hfb.
