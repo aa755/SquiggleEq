@@ -3027,11 +3027,10 @@ Qed.
 
 Lemma ssubst_aux_sub_filter2:
   forall t (sub : @Substitution Opid) l,
-    disjoint_bv_sub t sub
-    -> disjoint (free_vars t) l
+    disjoint (free_vars t) l
     -> ssubst_aux t (sub_filter sub l) = ssubst_aux t sub.
 Proof using.
-  nterm_ind1 t as [v| o lbt Hind] Case; simpl; introv Hbv Hd.
+  nterm_ind1 t as [v| o lbt Hind] Case; simpl; introv Hd.
 
   - Case "vterm".
     remember (sub_find (sub_filter sub l) v); symmetry in Heqo; destruct o.
@@ -3051,9 +3050,7 @@ Proof using.
     rw <- @sub_filter_app_r.
     rw sub_filter_app_as_remove_nvars.
     rw @sub_filter_app_r.
-    rewrite Hind with (lv := lv); sp; [
-      eapply disjoint_bv_sub_ot in Hbv;eauto |].
-
+    rewrite Hind with (lv := lv); sp.
     eapply disjoint_flat_map_l in Hd;eauto.
     allsimpl. apply disjoint_remove_nvars_l in Hd.
     sp.
@@ -3192,6 +3189,9 @@ Proof using.
       disjoint_flat;
       disjoint_flat_sf; disjoint_reasoningv.
 Qed.
+
+Definition subst_aux_sub (s1 s2: @Substitution Opid) :=
+  map_sub_range (fun t => ssubst_aux t s2) s1.
 
 
 Lemma simple_ssubst_aux_ssubst_aux :
@@ -6112,8 +6112,7 @@ Proof using.
   rw sub_filter_app_as_remove_nvars.
   rw @sub_filter_app_r.
   rewrite <- ssubst_aux_sub_filter2 with (l:= (remove_nvars lv lvf));sp.
-  - apply sub_filter_sat. disjoint_flat. sp.
-  - simpl in Hdis. clear Hbv. eapply disjoint_flat_map_l in Hdis;eauto.
+  simpl in Hdis. clear Hbv. eapply disjoint_flat_map_l in Hdis;eauto.
     allsimpl. apply disjoint_remove_nvars_l in Hdis;sp.
 Qed.
   
@@ -6576,6 +6575,9 @@ Proof using.
   inverts Heq.
 Qed.
 
+
+
+
 (** the stuff below are duplicates of above *)
 
 Hint Rewrite (fun gs => @ssubst_nil gs).
@@ -6939,3 +6941,40 @@ Qed.
             pose proof @remove_var_nil;
             pose proof @remove_nvars_eq;
             congruence.
+
+Lemma ssubst_aux_app_simpl_nb  {NVar} `{Deq NVar} {gtsi: Type}:
+(forall (t: @NTerm NVar gtsi) sub1 sub2,
+    ssubst_aux (ssubst_aux t sub1) sub2 = ssubst_aux t (subst_aux_sub sub1 sub2 ++ sub2))
+*
+(forall (t: @BTerm NVar gtsi) sub1 sub2,
+    ssubst_bterm_aux (ssubst_bterm_aux t sub1) sub2 
+      = ssubst_bterm_aux t (subst_aux_sub sub1 sub2 ++ sub2)).
+Proof using.
+  apply NTerm_BTerm_ind.
+- intros ? ? ?. simpl.
+  rw @sub_find_app.
+  dsub_find s1v; symmetry in Heqs1v; unfold subst_aux_sub.
+  + apply sub_find_some_map 
+      with (f:=(fun t : NTerm => ssubst_aux t sub2)) in Heqs1v.
+    rewrite Heqs1v. refl.
+  + apply sub_find_none_map 
+        with (f:=(fun t : NTerm => ssubst_aux t sub2)) in Heqs1v.
+    rw Heqs1v ; simpl; sp.
+- intros ? ? Hind ? ?. simpl. f_equal. 
+  rw map_map. unfold compose. simpl.
+  apply eq_maps. eauto.
+- intros ? ? Hind ? ?. simpl. f_equal.
+  rw @sub_filter_app. unfold subst_aux_sub in *.
+  rewrite Hind.
+  repeat rewrite  sub_filter_map_range_comm. simpl.
+(*
+ fold (subst_aux_sub (sub_filter sub1 lv) sub2).
+ fold (subst_aux_sub (sub_filter sub1 lv) (sub_filter sub2 lv)).
+*)
+ f_equal.
+  f_equal.
+  unfold map_sub_range.
+  apply eq_maps. intros ? Hin.
+  simpl. f_equal.
+  apply ssubst_aux_sub_filter2.
+Abort.

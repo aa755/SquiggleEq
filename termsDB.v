@@ -694,7 +694,6 @@ fvars_below_bt nf v
    ∘≡ fromDB_bt n1 names1 v)
 .
 Proof using.
-  clear fvarsProp.
   intro.
   apply NTerm_BTerm_ind.
 - intros ? ? ? ? ? ? Hfb H1le H2le. simpl.
@@ -737,6 +736,7 @@ Proof using.
   unfold fromDB_bt.
   invertsn Hfb. simpl in H1le.
   fold (@NLength Name lv).
+  pose proof Hfb as Hfbb.
   Local Opaque var. simpl.
   apply Hind with 
     (names1:= insertNs names1 (combine (seq N.succ n1 (length lv)) lv))
@@ -780,14 +780,35 @@ Proof using.
       | 
       |
     ].
-  + apply (disjoint_map getId).
+  + clear Hfb.
+    apply (disjoint_map getId).
     rewrite mapGetIdMapMkVarCombine.
     intros ? Hin Hinc.
     rewrite in_seq_Nplus in Hinc.
+    apply in_map_iff in Hin.
+    exrepnd.
+    apply allvars_ssubst_aux in Hin1.
+    simpl in Hin1.
+    rewrite N.add_comm in Hfbb.
+    dorn Hin1.
+    * apply fromDB_all_vars in Hin1;[| admit (*fvars_below mono*)]. subst.
+      unfold NLength in Hin1.
+      lia.
+    * exrepnd. subst. clear Hin3.
+      apply in_map_iff in Hin2.
+      exrepnd. inverts Hin0.
+      rewrite in_seq_Nplus in Hin2.
+      unfold var in Hin1.
+      apply (in_map getId) in Hin1.
+      simpl in Hin1. rewrite getIdCorr in Hin1.
+      rewrite or_false_r in Hin1.
+      lia.
+  +   rewrite ssubst_aux_app.
+
+       
     SearchAbout bound_vars ssubst_aux.
  
   Focus 4.
-  rewrite ssubst_aux_app.
   Focus 4.
     simpl. apply disjoint_bv_vars.
   (* need (n2 + binderDepth nt +  (NLength lv) <= n1) *)

@@ -498,7 +498,7 @@ rw <- X1X0.
 rw <- X2X0.
 
      rewrite ssubst_aux_sub_filter2.
-    Focus 3.
+    Focus 2.
       intros v Hin Hinc.
       apply free_vars_ssubst_aux2 in Hin.
       dorn Hin. 
@@ -511,16 +511,8 @@ rw <- X2X0.
       apply XXX in Hin4. sp.
 
 
-    
-    Focus 2.
-      setoid_rewrite disjoint_sub_as_flat_map.
-      rewrite flat_map_free_var_vars_range;spc.
-      apply disjoint_sym. apply disjoint_bound_vars_ssubst_aux.
-      rewrite flat_map_bound_var_vars_range;spc. simpl_vlist. disjoint_reasoningv;fail.
-
-
      rewrite ssubst_aux_sub_filter2.
-    Focus 3. 
+    Focus 2. 
       intros v Hin Hinc.
       apply free_vars_ssubst_aux2 in Hin.
       dorn Hin. 
@@ -531,13 +523,6 @@ rw <- X2X0.
       dorn Hin1;sp;subst. rename Ha1 into Hcdis.
       assert(disjoint lv blv1) as XXX by disjoint_reasoningv.
       apply XXX in Hin4. sp.
-
-    
-    Focus 2.
-      setoid_rewrite disjoint_sub_as_flat_map.
-      rewrite flat_map_free_var_vars_range;spc.
-      apply disjoint_sym. apply disjoint_bound_vars_ssubst_aux.
-      rewrite flat_map_bound_var_vars_range;spc. simpl_vlist. disjoint_reasoningv.
 
   apply alpha_eq3_sym.
 eapply alpha_eq3_change_avoidvars; eauto.
@@ -1049,10 +1034,7 @@ Proof using. introv Hind Hlt1 H1len H2len H1dis H2dis Hall.
       rewrite <- Xsf2eta. rewrite ssubst_aux_sub_filter2.
       rewrite <- Xsf1eta. rewrite ssubst_aux_sub_filter2.
       apply alpha_eq3_sym. unfold var_ren in XX;sp.
-      * unfold disjoint_bv_sub.
-         setoid_rewrite disjoint_sub_as_flat_map.
-         spcls.
-         apply disjoint_sym. apply disjoint_bound_vars_ssubst_aux;spcls;disjoint_reasoningv.
+
       * introv Hin. apply free_vars_ssubst_aux2 in Hin. 
       
           simpl_sub.
@@ -1060,11 +1042,6 @@ Proof using. introv Hind Hlt1 H1len H2len H1dis H2dis Hall.
           apply in_var_ren in Hin0. exrepnd.
           subst. allsimpl. dorn Hin1;subst;try(sp;fail);[].
           apply Hfresh10;sp.
-
-      * unfold disjoint_bv_sub.
-         setoid_rewrite disjoint_sub_as_flat_map.
-         spcls.
-         apply disjoint_sym. apply disjoint_bound_vars_ssubst_aux;spcls;disjoint_reasoningv.
 
       * introv Hin. apply free_vars_ssubst_aux2 in Hin. 
       
