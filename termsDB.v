@@ -674,6 +674,15 @@ Proof using getId getIdCorr.
   apply seq_NoDup.
 Qed.
 
+(* Move to list.v *)
+Lemma flat_map_single {A B:Type} (f: A->B) (l:list A) :
+flat_map (fun x => [f x]) l
+= map f l.
+Proof using.
+  induction l;auto.
+Qed.
+
+
 Lemma fromDBHigherAlphaAux : 
 let vr n1 n2 names1 names2 nf :=
  map 
@@ -803,10 +812,23 @@ Proof using.
       simpl in Hin1. rewrite getIdCorr in Hin1.
       rewrite or_false_r in Hin1.
       lia.
-  +   rewrite ssubst_aux_app.
-
-       
-    SearchAbout bound_vars ssubst_aux.
+  + rewrite (fst ssubst_aux_app_simpl_nb).
+    * admit.
+    * setoid_rewrite disjoint_sub_as_flat_map.
+      unfold range. repeat rewrite flat_map_map.
+      unfold compose. simpl.
+      apply (disjoint_map getId).
+      rewrite flat_map_single. rewrite map_map.
+      unfold compose. simpl. unfold var.
+      rewrite mapGetIdMkVar. simpl.
+      intros ? Hin Hinc.
+      apply in_map_iff in Hin. exrepnd.
+      subst. apply in_map_iff in Hinc. exrepnd.
+      apply fromDB_bvars in Hinc1. exrepnd. subst.
+      clear Hfb.
+      rewrite in_seq_Nplus in Hin1. subst.
+      unfold NLength in *.
+      lia.
  
   Focus 4.
   Focus 4.

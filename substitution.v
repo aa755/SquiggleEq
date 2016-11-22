@@ -6942,11 +6942,22 @@ Qed.
             pose proof @remove_nvars_eq;
             congruence.
 
+Definition disjoint_bv_sub_bterm := 
+fun {NVar} `{Deq NVar} {gtsi: Type} (nt: @BTerm NVar gtsi) (sub : Substitution) =>
+sub_range_sat sub (fun t : @NTerm NVar gtsi
+    => disjoint (free_vars t) (bound_vars_bterm nt)).
+
+(* to see why the [disjoint_bv_sub] hyp is needed, go back to 
+8680feb51db7ea9e5b69766d113ee1aeb7048502,
+where I was not able to finish the proof without it. *)
+
 Lemma ssubst_aux_app_simpl_nb  {NVar} `{Deq NVar} {gtsi: Type}:
 (forall (t: @NTerm NVar gtsi) sub1 sub2,
+  disjoint_bv_sub t sub1->
     ssubst_aux (ssubst_aux t sub1) sub2 = ssubst_aux t (subst_aux_sub sub1 sub2 ++ sub2))
 *
 (forall (t: @BTerm NVar gtsi) sub1 sub2,
+  disjoint_bv_sub_bterm t sub1->
     ssubst_bterm_aux (ssubst_bterm_aux t sub1) sub2 
       = ssubst_bterm_aux t (subst_aux_sub sub1 sub2 ++ sub2)).
 Proof using.
@@ -6960,21 +6971,30 @@ Proof using.
   + apply sub_find_none_map 
         with (f:=(fun t : NTerm => ssubst_aux t sub2)) in Heqs1v.
     rw Heqs1v ; simpl; sp.
-- intros ? ? Hind ? ?. simpl. f_equal. 
+- intros ? ? Hind ? ? Hd. simpl. f_equal. 
   rw map_map. unfold compose. simpl.
-  apply eq_maps. eauto.
-- intros ? ? Hind ? ?. simpl. f_equal.
+  apply eq_maps. intros b Hin.
+  apply Hind; auto. unfold disjoint_bv_sub, disjoint_bv_sub_bterm in *.
+  simpl in *. clear Hind.
+  intros ? ? Hins. apply Hd in Hins. destruct b.
+  eapply disjoint_lbt_bt2 in Hins; eauto. simpl in *.
+  disjoint_reasoningv.
+
+- intros ? ? Hind ? ? Hd. simpl in *. f_equal.
   rw @sub_filter_app. unfold subst_aux_sub in *.
+  unfold disjoint_bv_sub, disjoint_bv_sub_bterm in *.
   rewrite Hind.
-  repeat rewrite  sub_filter_map_range_comm. simpl.
-(*
- fold (subst_aux_sub (sub_filter sub1 lv) sub2).
- fold (subst_aux_sub (sub_filter sub1 lv) (sub_filter sub2 lv)).
-*)
- f_equal.
-  f_equal.
-  unfold map_sub_range.
-  apply eq_maps. intros ? Hin.
-  simpl. f_equal.
-  apply ssubst_aux_sub_filter2.
-Abort.
+  + repeat rewrite  sub_filter_map_range_comm. simpl.
+    f_equal.
+    f_equal.
+    unfold map_sub_range.
+    apply eq_maps. intros ? Hins.
+    simpl. f_equal.
+    apply ssubst_aux_sub_filter2. destruct x.
+    apply in_sub_filter in Hins. apply proj1 in Hins.
+    apply Hd in Hins. simpl in *. disjoint_reasoningv.
+  + intros ? ? Hins.
+    apply in_sub_filter in Hins. apply proj1 in Hins.
+    apply Hd in Hins. simpl in Hins.
+    disjoint_reasoningv.
+Qed.
