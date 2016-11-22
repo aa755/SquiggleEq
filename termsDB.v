@@ -91,7 +91,11 @@ with fvars_below_bt : N->DBTerm -> Prop :=
 
 End terms.
 
-
+(* By combining several substitutions into one, it enables simpler proofs,
+   where nested induction (induction on those several substititions, and induction on term)
+   is avoided.
+   Also, by not decrementing, the properties of a term is less dependent on history
+ *)
 Fixpoint subst_aux_simpl {Name Opid :Type} (sub: list (N*DTerm)) (e:@DTerm Opid Name)
   : @DTerm Opid Name:=
 match e with
@@ -108,6 +112,7 @@ match e with
 | bterm m t => bterm m (subst_aux_simpl (ALMapDom (N.add (NLength m)) sub) t)
 end.
 
+(* this one is used in Certicoq, when substitution with closed terms. *)
 Fixpoint subst_aux {Name Opid:Type}(v:DTerm) k (e:@DTerm Name Opid)
   : @DTerm Name Opid:=
 match e with
@@ -550,6 +555,7 @@ Proof using getIdCorr.
   simpl in *. repnd. tauto.
 Qed.
 
+Hint Rewrite seq_length : list.
 
 
 
@@ -558,6 +564,82 @@ Definition subst_aux_list : DTerm -> (list DTerm) -> (@DTerm Name Opid) :=
 
 Definition subst_aux_bt_list : DBTerm -> (list DTerm) -> (@DBTerm Name Opid) :=
   fold_right  (fun v e => subst_aux_bt v 0 e).
+
+
+Lemma combine_app : forall {A B} (la1 la2 : list A) {lb1 lb2 : list B},
+  length la1 = length lb1
+  ->
+  combine (la1 ++ la2) (lb1 ++ lb2)
+  = (combine la1 lb1) ++ (combine la2 lb2).
+Proof using.
+  induction la1; intros ? ? ? Heq; destruct lb1 as [| b1 lb1]; invertsn Heq;[refl|].
+  rewrite combine_cons.
+  do 3 rewrite <- app_comm_cons.
+  rewrite combine_cons.
+  f_equal. eauto.
+Qed.
+
+(* Move *)
+Ltac dALFind sn :=
+  match goal with
+    | [  |- context[ALFind ?s ?v] ] =>
+      let sns := fresh sn "s" in
+      remember (ALFind s v) as sn;
+        destruct sn as [sns |]
+    | [ H: context[ALFind ?s ?v] |- _ ] =>
+      let sns := fresh sn "s" in
+      remember (ALFind s v) as sn;
+        destruct sn as [sns |]
+  end.
+
+Lemma subst_aux_list_same_aux :
+let sub l := rev (combine (seq N.succ 0 (length l)) l) in
+(forall (e:DTerm) (l:list DTerm),
+  fvars_below (NLength l) e
+  -> subst_aux_list e l = subst_aux_simpl (sub l) e)
+*
+(forall (e:DBTerm) (l:list DTerm),
+  fvars_below_bt (NLength l) e
+  -> subst_aux_bt_list e l = subst_aux_simpl_bt (sub l) e).
+Proof using.
+  simpl.
+  apply NTerm_BTerm_ind.
+- intros v ? Hfb. inverts Hfb.
+  induction l; auto.
+  simpl. rewrite ALFindApp.
+  dALFind ss.
+  symmetry in Heqss.
+  + pose proof Heqss as Hb.
+    apply ALFindSome in Hb.
+    rewrite <- in_rev in Hb.
+    apply in_combine_l in Hb.
+    rewrite in_seq_Nplus in Hb. repnd.
+    SearchAbout In combine.
+    SearchAbout LIn rev. 
+  SearchAbout ALFind.
+
+  SearchAbout ALFind app.
+
+  rewrite AlFindApp.
+  rewrite combine_app;[| autorewrite with list; refl].
+
+ rewrite IHl.
+  simpl.
+SearchAbout combine app.
+  induction  
+  induction l; [tauto |].
+  unfold subst_aux_list.
+  unfold subst_aux_list.
+  apply NTerm_BTerm_ind.
+- unfold subst_aux_list. intros ? Hfb.
+  rewrite fold_left_right_rev. simpl.
+  SearchAbout fold_right rev. 
+
+ intros ? Hfb. simpl.
+  simpl.
+
+
+
 
 Fixpoint subst_aux_list2_aux (e: DTerm)  (l:list DTerm) (n:N): (@DTerm Name Opid) :=
 match l with
@@ -577,18 +659,6 @@ Definition subst_aux_list2 (e: DTerm)  (l:list DTerm): (@DTerm Name Opid) :=
 Definition subst_aux_bt_list2 (e: DBTerm)  (l:list DTerm): (@DBTerm Name Opid) :=
   subst_aux_bt_list2_aux e l (N.pred (NLength l)).
 
-(*
-Lemma  fold_left_right_rev:
-  ∀ (A B : Type) (f : A → B → B) (l : list A) (i : B),
-  fold_right f i l = fold_left (λ (x : B) (y : A), f y x) (rev l) i.
-Proof.
-  intros.
-  rewrite <- (rev_involutive l) at 1.
-  apply fold_left_rev_right.
-Qed.
-
-*)
-(*
 Lemma subst_aux_list_same_aux  (l:list DTerm):
 let len := NLength l in
 (forall (e:DTerm), 
