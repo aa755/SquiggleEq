@@ -74,20 +74,6 @@ with bt_wf : DBTerm -> [univ] :=
 
 Open Scope N_scope.
 
-(* move to list.v *)
-Definition NLength {A:Type} (lv: list A) : N := N.of_nat (length lv).
-
-Lemma NLength_length {A:Type} (lv: list A) : 
-  N.to_nat (NLength lv)
-  = length lv.
-Proof using.
-  unfold NLength.
-  lia.
-Qed.
-
-Hint Rewrite @NLength_length : list.
-Hint Rewrite @NLength_length : SquiggleEq.
-
 
 (** Just decidability of equality on variables suffices for these definitions.
   The full [VarType] may not be needed until [ssubst]*)
@@ -668,14 +654,6 @@ Proof using getId getIdCorr.
 Qed.
 
 
-(* Move to list.v *)
-  Lemma seq_NoDup len start : NoDup (seq N.succ start len).
-  Proof using getIdCorr getId.
-    clear.
-   revert start; induction len; simpl; constructor; trivial.
-   rewrite in_seq_Nplus. intros (H,_).
-    lia.
-  Qed.
 
   Lemma mapFstSeqCombine n1 (lv: list Name):
     (map fst (combine (seq N.succ n1 (length lv)) lv))
@@ -703,14 +681,6 @@ Proof using getId getIdCorr.
   rewrite mapGetIdMkVar.
   rewrite <- combine_map_fst2;[| rewrite seq_length; refl].
   apply seq_NoDup.
-Qed.
-
-(* Move to list.v *)
-Lemma flat_map_single {A B:Type} (f: A->B) (l:list A) :
-flat_map (fun x => [f x]) l
-= map f l.
-Proof using.
-  induction l;auto.
 Qed.
 
 
@@ -763,23 +733,6 @@ Proof using getIdCorr getId.
   rewrite map_id.
   apply namesInsWierd1.
 Qed.
-
-(* Move to substitution.v *)
-Lemma ssubst_aux_sub_trivial_disj:
-  ∀ (sub2 sub1 : @Substitution NVar Opid), 
-  disjoint (flat_map free_vars (range sub1)) (dom_sub sub2)
-  -> subst_aux_sub sub1 sub2 = sub1.
-Proof using.
-  intros ?. induction sub1; auto.
-  intros Hdis.
-  simpl. destruct a as [v t].
-  simpl in *.
-  apply disjoint_app_l in Hdis. repnd.
-  simpl. f_equal; eauto;[].
-  f_equal.
-  apply ssubst_aux_trivial_disj. assumption.
-Qed.
-
 
 Lemma fromDBHigherAlphaAux : 
 let vr n1 n2 names1 names2 nf :=

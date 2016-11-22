@@ -6516,6 +6516,23 @@ Proof using.
   auto.
 Qed.
 
+(* Move to substitution.v *)
+Lemma ssubst_aux_sub_trivial_disj:
+  forall (sub2 sub1 : Substitution), 
+  disjoint (flat_map free_vars (range sub1)) (dom_sub sub2)
+  -> subst_aux_sub sub1 sub2 = sub1.
+Proof using.
+  intros ?. induction sub1; auto.
+  intros Hdis.
+  simpl. destruct a as [v t].
+  simpl in *.
+  apply disjoint_app_l in Hdis. repnd.
+  simpl. f_equal; eauto;[].
+  f_equal.
+  apply ssubst_aux_trivial_disj. assumption.
+Qed.
+
+
 End TempTemp.
 
 Lemma getopid_ssubst_aux_var_ren : forall (a : NTerm) sub,
@@ -6998,3 +7015,4 @@ Proof using.
     apply Hd in Hins. simpl in Hins.
     disjoint_reasoningv.
 Qed.
+

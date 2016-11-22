@@ -3278,6 +3278,38 @@ Proof using.
   lia.
 Qed.
 
+(* move to list.v *)
+Definition NLength {A:Type} (lv: list A) : N := N.of_nat (length lv).
+
+Lemma NLength_length {A:Type} (lv: list A) : 
+  N.to_nat (NLength lv)
+  = length lv.
+Proof using.
+  unfold NLength.
+  lia.
+Qed.
+
+(* Move to list.v *)
+  Lemma seq_NoDup len start : NoDup (seq N.succ start len).
+  Proof using.
+    clear.
+   revert start; induction len; simpl; constructor; trivial.
+   rewrite in_seq_Nplus. intros (H,_).
+    lia.
+  Qed.
+
+
+Hint Rewrite @NLength_length : list.
+Hint Rewrite @NLength_length : SquiggleEq.
+
 Close Scope N_scope.
+
+Lemma flat_map_single {A B:Type} (f: A->B) (l:list A) :
+flat_map (fun x => [f x]) l
+= map f l.
+Proof using.
+  induction l;auto.
+Qed.
+
 
 
