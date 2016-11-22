@@ -743,6 +743,23 @@ Proof using getIdCorr getId.
   apply namesInsWierd1.
 Qed.
 
+(* Move to substitution.v *)
+Lemma ssubst_aux_sub_trivial_disj:
+  ∀ (sub2 sub1 : @Substitution NVar Opid), 
+  disjoint (flat_map free_vars (range sub1)) (dom_sub sub2)
+  -> subst_aux_sub sub1 sub2 = sub1.
+Proof using.
+  intros ?. induction sub1; auto.
+  intros Hdis.
+  simpl. destruct a as [v t].
+  simpl in *.
+  apply disjoint_app_l in Hdis. repnd.
+  simpl. f_equal; eauto;[].
+  f_equal.
+  apply ssubst_aux_trivial_disj. assumption.
+Qed.
+
+
 Lemma fromDBHigherAlphaAux : 
 let vr n1 n2 names1 names2 nf :=
  map 
@@ -878,7 +895,29 @@ Proof using.
         as Hr by (intros; subst; refl).
       apply Hr. clear Hr.
       f_equal. f_equal;[| apply namesInsWierd].
-      admit.
+      rewrite ssubst_aux_sub_trivial_disj.
+
+    Focus 2. unfold range, var_ren, dom_sub, lmap.dom_lmap.
+      repeat rewrite flat_map_map. unfold compose.
+      simpl. rewrite flat_map_single. unfold var.
+      rewrite <- combine_map_fst;
+        [| repeat rewrite map_length; repeat rewrite length_combine_eq;
+            repeat rewrite seq_length; refl].
+      apply (disjoint_map getId).
+      repeat rewrite map_map. unfold compose.
+      do 2 rewrite mapGetIdMkVar. simpl.
+      rewrite mapFstSeqCombine.
+      intros ? Hin Hinc.
+      rewrite in_seq_Nplus in Hinc.
+      apply in_map_iff in Hin. exrepnd.
+      rewrite in_seq_Nplus in Hin1. lia.
+
+    apply eq_maps. intros ? Hin.
+    unfold var.
+    rewrite in_seq_Nplus in Hin.
+    rewrite lookupNDef_inserts_neq_seq;[| lia].
+    rewrite lookupNDef_inserts_neq_seq;[| lia].
+    refl.
 
     * setoid_rewrite disjoint_sub_as_flat_map.
       unfold range. repeat rewrite flat_map_map.
@@ -897,7 +936,6 @@ Proof using.
       lia.
  
 Admitted.
-SearchAbout alpha_eq_bterm var_ren.
 
 Lemma fromDBHigherAlpha : forall v (n1 n2 : N) names1 names2,
 fvars_below 0 v
