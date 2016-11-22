@@ -592,51 +592,100 @@ Ltac dALFind sn :=
         destruct sn as [sns |]
   end.
 
+(* Move *)
+Lemma injSucc : injective_fun N.succ.
+Proof using.
+  clear.
+  intros ? ? Heq.
+  lia.
+Qed.
+
+
+(* Move *)
+Lemma ALMapCombine :
+  forall {KA KB VA VB : Type} 
+    (fk : KA -> KB)
+    (fv : VA -> VB) ka va,
+  ALMap fk fv (combine ka va)
+  = (combine (map fk ka) (map fv va)).
+Proof using.
+  induction ka; intros ?; eauto.
+  simpl.
+  destruct va; auto.
+  unfold ALMap. simpl.
+  f_equal. eauto.
+Qed.
+
+(* Move *)
+Lemma ALFindMap :
+  forall {KA KB VA VB : Type} 
+    (DKA : Deq KA)
+    (DKB : Deq KB)
+    (fk : KA -> KB)
+    (fv : VA -> VB),
+  injective_fun fk
+  -> forall (sub : AssocList KA VA) k,
+  ALFind  (ALMap fk fv sub) (fk k) = option_map fv (ALFind  sub k).
+Proof using.
+  introv Hik.
+  induction sub;simpl; sp; allsimpl;[].
+  dec.
+  cases_ifd Hd; cpx.
+  + f_equal. apply Hik in Hdt.
+    destruct Hdt. rewrite deq_refl. refl.
+  + rewrite IHsub. 
+     clear IHsub. dec. cases_if as Hd;
+    subst; cpx. 
+Qed.
+
+
+(* Move *)
+Lemma option_map_id {T:Type}: forall (k:option T), 
+  option_map id k = k.
+Proof using.
+  intros. destruct k; refl.
+Qed.
+
+
 Lemma subst_aux_list_same_aux :
-let sub l := rev (combine (seq N.succ 0 (length l)) l) in
+let sub l := (combine (seq N.succ 0 (length l)) l) in
 (forall (e:DTerm) (l:list DTerm),
   fvars_below (NLength l) e
-  -> subst_aux_list e l = subst_aux_simpl (sub l) e)
+  -> subst_aux_list e (rev l) = subst_aux_simpl (sub l) e)
 *
 (forall (e:DBTerm) (l:list DTerm),
   fvars_below_bt (NLength l) e
-  -> subst_aux_bt_list e l = subst_aux_simpl_bt (sub l) e).
+  -> subst_aux_bt_list e (rev l) = subst_aux_simpl_bt (sub l) e).
 Proof using.
   simpl.
   apply NTerm_BTerm_ind.
-- intros v ? Hfb. inverts Hfb.
-  induction l; auto.
-  simpl. rewrite ALFindApp.
-  dALFind ss.
-  symmetry in Heqss.
-  + pose proof Heqss as Hb.
-    apply ALFindSome in Hb.
-    rewrite <- in_rev in Hb.
-    apply in_combine_l in Hb.
-    rewrite in_seq_Nplus in Hb. repnd.
-    SearchAbout In combine.
-    SearchAbout LIn rev. 
-  SearchAbout ALFind.
-
-  SearchAbout ALFind app.
-
-  rewrite AlFindApp.
-  rewrite combine_app;[| autorewrite with list; refl].
-
- rewrite IHl.
-  simpl.
-SearchAbout combine app.
-  induction  
-  induction l; [tauto |].
-  unfold subst_aux_list.
-  unfold subst_aux_list.
-  apply NTerm_BTerm_ind.
-- unfold subst_aux_list. intros ? Hfb.
-  rewrite fold_left_right_rev. simpl.
-  SearchAbout fold_right rev. 
-
- intros ? Hfb. simpl.
-  simpl.
+- intros v ? Hfb.
+  setoid_rewrite fold_left_rev_right. simpl.
+  revert Hfb. revert v.
+  induction l; intros ? ?; auto.
+  simpl in *. rewrite N.eqb_compare.
+  remember (v ?= 0) as cc.
+  destruct cc; symmetry in Heqcc.
+  + admit. (* no effect on closed terms suc as a. add assumption that l is closed *)
+  + rewrite N.compare_lt_iff in Heqcc. lia.
+  + rewrite N.compare_gt_iff in Heqcc.
+    invertsn Hfb. unfold NLength in *. simpl in *.
+    rewrite IHl;[| constructor; lia].
+    rewrite <- (option_map_id (ALFind (combine (seq N.succ 0 (length l)) l) (v - 1))).
+    rewrite <- ALFindMap with (fk:=N.succ) (DKB := _);
+      [| apply injSucc].
+    rewrite ALMapCombine.
+    replace (N.succ (v-1)) with v by lia.
+    rewrite map_id.
+    rewrite <- seq_shift. simpl.
+    dALFind ss; [refl|].
+    provefalse.
+    symmetry in Heqss.
+    apply ALFindNone in Heqss.
+    apply Heqss. clear Heqss.
+    rewrite ALDomCombine;[ | autorewrite with list; refl].
+    rewrite in_seq_Nplus. lia.
+Abort.
 
 
 
@@ -659,6 +708,7 @@ Definition subst_aux_list2 (e: DTerm)  (l:list DTerm): (@DTerm Name Opid) :=
 Definition subst_aux_bt_list2 (e: DBTerm)  (l:list DTerm): (@DBTerm Name Opid) :=
   subst_aux_bt_list2_aux e l (N.pred (NLength l)).
 
+(*
 Lemma subst_aux_list_same_aux  (l:list DTerm):
 let len := NLength l in
 (forall (e:DTerm), 
