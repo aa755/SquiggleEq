@@ -89,6 +89,23 @@ with fvars_below_bt : N->DBTerm -> Prop :=
 
 End terms.
 
+Print lmap.lmap_find.
+Fixpoint subst_aux_simpl {Opid Name:Type} (sub: list (N*DTerm)) (e:@DTerm Opid Name)
+  : @DTerm Opid Name:=
+match e with
+| vterm i => 
+  match sub_find sub i with
+  | Some v => v
+  | None => vterm i
+  end
+| oterm o lbt => oterm o (map (subst_aux_simpl_bt sub) lbt)
+end
+with subst_aux_simpl_bt {Opid Name:Type} (sub: list (N*DTerm))
+    k (e:@DBTerm Opid Name): @DBTerm Opid Name:=
+match e with
+| bterm m t => bterm m (subst_aux_simpl v (NLength m+k) t)%N
+end.
+
 Fixpoint subst_aux {Opid Name:Type}(v:DTerm) k (e:@DTerm Opid Name)
   : @DTerm Opid Name:=
 match e with
@@ -937,7 +954,7 @@ Proof using gts getIdCorr getId.
 Qed.
 
 
-Lemma fromDB_ssubst:
+Lemma fromDB_ssubst_aux:
   forall (v : DTerm),
   fvars_below 0 v
   ->
@@ -997,6 +1014,33 @@ Proof using gts getIdCorr getId deqo.
   dands; trivial;[]. fold fromDB.
   apply fromDBHigherAlpha; auto; try lia.
 Qed.
+
+(*
+Lemma fromDBHigherAlpha2 : forall v ( nf n1 n2 : N) names1 names2,
+nf <= n1
+-> nf <= n2
+-> fvars_below nf v
+-> fromDB n2 names2 v
+   ≡ fromDB n1 names1 v.
+Proof using gts getIdCorr getId.
+*)
+
+(*
+Lemma fromDB_ssubst_aux2:
+  forall (v : DTerm),
+  fvars_below 0 v
+  ->
+  (forall (e : DTerm) (nf:N) names,
+    fvars_below (1+nf) e
+    -> fromDB nf names (subst_aux v nf e)
+       ≡
+       substitution.ssubst_aux 
+            (fromDB (1+nf) names e) [(var names 0,fromDB 0 names v)]).
+Proof using gts getIdCorr getId deqo.
+  intros.
+  rewrite fromDBHigherAlpha.
+*)
+
 
 
 End DBToNamed.
