@@ -352,6 +352,10 @@ Qed.
     rewrite lookupNDef_insert_eq. exists (snd a); cpx.
   Qed.
 
+Local Opaque lookupNDef.
+(* Local Opaque insertNs. *)
+Local Opaque insertN.
+
 
   Variable mkNVar: (N * Name) -> NVar.
   Variable getId: NVar -> N.
@@ -652,16 +656,22 @@ Qed.
     lia.
   Qed.
 
+  Lemma mapFstSeqCombine n1 (lv: list Name):
+    (map fst (combine (seq N.succ n1 (length lv)) lv))
+    = (seq N.succ n1 (length lv)).
+  Proof using getIdCorr.
+    rewrite <- combine_map_fst2;[| rewrite seq_length; refl].
+    refl.
+  Qed.    
+
   Lemma mapGetIdMapMkVarCombine n1 lv:
     (map getId (map mkNVar (combine (seq N.succ n1 (length lv)) lv)))
     = (seq N.succ n1 (length lv)).
   Proof using getIdCorr.
     rewrite map_map. unfold compose. simpl.
-    rewrite mapGetIdMkVar.
-    rewrite <- combine_map_fst2;[| rewrite seq_length; refl].
-    refl.
+    rewrite mapGetIdMkVar. apply mapFstSeqCombine.
   Qed.
-    
+
 
 
 Lemma NoDupMapCombineSeq n1 lv:
@@ -682,6 +692,56 @@ Proof using.
   induction l;auto.
 Qed.
 
+
+Lemma  namesInsWierd1  : forall lv nf n names,
+(combine (seq N.succ n (length lv)) lv) =
+map
+  (λ x : N,
+   (n + x - nf,
+   lookupNDef def (insertNs names (combine (seq N.succ n (length lv)) lv)) (n + x - nf)))
+  (seq N.succ nf (length lv)).
+Proof using mkNVar getIdCorr .
+  induction lv; auto;[].
+  simpl.
+  intros ? ? ?.
+  replace (n + nf - nf) with  n by lia.
+  rewrite lookupNDef_inserts_neq;
+    [ | rewrite mapFstSeqCombine;
+        apply disjoint_singleton_r; rewrite in_seq_Nplus; lia].
+  rewrite lookupNDef_insert_eq. f_equal.
+  rewrite  IHlv with (nf:=nf) (n:=N.succ n) (names:= insertN names (n, a))
+    at 1.
+  rewrite (seq_shift N.succ _ nf).
+  rewrite map_map. unfold compose. simpl.
+  apply eq_maps.
+  intros ? _.
+  rewrite N.add_succ_comm. refl.
+Qed.
+
+Lemma  namesInsWierd  : forall lv names1 names2 nf n1 n2,
+@var_ren _ Opid (map mkNVar (combine (seq N.succ n2 (length lv)) lv))
+  (map mkNVar (combine (seq N.succ n1 (length lv)) lv)) =
+map
+  (λ a : N,
+   (var (insertNs names2 (combine (seq N.succ n2 (length lv)) lv)) (n2 + a - nf),
+   terms.vterm
+     (var (insertNs names1 (combine (seq N.succ n1 (length lv)) lv)) (n1 + a - nf))))
+  (seq N.succ nf (length lv)).
+Proof using getIdCorr getId.
+  intros.
+  rewrite <- combine_map. unfold var_ren. f_equal.
+- unfold var.
+  setoid_rewrite <- map_map. f_equal.
+  rewrite map_id.
+  apply namesInsWierd1.
+
+- setoid_rewrite <- map_map. f_equal.
+  unfold var. simpl.
+  rewrite map_map. unfold compose. simpl.
+  setoid_rewrite <- map_map. f_equal.
+  rewrite map_id.
+  apply namesInsWierd1.
+Qed.
 
 Lemma fromDBHigherAlphaAux : 
 let vr n1 n2 names1 names2 nf :=
@@ -813,7 +873,13 @@ Proof using.
       rewrite or_false_r in Hin1.
       lia.
   + rewrite (fst ssubst_aux_app_simpl_nb).
-    * admit.
+    * rewrite <- Hfb. clear Hfb.
+      assert (forall (x y: @NTerm NVar Opid), x=y -> x≡y) 
+        as Hr by (intros; subst; refl).
+      apply Hr. clear Hr.
+      f_equal. f_equal;[| apply namesInsWierd].
+      admit.
+
     * setoid_rewrite disjoint_sub_as_flat_map.
       unfold range. repeat rewrite flat_map_map.
       unfold compose. simpl.
@@ -829,43 +895,6 @@ Proof using.
       rewrite in_seq_Nplus in Hin1. subst.
       unfold NLength in *.
       lia.
- 
-  Focus 4.
-  Focus 4.
-    simpl. apply disjoint_bv_vars.
-  (* need (n2 + binderDepth nt +  (NLength lv) <= n1) *)
-    admit. 
-  Focus 3.
-    simpl. (* need (n2 + binderDepth nt +  (NLength lv)  <= n1 -nf) *)
-    admit.
-  Focus 2.
-    unfold range. repeat rewrite flat_map_map.
-    unfold compose. simpl.
-    admit. (* easy : flat map of nil is nil *)
-   (* need (n2 + NLength lv  <= n1 -nf)  for ssubst_sub to be identity *)
-    admit.
-  Focus 3.
-    (* need (n2 + binderDepth nt +  (NLength lv)  <= n1 -nf),
-      the vars coming from substitution are already disjoint *)
-    admit.
-
-
-  admit (* easy *).
-
-SearchAbout disjoint_bv_sub var_ren.
-  SearchAbout alpha_eq_bterm.
-  SearchAbout ssubst app.
-  SearchAbout ssubst_aux all_vars.
-  SearchAbout ssubst_aux app.
-
- (* add this assumption to the statement *)
-
-    (* the substitution in Hfb has more pairs. split it into 2 parts,
-      one of which has size (length lv). use it for al_term with chained
-      substitutions with common middle.
-      see alphaeq.change_bvars_alpha_spec_aux for an example,
-      or other lemmas in alphaeq.v whose conclusion is alpha equality
-      but dont have any alpha equality hypotheses. *)
  
 Admitted.
 SearchAbout alpha_eq_bterm var_ren.
