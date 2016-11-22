@@ -571,5 +571,10 @@ Proof.
   assumption.
 Qed.
 
+Instance NEqDec : Deq N.
+Proof using.
+  intros x y. exists (N.eqb x y). apply N.eqb_eq.
+Defined.
+
 
 

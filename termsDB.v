@@ -21,6 +21,8 @@ Require Import terms.
 Require Import substitution.
 Require Import Nsatz.
 Require Import Psatz.
+Require Import AssociationList.
+
 Generalizable Variables Opid Name.
 
 Section terms.
@@ -89,36 +91,36 @@ with fvars_below_bt : N->DBTerm -> Prop :=
 
 End terms.
 
-Print lmap.lmap_find.
-Fixpoint subst_aux_simpl {Opid Name:Type} (sub: list (N*DTerm)) (e:@DTerm Opid Name)
+
+Fixpoint subst_aux_simpl {Name Opid :Type} (sub: list (N*DTerm)) (e:@DTerm Opid Name)
   : @DTerm Opid Name:=
 match e with
 | vterm i => 
-  match sub_find sub i with
+  match ALFind sub i with
   | Some v => v
-  | None => vterm i
+  | None => vterm i (* never decremented (simple) *)
   end
 | oterm o lbt => oterm o (map (subst_aux_simpl_bt sub) lbt)
 end
 with subst_aux_simpl_bt {Opid Name:Type} (sub: list (N*DTerm))
-    k (e:@DBTerm Opid Name): @DBTerm Opid Name:=
+     (e:@DBTerm Opid Name): @DBTerm Opid Name:=
 match e with
-| bterm m t => bterm m (subst_aux_simpl v (NLength m+k) t)%N
+| bterm m t => bterm m (subst_aux_simpl (ALMapDom (N.add (NLength m)) sub) t)
 end.
 
-Fixpoint subst_aux {Opid Name:Type}(v:DTerm) k (e:@DTerm Opid Name)
-  : @DTerm Opid Name:=
+Fixpoint subst_aux {Name Opid:Type}(v:DTerm) k (e:@DTerm Name Opid)
+  : @DTerm Name Opid:=
 match e with
 | vterm i => 
   match N.compare i k with
   | Lt => vterm i
   | Eq => v
-  | Gt => vterm (i - 1)%N
+  | Gt => vterm (i - 1)%N (* this causes difficulties in reasoning *)
   end
 | oterm o lbt => oterm o (map (subst_aux_bt v k) lbt)
 end
-with subst_aux_bt {Opid Name:Type} (v:@DTerm Opid Name) 
-    k (e:@DBTerm Opid Name): @DBTerm Opid Name:=
+with subst_aux_bt {Name Opid:Type} (v:@DTerm Name Opid) 
+    k (e:@DBTerm Name Opid): @DBTerm Name Opid:=
 match e with
 | bterm m t => bterm m (subst_aux v (NLength m+k) t)%N
 end.

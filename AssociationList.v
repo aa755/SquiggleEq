@@ -62,7 +62,11 @@ map (fun p => (fk (fst p), fv (snd p))) al.
 Definition ALMapRange {T : Type} (f : Value -> T) (al : AssocList):=
 ALMap (fun x=>x) f al.
 
-Variable deqKey : (Deq Key).
+Definition ALMapDom {T : Type} (f : Key -> T) (al : AssocList):=
+ALMap f (fun x=>x)  al.
+
+
+Context {deqKey : (Deq Key)}.
 (** All definitions/lemmas below need decidable equality on Key.
     If not, they should placed before the line above *)
 Fixpoint ALFind 
@@ -604,7 +608,7 @@ Qed.
 
 Lemma ALMapRangeFilterCommute :
   forall K V l T (deq : Deq K) (f: V -> T) (sub : AssocList K V),
-  (ALFilter deq (ALMapRange f sub) l)  = ALMapRange f (ALFilter deq sub l).
+  (ALFilter (ALMapRange f sub) l)  = ALMapRange f (ALFilter sub l).
 Proof.
   induction sub; simpl; sp; allsimpl.
   cases_if; simpl; auto; f_equal; auto.
@@ -626,8 +630,8 @@ Lemma ALFindMapSome :
     (fv : VA -> VB),
   injective_fun fk
   -> forall (sub : AssocList KA VA) 
-      v t, ALFind DKA sub v = Some t
-  -> ALFind DKB (ALMap fk fv sub) (fk v) 
+      v t, ALFind sub v = Some t
+  -> ALFind  (ALMap fk fv sub) (fk v) 
         = Some (fv t).
 Proof.
   introv Hik.
@@ -649,8 +653,8 @@ Lemma ALFindMapNone :
     (fv : VA -> VB),
   injective_fun fk
   -> forall (sub : AssocList KA VA) 
-      v, ALFind DKA sub v = None
-  -> ALFind DKB (ALMap fk fv sub) (fk v) 
+      v, ALFind  sub v = None
+  -> ALFind (ALMap fk fv sub) (fk v) 
         = None.
 Proof.
   introv Hik.
@@ -671,8 +675,8 @@ Lemma ALFindEndoMapSome :
     (fv : VA -> VB),
   injective_fun fk
   -> forall (sub : AssocList KA VA) 
-      v, ALFind DKA sub v = None
-  -> ALFind DKA (ALMap fk fv sub) (fk v) 
+      v, ALFind sub v = None
+  -> ALFind (ALMap fk fv sub) (fk v) 
         = None.
 Proof.
   intros. eapply ALFindMapNone; eauto.
@@ -686,8 +690,8 @@ Lemma ALMapFilterCommute :
   (fv : VA -> VB),
   injective_fun fk
   -> forall (sub : AssocList KA VA) l,
-      (ALFilter DKB (ALMap fk fv sub) (map fk l))  
-          = ALMap fk fv (ALFilter DKA sub l).
+      (ALFilter  (ALMap fk fv sub) (map fk l))  
+          = ALMap fk fv (ALFilter  sub l).
 Proof.
   introv Hin.
   induction sub; simpl; sp; allsimpl.
@@ -709,15 +713,15 @@ Lemma ALEndoMapFilterCommute :
   (fv : VA -> VB),
   injective_fun fk
   -> forall (sub : AssocList KA VA) l,
-      (ALFilter DKA (ALMap fk fv sub) (map fk l))  
-          = ALMap fk fv (ALFilter DKA sub l).
+      (ALFilter  (ALMap fk fv sub) (map fk l))  
+          = ALMap fk fv (ALFilter  sub l).
 Proof.
   intros. apply ALMapFilterCommute; auto.
 Qed.
 
 Lemma ALMapRangeFindCommute :
   forall K V T (v: K) (deq : Deq K) (f: V -> T) (sub : AssocList K V),
-  (ALFind deq (ALMapRange f sub) v)  = option_map f (ALFind deq sub v).
+  (ALFind  (ALMapRange f sub) v)  = option_map f (ALFind  sub v).
 Proof.
   induction sub; simpl; sp; allsimpl.
   cases_if; simpl; auto; f_equal; auto.
