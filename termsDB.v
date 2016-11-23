@@ -617,6 +617,32 @@ Proof using.
 Qed.
 
 (* Move *)
+Lemma ALFindMap2 :
+  forall {KA KB VA VB : Type} 
+    {DKA : Deq KA}
+    {DKB : Deq KB}
+    (fk : KA -> KB)
+    (fv : VA -> VB),
+  forall (sub : AssocList KA VA) k,
+  (∀ s, In s sub -> fk (fst s) = fk k → fst s = k)
+  -> ALFind  (ALMap fk fv sub) (fk k) = option_map fv (ALFind  sub k).
+Proof using.
+  clear.
+  introv Hik.
+  induction sub;simpl; sp; allsimpl;[].
+  dec.
+  cases_ifd Hd; cpx.
+  + specialize (Hik _ (or_introl eq_refl)). symmetry in Hdt.
+    simpl in Hik.
+    apply Hik in Hdt. subst.
+    rewrite deq_refl. refl.
+  + rewrite IHsub. 
+    * clear IHsub. dec. cases_if as Hd;
+      subst; cpx.
+    * intros ? ?. apply Hik. cpx.
+Qed.
+
+(* Move *)
 Lemma ALFindMap :
   forall {KA KB VA VB : Type} 
     {DKA : Deq KA}
@@ -627,16 +653,10 @@ Lemma ALFindMap :
   -> forall (sub : AssocList KA VA) k,
   ALFind  (ALMap fk fv sub) (fk k) = option_map fv (ALFind  sub k).
 Proof using.
-  introv Hik.
-  induction sub;simpl; sp; allsimpl;[].
-  dec.
-  cases_ifd Hd; cpx.
-  + f_equal. apply Hik in Hdt.
-    destruct Hdt. rewrite deq_refl. refl.
-  + rewrite IHsub. 
-     clear IHsub. dec. cases_if as Hd;
-    subst; cpx. 
+  introv Hik. intros. apply ALFindMap2.
+  intros ? ?. apply Hik.
 Qed.
+
 
 Lemma ALFindNoneIf {KA VA : Type} 
     {DKA : Deq KA} :
@@ -804,13 +824,13 @@ Qed.
 Fixpoint subst_aux_list2_aux (e: DTerm)  (l:list DTerm) (n:N): (@DTerm Name Opid) :=
 match l with
 | [] => e
-| h::tl => subst_aux_list2_aux (subst_aux h n e) tl (N.pred n)
+| h::tl => subst_aux h n (subst_aux_list2_aux e tl (N.pred n))
 end.
 
 Fixpoint subst_aux_bt_list2_aux (e: DBTerm)  (l:list DTerm) (n:N): (@DBTerm Name Opid) :=
 match l with
 | [] => e
-| h::tl => subst_aux_bt_list2_aux (subst_aux_bt h n e) tl (N.pred n)
+| h::tl => subst_aux_bt h n (subst_aux_bt_list2_aux e tl (N.pred n))
 end.
 
 Definition subst_aux_list2 (e: DTerm)  (l:list DTerm): (@DTerm Name Opid) :=
@@ -1247,6 +1267,110 @@ Proof using gts getIdCorr getId deqo.
   dands; trivial;[]. fold fromDB.
   apply fromDBHigherAlpha; auto; try lia.
 Qed.
+
+(* Move : redefine sub_find to be a notation for ALFind *)
+Lemma sub_findALFind : forall v (sub: @Substitution NVar Opid),
+  sub_find sub v = ALFind sub v.
+Proof using.
+  induction sub; auto.
+  simpl. unfold beq_var. destruct a.
+  do 2 rewrite decide_decideP.
+  cases_if; subst; cases_if; cpx.
+Qed.
+
+Lemma fromDB_ssubst_aux_simple:
+  forall (sub : list (N*DTerm)),
+  let subn names ns := (ALMap (fun x => var names (ns -x -1)) (fromDB ns names) sub) in
+  lforall (fun s => fvars_below 0 (snd s)) sub
+  ->
+  (forall (e : DTerm) (nf:N) names,
+    fvars_below nf e
+    -> lforall (fun s => (fst s) < nf) sub (* WLOG, because fvars are below nf *)
+    -> fromDB nf names (subst_aux_simpl sub e)
+       ≡
+       substitution.ssubst_aux (fromDB nf names e) (subn names nf))
+  *
+  (forall (e : DBTerm) (nf :N) names,
+    fvars_below_bt nf e
+    -> lforall (fun s => (fst s) < nf) sub
+    -> fromDB_bt nf names (subst_aux_simpl_bt sub e)
+       ∘≡
+       substitution.ssubst_bterm_aux (fromDB_bt nf names e) (subn names nf))
+.
+Proof using gts getIdCorr getId deqo.
+  simpl.
+  intros ? H0fb. simpl. apply NTerm_BTerm_ind.
+- intros ? ? ? Hfb Hsf. simpl.
+  rewrite sub_findALFind. unfold var.
+  inverts Hfb.
+  change (mkNVar (nf - n - 1, lookupNDef def names (nf - n - 1))) with
+    (((λ x : N, mkNVar (nf - x - 1, lookupNDef def names (nf - x - 1)))) n).
+  rewrite ALFindMap2.
+  + dALFind ss;refl.
+  + intros ? Hin Heq. apply (f_equal getId) in Heq.
+    do 2 rewrite getIdCorr in Heq.
+    apply Hsf in Hin. lia.
+- intros ? ? Hind ? ? Hfb Hfs. unfold fromDB. simpl.
+  repeat rewrite map_map.
+  apply alpha_eq_map_bt.
+  unfold compose. simpl.
+  invertsn Hfb. eauto.
+
+- intros ? ? Hind ? ? Hfb. simpl. unfold fromDB_bt. simpl.
+  f_equal;[]. unfold var.
+  rewrite (fun v vars => proj2 (assert_memvar_false v vars));
+    [| apply InMkVarCombine2;
+        [ apply seq_length | rewrite in_seq_Nplus; lia]
+    ].
+  rewrite <- N.add_assoc.
+  unfold fromDB in Hind.
+  invertsn Hfb. fold (NLength lv).
+  replace (NLength lv + nf) with (nf + NLength lv) by lia.
+  replace ((NLength lv + (1 + nf))) with (1 + (nf + NLength lv)) in Hfb by lia.
+  rewrite Hind by assumption.
+  apply alpha_eq_bterm_congr. unfold var.
+  rewrite lookupNDef_inserts_neq_seq by lia.
+  apply (fst subst_aux_alpha_sub). simpl.
+  dands; trivial;[]. fold fromDB.
+  apply fromDBHigherAlpha; auto; try lia.
+Qed.
+
+
+
+Lemma fromDB_ssubst_aux2:
+  forall (v : list DTerm),
+  lforall (fvars_below 0) v
+  ->
+  (forall (e : DTerm) names,
+    fvars_below (NLength v) e
+    -> fromDB (NLength v) names (subst_aux_list2 e v)
+       ≡
+       substitution.ssubst_aux 
+            (fromDB (NLength v) names e) 
+            (combine 
+                (map (var names) (seq N.succ 0 (length v)))
+                (map (fromDB (NLength v) names) v))).
+Proof using.
+  intro. rename v into l.
+  induction l; auto.
+- intros. simpl. rewrite ssubst_aux_nil. refl.
+- intros Hlf ? ? Hfb.
+  simpl.  unfold subst_aux_list2.
+Local Opaque N.pred.
+Local Opaque N.succ.
+Local Opaque N.of_nat.
+  simpl. unfold NLength. simpl.
+  repeat rewrite Nnat.Nat2N.inj_succ.
+  repeat rewrite N.pred_succ.
+  repeat rewrite <- N.add_1_l.
+  rewrite (fun v b=> fst (fromDB_ssubst_aux v b)).
+  rewrite IHl.
+SearchAbout N.pred N.succ.
+SearchAbout N.pred.
+  simpl.
+  simpl. 
+
+
 
 (*
 Lemma fromDBHigherAlpha2 : forall v ( nf n1 n2 : N) names1 names2,
