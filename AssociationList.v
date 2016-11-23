@@ -65,7 +65,7 @@ ALMap (fun x=>x) f al.
 Definition ALMapDom {T : Type} (f : Key -> T) (al : AssocList):=
 ALMap f (fun x=>x)  al.
 
-
+Require Import varInterface.
 Context {deqKey : (Deq Key)}.
 (** All definitions/lemmas below need decidable equality on Key.
     If not, they should placed before the line above *)
@@ -73,7 +73,7 @@ Fixpoint ALFind
     (al : AssocList) (key : Key): option Value :=
 match al with
 | nil => None
-| (k, v) :: xs => if (decide (key=k)) 
+| (k, v) :: xs => if (beq_var k key) 
                   then Some v 
                   else ALFind xs key
 end.
@@ -118,13 +118,13 @@ Lemma ALFindDef2Same : forall
 Proof.
   induction al as [|h th Hind]; auto;[]. destruct h as [k v].
   allunfold ALFindDef. allunfold ALFindDef2.
-  simpl. rewrite decide_decideP.
+  simpl. setoid_rewrite decide_decideP.
   cases_ifd Hd; auto.
-  - rw Hdt; auto.
+  - rw Hdt; auto. subst. rewrite deqP_refl. simpl. refl.
   - unfold ALFindDef2 in Hind.
     rw  Hind.  destruct_head_match; simpl; auto.
     destruct s; auto.
-Qed.
+Abort.
 
 
 
@@ -132,7 +132,7 @@ Fixpoint ALFilter (sub : AssocList) (keys : list Key) : AssocList :=
   match sub with
   | nil => nil
   | (k, v) :: xs =>
-      if (memberb _ k keys)
+      if (memvar k keys)
       then ALFilter xs keys
       else (k, v) :: ALFilter xs keys
   end.
@@ -146,18 +146,28 @@ Qed.
 
 Notation DeqKey := (fun (x y: Key) => decideP (x=y)).
 
+Ltac dec :=
+unfold beq_var in *;
+unfold memvar in *;
+(repeat rewrite decide_decideP);
+(repeat rewrite memberb_din);
+repeat match goal with
+[H:context[decide _] |- _] => rewrite decide_decideP in H
+|[H:context[memberb _ _ _] |- _] => rewrite memberb_din in H
+end.
+
 Lemma ALDomFilterCommute :
   forall l sub,
     diff l (ALDom sub) = ALDom (ALFilter sub l).
 Proof.
   induction sub; simpl; sp; allsimpl.
   - apply diff_nil.
-  - rewrite diff_cons_r.
+  - rewrite diff_cons_r. dec.
     cases_if; simpl; f_equal; auto.
 Qed.
 
 (* for some tactics like cpx *)
-Require Import varInterface.
+
 
 Ltac dest t :=
 let tf := eval cbv beta in t in 
@@ -171,8 +181,8 @@ Lemma ALFindSome :
     -> LIn (v, u) sub.
 Proof.
   induction sub; simpl; sp.
-  rewrite decide_decideP in H.
-  dest (DeqKey v a0); subst; cpx.
+  setoid_rewrite decide_decideP in H.
+  dest (DeqKey a0 v); subst; cpx.
   inverts H. cpx.
 Qed.
 
@@ -183,19 +193,12 @@ Lemma ALFindNone :
 Proof.
   induction sub; simpl; sp;
   inversion H;
-  rewrite decide_decideP in H;
-  rewrite decide_decideP in H2;
-  dest (DeqKey v a0); cpx.
+  setoid_rewrite decide_decideP in H;
+  setoid_rewrite decide_decideP in H2;
+  dest (DeqKey a0 v); cpx.
   apply IHsub in H0;  cpx.
 Qed.
 
-Ltac dec :=
-(repeat rewrite decide_decideP);
-(repeat rewrite memberb_din);
-repeat match goal with
-[H:context[decide _] |- _] => rewrite decide_decideP in H
-|[H:context[memberb _ _ _] |- _] => rewrite memberb_din in H
-end.
 
 Lemma ALFind2Same : forall (sub: AssocList) v, ALFind sub v =
         proj_as_option (ALFind2 sub v).
@@ -225,14 +228,14 @@ Proof.
   
   - destruct (in_deq Key _ a0 l); allsimpl.
     + apply IHsub in H; exrepnd; auto.
-    + dec. dest (DeqKey v a0); allsimpl; subst; sp;[].
+    + dec. dest (DeqKey a0 v); allsimpl; subst; sp;[].
       rw IHsub in H; exrepnd; auto.
 
   - destruct (in_deq Key _ a0 l); allsimpl.
     + apply IHsub; split; auto. dec.
-      dest (DeqKey v a0); allsimpl; subst; sp.
+      dest (DeqKey a0 v); allsimpl; subst; sp.
 
-    + dec. dest (DeqKey v a0); allsimpl; subst; sp.
+    + dec. dest (DeqKey a0 v); allsimpl; subst; sp.
        apply IHsub; split; auto.
 Qed.
 
@@ -242,15 +245,15 @@ Lemma ALFindFilterNone :
     <=> (ALFind sub v = None [+] LIn v l).
   induction sub; simpl; sp; split; introv H; sp; allsimpl; dec.
   - destruct (in_deq Key _ a0 l); allsimpl; dec;
-    dest (DeqKey v a0); allsimpl;
+    dest (DeqKey a0 v); allsimpl;
     subst;
     try(rw IHsub in H); 
     exrepnd; auto;cpx.
   - destruct (in_deq Key _ a0 l); allsimpl;dec;
-    dest (DeqKey v a0); allsimpl;
+    dest (DeqKey a0 v); allsimpl;
     subst;cpx;apply IHsub; cpx.
   - dec. dest (in_deq Key _ a0 l); allsimpl; dec;
-    dest (DeqKey v a0); allsimpl;
+    dest (DeqKey a0 v); allsimpl;
     subst;cpx;apply IHsub; cpx.
 Qed.
 
@@ -275,7 +278,7 @@ Proof.
   rw <- memberb_din.
   rw memberb_app.
   destructr (memberb _ a0 vs1) as [m1 | m1]; simpl.
-  apply IHsub.
+  apply IHsub. unfold memvar.
   allsimpl. destruct (memberb _ a0 vs2) as [m2 | m2];
   simpl; subst;
   try(rw IHsub); auto.
@@ -337,12 +340,13 @@ Lemma ALFindSomeKeepFirstSingleton:
 Proof.
   induction sub as [|(v,t) sub Hind];
   introv Heq; allsimpl; cpx. dec.
-  dest (DeqKey v0 v);
-  subst;allsimpl; cpx;[].
+  dest (DeqKey v v0);
+  subst;allsimpl; cpx.
   rewrite deqP_refl.
   rw ALKeepFirstNil; auto.
   inversion Heq.
   cpx.
+  cases_if; cpx.
 Qed.
 
 Lemma ALFindNoneKeepFirstSingleton:
@@ -353,8 +357,9 @@ Proof.
   induction sub as [|(v,t) sub Hind];
   introv Heq; allsimpl; cpx.
   dec.
-  dest (DeqKey v0 v);
+  dest (DeqKey v v0);
   subst;allsimpl; cpx.
+  cases_if; cpx.
 Qed.
 Hint Rewrite ALKeepFirstNil ALFilterDom ALFilter_nil_r : fast.
 
@@ -400,7 +405,7 @@ Lemma ALKeepFirstLin:
     <=> (ALFind sub v = Some t # LIn v vs).
 Proof.
   induction sub; simpl; sp;[split;sp|]. dec.
-  dest (DeqKey v a0);
+  dest (DeqKey a0 v);
   destruct (in_deq Key _ a0 vs);
   subst; cpx; split; introns Hyp; allsimpl; exrepnd; cpx.
   - dec. dorn Hyp; cpx; cpx. apply IHsub in Hyp.
@@ -629,6 +634,7 @@ Proof.
 Qed.
 
 Ltac dec :=
+unfold beq_var in *;
 (repeat rewrite decide_decideP);
 (repeat rewrite memberb_din);
 repeat match goal with
@@ -788,7 +794,7 @@ Proof using.
   dec.
   cases_ifd Hd; cpx.
   + specialize (Hik _ (or_introl eq_refl)). symmetry in Hdt.
-    simpl in Hik.
+    simpl in Hik. symmetry in Hdt.
     apply Hik in Hdt. subst.
     rewrite deqP_refl. refl.
   + rewrite IHsub. 
@@ -824,6 +830,4 @@ Proof using.
   apply ALFindSome in Heqss.
   apply ALInEta in Heqss. tauto.
 Qed.
-
-
 

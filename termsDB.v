@@ -656,7 +656,8 @@ Proof using.
   setoid_rewrite fold_left_rev_right. simpl.
   revert Hfb. revert v.
   induction l; intros ? ?; auto.
-  simpl in *. rewrite N.eqb_compare.
+  simpl in *. rewrite beq_var_sym.
+ rewrite N.eqb_compare.
   remember (v ?= n) as cc.
   destruct cc; symmetry in Heqcc.
   + apply N.compare_eq_iff in Heqcc. subst.
@@ -932,7 +933,7 @@ Proof using gts getIdCorr getId.
     refl.
   + provefalse. apply sub_find_none2 in Heqsss.
     apply Heqsss. unfold vr, dom_sub, lmap.dom_lmap, var.
-    rewrite map_map. unfold compose. simpl.
+    setoid_rewrite map_map. unfold compose. simpl.
     apply List.in_map_iff.
     exists (nf - n - 1).
     rewrite in_seq_Nplus.
@@ -967,7 +968,7 @@ Proof using gts getIdCorr getId.
   rewrite sub_filter_disjoint1.
   Focus 2.
     unfold vr. unfold dom_sub, lmap.dom_lmap.
-    rewrite map_map. unfold compose.
+    setoid_rewrite map_map. unfold compose.
     Local Transparent var. simpl. unfold var.
     apply disjoint_map with (f:= getId).
     rewrite mapGetIdMapMkVarCombine.
@@ -1032,7 +1033,7 @@ Proof using gts getIdCorr getId.
     Focus 2. unfold range, var_ren, dom_sub, lmap.dom_lmap.
       repeat rewrite flat_map_map. unfold compose.
       simpl. rewrite flat_map_single. unfold var.
-      rewrite <- combine_map_fst;
+      setoid_rewrite <- combine_map_fst;
         [| repeat rewrite map_length; repeat rewrite length_combine_eq;
             repeat rewrite seq_length; refl].
       apply (disjoint_map getId).
@@ -1098,10 +1099,7 @@ Qed.
 Lemma sub_findALFind : forall v (sub: @Substitution NVar Opid),
   sub_find sub v = ALFind sub v.
 Proof using.
-  induction sub; auto.
-  simpl. unfold beq_var. destruct a.
-  do 2 rewrite decide_decideP.
-  cases_if; subst; cases_if; cpx.
+  refl.
 Qed.
 
 Lemma fromDB_ssubst_aux_simple:

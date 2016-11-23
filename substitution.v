@@ -45,6 +45,7 @@ Require Import varInterface.
 Require Import terms.
 Require Import terms2.
 Require Import lmap.
+Require Import AssociationList.
 (** printing #  $\times$ #×# *)
 (** printing $  $\times$ #×# *)
 (** printing <=>  $\Leftrightarrow$ #&hArr;# *)
@@ -96,7 +97,7 @@ Notation oterm := (@oterm NVar Opid).
 Notation bterm := (@bterm NVar Opid).
 Notation vterm := (@vterm NVar Opid).
 
-Definition Substitution   : Type := lmap NVar NTerm.
+Definition Substitution   : Type := AssocList NVar NTerm.
 Definition WfSubstitution : Type := lmap NVar WTerm.
 Definition CSubstitution  : Type := lmap NVar  CTerm.
 
@@ -124,7 +125,7 @@ Definition dom_sub  (sub : Substitution) : list NVar := map (fun x => fst x) sub
 Definition Sub  := Substitution.
 Definition CSub := CSubstitution.
 
-Definition dom_sub : Substitution -> (list NVar):= @dom_lmap NVar NTerm.
+Definition dom_sub : Substitution -> (list NVar):= @ALDom NVar NTerm.
 Definition dom_csub   (sub : CSubstitution)  := map (fun x => fst x) sub.
 Definition wf_dom_sub (sub : WfSubstitution) := map (fun x => fst x) sub.
 
@@ -224,12 +225,9 @@ Proof using.
     apply Hsat in Hx;sp.
 Qed.
 
+Definition sub_find : forall (sub : Substitution) (var : NVar), option NTerm :=
+ @ALFind NVar NTerm _.
 
-Fixpoint sub_find (sub : Substitution) (var : NVar) : option NTerm :=
-  match sub with
-  | nil => None
-  | (v, t) :: xs => if beq_var v var then Some t else sub_find xs var
-  end.
 
 Lemma fold_var_ren :
   forall lvo lvn,
@@ -251,14 +249,11 @@ Definition  lmap_lapply {A : Type} (eqdec: Deq A) (sub: lmap A A)  (la:list A): 
 Definition  lvmap_lapply  (sub: lmap NVar NVar)  (la:list NVar): list NVar :=
   map (fun a:NVar =>  lmap_apply deq_nvar sub a) la.
 
-Definition proj_as_option {A Q: Type} {P : A->Type} (a': {a : A & (P a)} + Q)
-  : option A :=
-  match a' with
-    | inl (existT _ a' _) => Some a'
-    |  inr _ => None
-  end.
 
 Hint Rewrite deqP_refl.
+Hint Rewrite deq_refl.
+Hint Rewrite deqP_refl:SquiggleEq.
+Hint Rewrite deq_refl:SquiggleEq.
 Lemma sub_lmap_find: forall (sub: Substitution) v, sub_find sub v =
         proj_as_option (lmap_find deq_nvar sub v).
 Proof using.
@@ -383,15 +378,10 @@ Fixpoint lmap_filter {A B: Type}
   end.
 
 (* removes from sub the variables from vars *)
-Fixpoint sub_filter (sub : Substitution) (vars : list NVar) : Substitution :=
-  match sub with
-  | nil => nil
-  | (v, t) :: xs =>
-      if memvar v vars
-      then sub_filter xs vars
-      else (v, t) :: sub_filter xs vars
-  end.
 
+Definition sub_filter : 
+   forall (sub : Substitution) (vars : list NVar), Substitution :=
+ @ALFilter NVar NTerm _.
 
 
 Lemma sub_filter_subset :
@@ -556,7 +546,7 @@ Lemma dom_sub_app :
   forall sub1 sub2,
     dom_sub (sub1 ++ sub2) = dom_sub sub1 ++ dom_sub sub2.
 Proof using.
-  unfold dom_sub, dom_lmap; intros; rw map_app; auto.
+  unfold dom_sub, ALDom; intros; rw map_app; auto.
 Qed.
 
 
@@ -5177,7 +5167,7 @@ Hint Resolve disjoint_sym : slow.
 Lemma disjoint_dom_sub_filt : forall sub lv, 
   disjoint (dom_sub (sub_filter sub lv)) lv.
 Proof using. introv Hin Hinc.
-  unfold dom_sub, dom_lmap in Hin.
+  unfold dom_sub, ALDom in Hin.
   apply in_map_iff in Hin.
   exrepnd.
   allsimpl. subst.
@@ -5190,7 +5180,7 @@ Lemma disjoint_dom_sub_filt2 : forall sub lv1 lvn,
   -> disjoint (dom_sub (sub_filter sub lv1)) lvn.
 Proof using.
   introv Hdis Hin Hinc.
-  unfold dom_sub, dom_lmap in Hin.
+  unfold dom_sub, ALDom in Hin.
   apply in_map_iff in Hin.
   exrepnd.
   allsimpl. subst.

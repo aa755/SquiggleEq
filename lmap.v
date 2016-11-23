@@ -40,10 +40,10 @@ Require Import Coq.Init.Notations.
 Require Import UsefulTypes.
 Require Import Coq.Classes.DecidableClass.
 Require Import Coq.Classes.Morphisms.
+Require Import AssociationList.
 
 
-(** generalization of Substitution*)
-Definition lmap (A B: Type ): Type := list (A * B).
+Definition lmap (A B: Type ): Type := AssocList A B.
 
 Lemma lmap_find :
   forall {A B: Type}
@@ -61,7 +61,7 @@ Proof.
               dorn Hf; sp.
 Defined.
 
-Definition dom_lmap {A B: Type} (sub : lmap A B) : list A := map (fun x => fst x) sub.
+Definition dom_lmap {A B: Type} (sub : lmap A B) : list A := ALDom sub.
 
 (**same as above, but the impelemtation is guaranteed to return the first match*)
 Lemma lmap_find_first: forall {A B: Type}
