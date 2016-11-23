@@ -1207,66 +1207,6 @@ Proof using gts getIdCorr getId.
 Qed.
 
 
-Lemma fromDB_ssubst_aux:
-  forall (v : DTerm),
-  fvars_below 0 v
-  ->
-  (forall (e : DTerm) (nf:N) names,
-    fvars_below (1+nf) e
-    -> fromDB (1+nf) names (subst_aux v nf e)
-       ≡
-       substitution.ssubst_aux 
-            (fromDB (1+nf) names e) [(var names 0,fromDB (1+nf) names v)])
-  *
-  (forall (e : DBTerm) (nf:N) names,
-    fvars_below_bt (1+nf) e
-    -> fromDB_bt (1+nf) names (subst_aux_bt v nf e)
-       ∘≡ substitution.ssubst_bterm_aux 
-            (fromDB_bt (1+nf) names e) [(var names 0,fromDB (1+nf) names v)]).
-Proof using gts getIdCorr getId deqo.
-  intros ? H0fb. intros. apply NTerm_BTerm_ind; unfold fvarsProp.
-- intros ? ? ? Hfb. simpl.
-  inverts Hfb.
-  remember (n ?= nf) as nc. symmetry in Heqnc. destruct nc.
-  + rewrite N.compare_eq_iff in Heqnc. subst.
-    replace (1 + nf - nf - 1) with 0  by lia.
-    rewrite <- beq_var_refl. refl.
-  + rewrite N.compare_lt_iff in Heqnc.
-    unfold fromDB. simpl.
-    replace (1 + nf - n - 1)  with (nf -n) by lia.
-    rewrite not_eq_beq_var_false;[refl|].
-    unfold var. apply mkNVarInj1. lia. 
-  + rewrite N.compare_gt_iff in Heqnc. lia.
-- intros ? ? Hind ? ? Hfb. unfold fromDB. simpl.
-  repeat rewrite map_map.
-  apply alpha_eq_map_bt.
-   unfold compose. simpl.
-  invertsn Hfb.
-(* info eauto : *)
-  intros ? Hee0.
-  apply Hind.
-   exact Hee0.
-   apply Hfb.
-    exact Hee0.
-
-- intros ? ? Hind ? ? Hfb. simpl. unfold fromDB_bt. simpl.
-  unfold var.
-  rewrite (fun v vars => proj2 (assert_memvar_false v vars));
-    [| apply InMkVarCombine2;
-        [ apply seq_length | rewrite in_seq_Nplus; lia]
-    ].
-  rewrite <- N.add_assoc.
-  unfold fromDB in Hind.
-  invertsn Hfb. fold (NLength lv).
-  replace (NLength lv + nf) with (nf + NLength lv) by lia.
-  replace ((NLength lv + (1 + nf))) with (1 + (nf + NLength lv)) in Hfb by lia.
-  rewrite Hind by assumption.
-  apply alpha_eq_bterm_congr. unfold var.
-  rewrite lookupNDef_inserts_neq_seq by lia.
-  apply (fst subst_aux_alpha_sub). simpl.
-  dands; trivial;[]. fold fromDB.
-  apply fromDBHigherAlpha; auto; try lia.
-Qed.
 
 (* Move : redefine sub_find to be a notation for ALFind *)
 Lemma sub_findALFind : forall v (sub: @Substitution NVar Opid),
@@ -1346,7 +1286,32 @@ Proof using gts getIdCorr getId deqo.
 
 Qed.
 
-
+Lemma fromDB_ssubst_aux:
+  forall (v : DTerm),
+  fvars_below 0 v
+  ->
+  (forall (e : DTerm) (nf:N) names,
+    fvars_below (1+nf) e
+    -> fromDB (1+nf) names (subst_aux v nf e)
+       ≡
+       substitution.ssubst_aux 
+            (fromDB (1+nf) names e) [(var names 0,fromDB (1+nf) names v)]).
+Proof using gts getIdCorr getId deqo.
+  intros.
+  pose proof  (fst fromDB_ssubst_aux_simple e (1+nf) names [(nf, v)] H0) as Hh.
+  simpl in Hh.
+  pose proof (fst subst_aux_list_same_aux e [v] nf) as Hl.
+  unfold NLength in Hl.
+  simpl in Hl.
+  rewrite N.add_comm in Hl.
+  rewrite Hl; try assumption;[| intros ? ?; repeat in_reasoning; subst; assumption].
+  clear Hl.
+  rewrite Hh;[| intros ? ?; repeat in_reasoning; subst; simpl; dands; auto; lia].
+  simpl.
+  clear Hh.
+  replace (1 + nf - nf - 1) with 0 by lia.
+  refl.
+Qed.
 
 
 (*
