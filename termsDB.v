@@ -679,26 +679,42 @@ Proof using.
   refl.
 Qed.
 
-Lemma subst_aux_closed  (v : @DTerm Name Opid) :
-(forall t n,
-fvars_below 0 t
+Lemma subst_aux_closed_nb  (v : @DTerm Name Opid) :
+(forall t n m,
+m<=n
+-> fvars_below m t
 -> subst_aux v n t = t)
 *
-(forall t n,
-fvars_below_bt 0 t
+(forall t n m,
+m<=n
+-> fvars_below_bt m t
 -> subst_aux_bt v n t = t).
 Proof using.
   clear.
   apply NTerm_BTerm_ind.
-- intros ? ? Hfb. inverts Hfb. lia.
-- intros ? ? Hind. intros ? Hfb. inverts Hfb.
+- intros ? ? ? Hlt Hfb. inverts Hfb.
+  simpl. assert (n<n0) as Hltt by lia.
+  apply N.compare_lt_iff in Hltt.
+  rewrite Hltt. refl.
+- intros ? ? Hind ? ? Hlt Hfb. inverts Hfb.
   simpl. f_equal.
   rewrite <- map_id.
   apply eq_maps. eauto.
-- intros ? ? Hind. intros ? Hfb. invertsn Hfb.
-  simpl. f_equal. apply Hind.
-  
-Admitted.
+- intros ? ? Hind ? ? Hlt Hfb. invertsn Hfb.
+  simpl. f_equal. apply Hind with (m:=(NLength lv + n)); [lia|].
+  eapply fvars_below_mono; eauto. lia.
+Qed.
+
+Lemma subst_aux_closed  (v : @DTerm Name Opid) :
+forall t n,
+fvars_below 0 t
+-> subst_aux v n t = t.
+Proof using.
+  clear. intros.
+  apply (fun v => fst (subst_aux_closed_nb v)) with (m:=0); auto.
+  lia.
+Qed.
+
 
 Lemma subst_aux_list_closed  n (a : @DTerm Name Opid) l  :
 fvars_below 0 a
@@ -708,7 +724,7 @@ Proof using.
   induction l; intro Hfb; auto.
   unfold lforall in *.
   simpl in *.
-  rewrite (fun v => fst (subst_aux_closed v));[| apply Hfb; cpx].
+  rewrite subst_aux_closed;[| apply Hfb; cpx].
   eauto.
 Qed.
 
