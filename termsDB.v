@@ -619,8 +619,8 @@ Qed.
 (* Move *)
 Lemma ALFindMap :
   forall {KA KB VA VB : Type} 
-    (DKA : Deq KA)
-    (DKB : Deq KB)
+    {DKA : Deq KA}
+    {DKB : Deq KB}
     (fk : KA -> KB)
     (fv : VA -> VB),
   injective_fun fk
@@ -636,6 +636,19 @@ Proof using.
   + rewrite IHsub. 
      clear IHsub. dec. cases_if as Hd;
     subst; cpx. 
+Qed.
+
+Lemma ALFindNoneIf {KA VA : Type} 
+    {DKA : Deq KA} :
+  forall k (sub: AssocList KA VA),
+  (¬ (In k (ALDom sub))) -> ALFind  sub k = None.
+Proof using.
+  intros ? ? ?.
+  dALFind ss;[| refl].
+  provefalse.
+  symmetry in Heqss.
+  apply ALFindSome in Heqss.
+  apply ALInEta in Heqss. tauto.
 Qed.
 
 
@@ -666,10 +679,25 @@ Proof using.
   refl.
 Qed.
 
-Lemma subst_aux_closed  (v t : @DTerm Name Opid) n :
+Lemma subst_aux_closed  (v : @DTerm Name Opid) :
+(forall t n,
 fvars_below 0 t
--> subst_aux v n t = t.
+-> subst_aux v n t = t)
+*
+(forall t n,
+fvars_below_bt 0 t
+-> subst_aux_bt v n t = t).
 Proof using.
+  clear.
+  apply NTerm_BTerm_ind.
+- intros ? ? Hfb. inverts Hfb. lia.
+- intros ? ? Hind. intros ? Hfb. inverts Hfb.
+  simpl. f_equal.
+  rewrite <- map_id.
+  apply eq_maps. eauto.
+- intros ? ? Hind. intros ? Hfb. invertsn Hfb.
+  simpl. f_equal. apply Hind.
+  
 Admitted.
 
 Lemma subst_aux_list_closed  n (a : @DTerm Name Opid) l  :
@@ -680,7 +708,7 @@ Proof using.
   induction l; intro Hfb; auto.
   unfold lforall in *.
   simpl in *.
-  rewrite subst_aux_closed;[| apply Hfb; cpx].
+  rewrite (fun v => fst (subst_aux_closed v));[| apply Hfb; cpx].
   eauto.
 Qed.
 
@@ -713,12 +741,18 @@ Proof using.
     apply subst_aux_list_closed. apply Hc. cpx.
   + rewrite N.compare_lt_iff in Heqcc.
     rewrite IHl;[| intros ? ?; apply Hc; cpx; fail| constructor; lia].
-    (* ALFind must resut None in both cases. *) admit.
+    revert Heqcc. clear. intro.
+    rewrite ALFindNoneIf;[| 
+      rewrite ALDomCombine; autorewrite with list; auto;[];
+      rewrite in_seq_Nplus; lia].
+    rewrite ALFindNoneIf;[| 
+      rewrite ALDomCombine; autorewrite with list; auto;[];
+      rewrite in_seq_Nplus; lia]. refl.
   + rewrite N.compare_gt_iff in Heqcc.
     invertsn Hfb. unfold NLength in *. simpl in *.
     rewrite IHl;[|  intros ? ?; apply Hc; cpx; fail | constructor; lia].
     rewrite <- (option_map_id (ALFind (combine (seq N.succ n (length l)) l) (v - 1))).
-    rewrite <- ALFindMap with (fk:=N.succ) (DKB := _);
+    rewrite <- ALFindMap with (fk:=N.succ);
       [| apply injSucc].
     rewrite ALMapCombine.
     replace (N.succ (v-1)) with v by lia.
@@ -737,11 +771,16 @@ Proof using.
   inverts Hfb. eauto.
 - intros ? ? Hind ? ? Hle Hfb. simpl.
   rewrite subst_aux_list_bt. f_equal.
-  rewrite N.add_comm. inverts Hfb.
-  rewrite Hind;[| intros ? ?; apply Hle; cpx; fail| ].
-  apply Hind.
-  
-Abort.
+  rewrite N.add_comm. invertsn Hfb.
+  rewrite Hind;[| intros ? ?; apply Hle; cpx; fail|
+    eapply fvars_below_mono; eauto; lia].
+  f_equal.
+  setoid_rewrite ALMapCombine.
+  rewrite map_id.
+  f_equal.
+  rewrite N.add_comm.
+  apply seq_map. intros. lia.
+Qed.
 
 
 
