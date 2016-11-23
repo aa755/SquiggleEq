@@ -1279,28 +1279,25 @@ Proof using.
 Qed.
 
 Lemma fromDB_ssubst_aux_simple:
-  forall (sub : list (N*DTerm)),
-  let subn names ns := (ALMap (fun x => var names (ns -x -1)) (fromDB ns names) sub) in
-  lforall (fun s => fvars_below 0 (snd s)) sub
-  ->
-  (forall (e : DTerm) (nf:N) names,
+  let subn s names ns := (ALMap (fun x => var names (ns -x -1)) (fromDB ns names) s) in
+  (forall (e : DTerm) (nf:N) names (sub : list (N*DTerm)),
     fvars_below nf e
-    -> lforall (fun s => (fst s) < nf) sub (* WLOG, because fvars are below nf *)
+    -> lforall (fun s => fvars_below 0 (snd s) /\ (fst s) < nf) sub (* WLOG, because fvars are below nf *)
     -> fromDB nf names (subst_aux_simpl sub e)
        ≡
-       substitution.ssubst_aux (fromDB nf names e) (subn names nf))
+       substitution.ssubst_aux (fromDB nf names e) (subn sub names nf))
   *
-  (forall (e : DBTerm) (nf :N) names,
+  (forall (e : DBTerm) (nf :N) names (sub : list (N*DTerm)),
     fvars_below_bt nf e
-    -> lforall (fun s => (fst s) < nf) sub
+    -> lforall (fun s => fvars_below 0 (snd s) /\ (fst s) < nf) sub
     -> fromDB_bt nf names (subst_aux_simpl_bt sub e)
        ∘≡
-       substitution.ssubst_bterm_aux (fromDB_bt nf names e) (subn names nf))
+       substitution.ssubst_bterm_aux (fromDB_bt nf names e) (subn sub names nf))
 .
 Proof using gts getIdCorr getId deqo.
   simpl.
-  intros ? H0fb. simpl. apply NTerm_BTerm_ind.
-- intros ? ? ? Hfb Hsf. simpl.
+  apply NTerm_BTerm_ind.
+- intros ? ? ? ? Hfb Hsf. simpl.
   rewrite sub_findALFind. unfold var.
   inverts Hfb.
   change (mkNVar (nf - n - 1, lookupNDef def names (nf - n - 1))) with
@@ -1310,21 +1307,43 @@ Proof using gts getIdCorr getId deqo.
   + intros ? Hin Heq. apply (f_equal getId) in Heq.
     do 2 rewrite getIdCorr in Heq.
     apply Hsf in Hin. lia.
-- intros ? ? Hind ? ? Hfb Hfs. unfold fromDB. simpl.
+- intros ? ? ? Hind ? ? Hfb Hfs. unfold fromDB. simpl.
   repeat rewrite map_map.
   apply alpha_eq_map_bt.
   unfold compose. simpl.
   invertsn Hfb. eauto.
-- intros ? ? Hind ? ? Hfb Hfs. simpl. unfold fromDB_bt. simpl.
+- intros ? ? Hind ? ? ? Hfb Hfs. simpl. unfold fromDB_bt. simpl.
   unfold var.
   apply alpha_eq_bterm_congr.
   unfold fromDB in Hind.
   invertsn Hfb. fold (NLength lv).
-  rewrite Hind by assumption.
-  rewrite lookupNDef_inserts_neq_seq by lia.
-  apply (fst subst_aux_alpha_sub). simpl.
-  dands; trivial;[]. fold fromDB.
-  apply fromDBHigherAlpha; auto; try lia.
+  rewrite N.add_comm in Hfb.
+  rewrite Hind;
+    clear Hind; [ rewrite sub_filter_disjoint1;[|] | assumption |].
+  + apply (fst subst_aux_alpha_sub).
+    unfold var. induction sub; [simpl; tauto |].
+    simpl.
+    pose proof (Hfs _ (or_introl eq_refl)) as Ha.
+    simpl in Ha.
+    rewrite lookupNDef_inserts_neq_seq by lia.
+    replace  (nf + NLength lv - (NLength lv + fst a) - 1)
+      with (nf - fst a - 1) by lia.
+    dands;[refl| apply fromDBHigherAlpha; try tauto; lia |].
+    apply IHsub. intros ? ?. apply Hfs. cpx.
+
+  + setoid_rewrite map_map. unfold compose. simpl.
+    apply (disjoint_map getId). 
+    rewrite mapGetIdMapMkVarCombine.
+    rewrite map_map.
+    setoid_rewrite mapGetIdMkVar.
+    intros ? Hin Hinc.
+    rewrite in_seq_Nplus in Hinc.
+    apply in_map_iff in Hin. exrepnd. subst.
+    simpl in *. apply Hfs in Hin1. simpl in Hin1. lia.
+  + intros ? Hin. setoid_rewrite in_map_iff in Hin.
+    exrepnd. inverts Hin0. apply Hfs in Hin1.
+    simpl in *. repnd; split; auto;[]. lia.
+
 Qed.
 
 
