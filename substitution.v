@@ -44,7 +44,6 @@ Require Import Eqdep_dec.
 Require Import varInterface.
 Require Import terms.
 Require Import terms2.
-Require Import lmap.
 (** printing #  $\times$ #×# *)
 (** printing $  $\times$ #×# *)
 (** printing <=>  $\Leftrightarrow$ #&hArr;# *)
@@ -82,6 +81,8 @@ Definition Substitution   : Type := list (NVar # NTerm).
  *)
  Local Opaque beq_var.
 Generalizable Variable Opid.
+Require Import AssociationList.
+
 
 Section SubstGeneric.
 
@@ -96,9 +97,10 @@ Notation oterm := (@oterm NVar Opid).
 Notation bterm := (@bterm NVar Opid).
 Notation vterm := (@vterm NVar Opid).
 
-Definition Substitution   : Type := lmap NVar NTerm.
-Definition WfSubstitution : Type := lmap NVar WTerm.
-Definition CSubstitution  : Type := lmap NVar  CTerm.
+Definition Substitution   : Type := AssocList NVar NTerm.
+(*delete? *)
+Definition WfSubstitution : Type := AssocList NVar WTerm.
+Definition CSubstitution  : Type := AssocList NVar  CTerm.
 
 (** % \noindent %
   The function [var_ren] below provides a way to 
@@ -121,10 +123,11 @@ Definition dom_sub  (sub : Substitution) : list NVar := map (fun x => fst x) sub
 
 *)
 
+
 Definition Sub  := Substitution.
 Definition CSub := CSubstitution.
 
-Definition dom_sub : Substitution -> (list NVar):= @dom_lmap NVar NTerm.
+Definition dom_sub : Substitution -> (list NVar):= @ALDom NVar NTerm.
 Definition dom_csub   (sub : CSubstitution)  := map (fun x => fst x) sub.
 Definition wf_dom_sub (sub : WfSubstitution) := map (fun x => fst x) sub.
 
@@ -225,11 +228,8 @@ Proof using.
 Qed.
 
 
-Fixpoint sub_find (sub : Substitution) (var : NVar) : option NTerm :=
-  match sub with
-  | nil => None
-  | (v, t) :: xs => if beq_var v var then Some t else sub_find xs var
-  end.
+Definition sub_find : forall (sub : Substitution) (var : NVar), option NTerm :=
+@ALFind NVar NTerm _.
 
 Lemma fold_var_ren :
   forall lvo lvn,
@@ -239,64 +239,16 @@ Qed.
 
 
 
-Definition lmap_apply {A : Type} (eqdec: Deq A) (sub: lmap A A) (a:A): A :=
-  match lmap_find eqdec sub a with
-    | inl (existT _ a' _) =>  a'
-    | inr _ => a
-  end.
+Definition lmap_apply {A : Type} (eqdec: Deq A) (sub: AssocList A A) (a:A): A :=
+ALFindDef2 sub a a.
 
-Definition  lmap_lapply {A : Type} (eqdec: Deq A) (sub: lmap A A)  (la:list A): list A :=
+Definition  lmap_lapply {A : Type} (eqdec: Deq A) (sub: AssocList A A)  (la:list A): list A :=
   map (fun a:A =>  lmap_apply eqdec sub a) la.
 
-Definition  lvmap_lapply  (sub: lmap NVar NVar)  (la:list NVar): list NVar :=
+Definition  lvmap_lapply  (sub: AssocList NVar NVar)  (la:list NVar): list NVar :=
   map (fun a:NVar =>  lmap_apply deq_nvar sub a) la.
 
-Definition proj_as_option {A Q: Type} {P : A->Type} (a': {a : A & (P a)} + Q)
-  : option A :=
-  match a' with
-    | inl (existT _ a' _) => Some a'
-    |  inr _ => None
-  end.
-
 Hint Rewrite deqP_refl.
-Lemma sub_lmap_find: forall (sub: Substitution) v, sub_find sub v =
-        proj_as_option (lmap_find deq_nvar sub v).
-Proof using.
-  clear hdeq.
-  induction sub as [| a]; intros ; auto; simpl. 
-  destruct a.
-  Locate beq_deq.
- rewrite (@beq_deq NVar). simpl.
-  destruct (decideP (n = v));
-  subst; autorewrite with SquiggleEq; simpl in *; auto.
-  rewrite IHsub. destruct ((lmap_find deq_nvar sub v)); simpl;
-  try(destruct s; simpl); auto. 
-Qed.
-
-
-Lemma sub_lmap_find_first: forall (sub: Substitution) v, sub_find sub v =
-        proj_as_option (lmap_find_first deq_nvar sub v).
-Proof using.
-  induction sub as [| a]; intros ; auto; simpl. 
-  destruct a. repeat rewrite beq_deq.  simpl in *.
-  destruct (decideP (n = v));
-  simpl; subst; autorewrite with SquiggleEq;  subst; auto.
-  rewrite IHsub. destruct ((lmap_find_first deq_nvar sub v)); simpl;
-  exrepnd; auto.
-Qed.
-
-(*
-Lemma match_sub_lmap_find: forall sub v cs cn, 
-  match (sub_find sub v)
-  | Some t => cs t
-  | None => cn
-  end
-    =
-  match (sub_find sub v)
-  | Some t => cs t
-  | None => cn
-  end
-*)  
 
 
 Definition csub2sub (sub : CSubstitution) : Substitution :=
@@ -369,29 +321,10 @@ Definition cover_vars_upto (t : NTerm) (sub : CSub) (vs : list NVar) :=
   assert (sub_vars (free_vars t) (vs ++ dom_csub sub)).
 
 
-
-
-(* filters out the mappings whose domain lies in vars *)
-Fixpoint lmap_filter {A B: Type}
-  (eqdec: Deq A) (sub: lmap A B)  (vars : list A) : lmap A B :=
-  match sub with
-  | nil => nil
-  | (v, t) :: xs =>
-      if in_deq A eqdec  v vars
-      then lmap_filter eqdec xs vars
-      else (v, t) :: lmap_filter eqdec xs vars
-  end.
-
 (* removes from sub the variables from vars *)
-Fixpoint sub_filter (sub : Substitution) (vars : list NVar) : Substitution :=
-  match sub with
-  | nil => nil
-  | (v, t) :: xs =>
-      if memvar v vars
-      then sub_filter xs vars
-      else (v, t) :: sub_filter xs vars
-  end.
-
+Definition sub_filter : 
+  forall (sub : Substitution) (vars : list NVar), Substitution :=
+@ALFilter NVar NTerm _.
 
 
 Lemma sub_filter_subset :
@@ -399,90 +332,34 @@ Lemma sub_filter_subset :
     subset (sub_filter sub vars) sub.
 Proof using.
   induction sub; simpl; sp.
-  destruct (memvar a0 vars).
+  destruct (memberb _ a0 vars).
   apply subset_cons1; auto.
   apply subset_cons2; auto.
 Qed.
 
-Lemma sub_filter_nil_r :
-  forall sub, sub_filter sub [] = sub.
-Proof using.
-  induction sub; simpl; sp.
-  rewrite IHsub; auto.
-Qed.
-
-Lemma in_sub_filter :
-  forall v t (sub: Substitution) vars,
-    LIn (v, t) (sub_filter sub vars)
-    <=>
-    (
-      LIn (v, t) sub
-      #
-      ! LIn v vars
-    ).
-Proof using.
-  induction sub; simpl; sp.
-  split; sp.
-  boolvar; simpl; allrw; split; sp; cpx.
-Qed.
 
 Lemma sub_filter_sat :  forall P (sub: Substitution) lv,
   sub_range_sat  sub P
   -> sub_range_sat (sub_filter sub lv) P.
-Proof using. introv Hall hsub. apply in_sub_filter in hsub. repnd.
+Proof using. introv Hall hsub.
+   setoid_rewrite ALFilterLIn in hsub. repnd.
   apply Hall in hsub0; auto.
 Qed.
 
-
-Lemma sub_filter_app :
-  forall sub1 sub2 vars,
-    sub_filter (sub1 ++ sub2) vars = sub_filter sub1 vars ++ sub_filter sub2 vars.
-Proof using.
-  induction sub1; simpl; sp.
-  rewrite IHsub1; auto.
-  destruct (memvar a0 vars); sp.
-Qed.
-
+(* Move to AssocList ? *)
 Lemma sub_filter_snoc :
   forall (sub: Substitution) v t vars,
     sub_filter (snoc sub (v, t)) vars
-    = if memvar v vars
+    = if memberb _ v vars
       then sub_filter sub vars
       else snoc (sub_filter sub vars) (v, t).
 Proof using.
   induction sub; simpl; sp; allsimpl.
   rewrite IHsub.
   destruct (eq_var_dec a0 v); subst.
-  destruct (memvar v vars); sp.
-  destruct (memvar v vars); sp.
-  destruct (memvar a0 vars); sp.
-Qed.
-
-Lemma dom_sub_sub_filter :
-  forall l (sub: Substitution),
-    remove_nvars l (dom_sub sub) = dom_sub (sub_filter sub l).
-Proof using.
-  induction sub; simpl; sp; allsimpl.
-  apply remove_nvars_nil_r.
-  rewrite remove_nvars_cons_r.
-  destruct (memvar a0 l); auto.
-  rewrite IHsub.
-  simpl; auto.
-Qed.
-
-
-Lemma sub_filter_app_r :
-  forall (sub: Substitution) vs1 vs2,
-    sub_filter sub (vs1 ++ vs2)
-    = sub_filter (sub_filter sub vs1) vs2.
-Proof using.
-  induction sub; simpl; sp.
-  rewrite memvar_app.
-  destruct (memvar a0 vs1); simpl.
-  apply IHsub.
-  destruct (memvar a0 vs2); simpl.
-  apply IHsub.
-  rewrite IHsub; auto.
+  destruct (memberb _ v vars); sp.
+  destruct (memberb _ v vars); sp.
+  destruct (memberb _ a0 vars); sp.
 Qed.
 
 
@@ -556,18 +433,51 @@ Lemma dom_sub_app :
   forall sub1 sub2,
     dom_sub (sub1 ++ sub2) = dom_sub sub1 ++ dom_sub sub2.
 Proof using.
-  unfold dom_sub, dom_lmap; intros; rw map_app; auto.
+  apply map_app.
 Qed.
 
+Ltac boolvar_step :=
+  unfold memvar in *;
+  match goal with
+  | |- context [beq_var ?v ?v] => rw <- beq_var_refl
+  | |- context [decide (?v= ?v)] => rewrite deq_refl
+  | |- context [decideP (?v= ?v)] => rewrite deqP_refl
+  | |- context [memvar ?v ?s] =>
+        let name := fresh "b" in
+        remember (memvar v s) as name;
+         match goal with
+         | H:name = memvar v s
+           |- _ =>
+               symmetry in H; destruct name;
+                [ rewrite fold_assert in H; trw_h @assert_memvar H; simpl in H
+                | trw_h not_of_assert H; trw_h @assert_memvar H; simpl in H ]
+         end
+  | |- context [beq_var ?v1 ?v2] =>
+        let name := fresh "b" in
+        remember (beq_var v1 v2) as name;
+         match goal with
+         | H:name = beq_var v1 v2
+           |- _ =>
+               destruct name; [ apply beq_var_eq in H; subst | apply beq_var_false in H ]
+         end
+  | |- context [decide (?l = ?r)] => rewrite decide_decideP;
+        let name := fresh "b" in 
+         (cases_if)
+  | H:context [decide (?v = ?v)] |- _ => rewrite <- deq_refl in H
+  | H:context [decideP (?v = ?v)] |- _ => rewrite <- deqP_refl in H
+  end.
 
+
+Ltac boolvar := repeat boolvar_step.
+
+(* MoveAssoc *)
 Lemma in_dom_sub_exists :
   forall v sub,
     LIn v (dom_sub sub)
     -> {t : NTerm $ sub_find sub v = Some t}.
 Proof.
   induction sub; simpl; sp; allsimpl; subst; simpl; boolvar.
-  exists a; sp.
-  exists a; sp.
+  exists a;sp.
   exists a; sp.
   exists t; sp.
 Qed.
@@ -580,22 +490,6 @@ Definition insub sub var : bool :=
     | None => false
   end.
 
-Lemma sub_find_some :
-  forall sub : Substitution,
-  forall v : NVar,
-  forall u : NTerm,
-    sub_find sub v = Some u
-    -> LIn (v, u) sub.
-Proof using.
-  induction sub; simpl; sp.
-  inversion H.
-  remember (beq_var a0 v).
-  destruct b.
-  inversion H; subst.
-  apply beq_var_eq in Heqb; subst.
-  left; auto.
-  apply IHsub in H; right; auto.
-Qed.
 
 Lemma sub_find_some_eq :
   forall sub : Substitution,
@@ -605,26 +499,7 @@ Lemma sub_find_some_eq :
     -> sub_find sub v = Some u
     -> t = u.
 Proof using.
-  induction sub; simpl; sp.
-  inversion H.
-  remember (beq_var a0 v).
-  destruct b.
-  inversion H; subst.
-  inversion H0; subst.
-  auto.
-  apply IHsub with (t := t) in H0; auto.
-Qed.
-
-Lemma sub_find_app :
-  forall v sub1 sub2,
-    sub_find (sub1 ++ sub2) v
-    = match sub_find sub1 v with
-        | Some t => Some t
-        | None => sub_find sub2 v
-      end.
-Proof using.
-  induction sub1; simpl; sp.
-  destruct (beq_var a0 v); auto.
+  intros. congruence.
 Qed.
 
 Lemma sub_find_snoc :
@@ -632,11 +507,11 @@ Lemma sub_find_snoc :
     sub_find (snoc sub (x, t)) v
     = match sub_find sub v with
         | Some t => Some t
-        | None => if beq_var x v then Some t else None
+        | None => if beq_var v x then Some t else None
       end.
 Proof using.
-  induction sub; simpl; sp; allsimpl.
-  destruct (beq_var a0 v); auto.
+  induction sub; simpl; sp; allsimpl. dec.
+  cases_if; subst; autorewrite with core; auto.
 Qed.
 
 Lemma sub_find_some_app :
@@ -645,8 +520,8 @@ Lemma sub_find_some_app :
     -> sub_find (sub1 ++ sub2) v = Some t.
 Proof using.
   intros.
-  rw sub_find_app.
-  rw H; auto.
+  setoid_rewrite ALFindApp.
+  setoid_rewrite   H; auto.
 Qed.
 
 Lemma sub_find_none :
@@ -656,6 +531,8 @@ Lemma sub_find_none :
     sub_find sub v = None
     -> forall u, ! LIn (v, u) sub.
 Proof using.
+  intros. unfold sub_find in *.
+  apply ALFindNone in H.
   induction sub; simpl; sp; inj.
   rw <- @beq_var_refl in H; sp.
   remember (beq_var a0 v).
