@@ -727,3 +727,84 @@ Proof.
   cases_if; simpl; auto; f_equal; auto.
 Qed.
 
+(* Move *)
+Ltac dALFind sn :=
+  match goal with
+    | [  |- context[ALFind ?s ?v] ] =>
+      let sns := fresh sn "s" in
+      remember (ALFind s v) as sn;
+        destruct sn as [sns |]
+    | [ H: context[ALFind ?s ?v] |- _ ] =>
+      let sns := fresh sn "s" in
+      remember (ALFind s v) as sn;
+        destruct sn as [sns |]
+  end.
+
+
+Lemma ALMapCombine :
+  forall {KA KB VA VB : Type} 
+    (fk : KA -> KB)
+    (fv : VA -> VB) ka va,
+  ALMap fk fv (combine ka va)
+  = (combine (map fk ka) (map fv va)).
+Proof using.
+  induction ka; intros ?; eauto.
+  simpl.
+  destruct va; auto.
+  unfold ALMap. simpl.
+  f_equal. eauto.
+Qed.
+
+Lemma ALFindMap2 :
+  forall {KA KB VA VB : Type} 
+    {DKA : Deq KA}
+    {DKB : Deq KB}
+    (fk : KA -> KB)
+    (fv : VA -> VB),
+  forall (sub : AssocList KA VA) k,
+  (forall s, In s sub -> fk (fst s) = fk k -> fst s = k)
+  -> ALFind  (ALMap fk fv sub) (fk k) = option_map fv (ALFind  sub k).
+Proof using.
+  clear.
+  introv Hik.
+  induction sub;simpl; sp; allsimpl;[].
+  dec.
+  cases_ifd Hd; cpx.
+  + specialize (Hik _ (or_introl eq_refl)). symmetry in Hdt.
+    simpl in Hik.
+    apply Hik in Hdt. subst.
+    rewrite deq_refl. refl.
+  + rewrite IHsub. 
+    * clear IHsub. dec. cases_if as Hd;
+      subst; cpx.
+    * intros ? ?. apply Hik. cpx.
+Qed.
+
+Lemma ALFindMap :
+  forall {KA KB VA VB : Type} 
+    {DKA : Deq KA}
+    {DKB : Deq KB}
+    (fk : KA -> KB)
+    (fv : VA -> VB),
+  injective_fun fk
+  -> forall (sub : AssocList KA VA) k,
+  ALFind  (ALMap fk fv sub) (fk k) = option_map fv (ALFind  sub k).
+Proof using.
+  introv Hik. intros. apply ALFindMap2.
+  intros ? ?. apply Hik.
+Qed.
+
+
+Lemma ALFindNoneIf {KA VA : Type} 
+    {DKA : Deq KA} :
+  forall k (sub: AssocList KA VA),
+  (not (In k (ALDom sub))) -> ALFind  sub k = None.
+Proof using.
+  intros ? ? ?.
+  dALFind ss;[| refl].
+  provefalse.
+  symmetry in Heqss.
+  apply ALFindSome in Heqss.
+  apply ALInEta in Heqss. tauto.
+Qed.
+

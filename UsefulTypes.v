@@ -576,5 +576,15 @@ Proof using.
   intros x y. exists (N.eqb x y). apply N.eqb_eq.
 Defined.
 
+Require Import Psatz.
+
+Lemma injSucc : injective_fun N.succ.
+Proof using.
+  clear.
+  intros ? ? Heq.
+  lia.
+Qed.
+
+
 
 

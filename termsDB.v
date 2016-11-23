@@ -565,120 +565,6 @@ Definition subst_aux_list n : DTerm -> (list DTerm) -> (@DTerm Name Opid) :=
 Definition subst_aux_bt_list n : DBTerm -> (list DTerm) -> (@DBTerm Name Opid) :=
   fold_right  (fun v e => subst_aux_bt v n e).
 
-
-Lemma combine_app : forall {A B} (la1 la2 : list A) {lb1 lb2 : list B},
-  length la1 = length lb1
-  ->
-  combine (la1 ++ la2) (lb1 ++ lb2)
-  = (combine la1 lb1) ++ (combine la2 lb2).
-Proof using.
-  induction la1; intros ? ? ? Heq; destruct lb1 as [| b1 lb1]; invertsn Heq;[refl|].
-  rewrite combine_cons.
-  do 3 rewrite <- app_comm_cons.
-  rewrite combine_cons.
-  f_equal. eauto.
-Qed.
-
-(* Move *)
-Ltac dALFind sn :=
-  match goal with
-    | [  |- context[ALFind ?s ?v] ] =>
-      let sns := fresh sn "s" in
-      remember (ALFind s v) as sn;
-        destruct sn as [sns |]
-    | [ H: context[ALFind ?s ?v] |- _ ] =>
-      let sns := fresh sn "s" in
-      remember (ALFind s v) as sn;
-        destruct sn as [sns |]
-  end.
-
-(* Move *)
-Lemma injSucc : injective_fun N.succ.
-Proof using.
-  clear.
-  intros ? ? Heq.
-  lia.
-Qed.
-
-
-(* Move *)
-Lemma ALMapCombine :
-  forall {KA KB VA VB : Type} 
-    (fk : KA -> KB)
-    (fv : VA -> VB) ka va,
-  ALMap fk fv (combine ka va)
-  = (combine (map fk ka) (map fv va)).
-Proof using.
-  induction ka; intros ?; eauto.
-  simpl.
-  destruct va; auto.
-  unfold ALMap. simpl.
-  f_equal. eauto.
-Qed.
-
-(* Move *)
-Lemma ALFindMap2 :
-  forall {KA KB VA VB : Type} 
-    {DKA : Deq KA}
-    {DKB : Deq KB}
-    (fk : KA -> KB)
-    (fv : VA -> VB),
-  forall (sub : AssocList KA VA) k,
-  (∀ s, In s sub -> fk (fst s) = fk k → fst s = k)
-  -> ALFind  (ALMap fk fv sub) (fk k) = option_map fv (ALFind  sub k).
-Proof using.
-  clear.
-  introv Hik.
-  induction sub;simpl; sp; allsimpl;[].
-  dec.
-  cases_ifd Hd; cpx.
-  + specialize (Hik _ (or_introl eq_refl)). symmetry in Hdt.
-    simpl in Hik.
-    apply Hik in Hdt. subst.
-    rewrite deq_refl. refl.
-  + rewrite IHsub. 
-    * clear IHsub. dec. cases_if as Hd;
-      subst; cpx.
-    * intros ? ?. apply Hik. cpx.
-Qed.
-
-(* Move *)
-Lemma ALFindMap :
-  forall {KA KB VA VB : Type} 
-    {DKA : Deq KA}
-    {DKB : Deq KB}
-    (fk : KA -> KB)
-    (fv : VA -> VB),
-  injective_fun fk
-  -> forall (sub : AssocList KA VA) k,
-  ALFind  (ALMap fk fv sub) (fk k) = option_map fv (ALFind  sub k).
-Proof using.
-  introv Hik. intros. apply ALFindMap2.
-  intros ? ?. apply Hik.
-Qed.
-
-
-Lemma ALFindNoneIf {KA VA : Type} 
-    {DKA : Deq KA} :
-  forall k (sub: AssocList KA VA),
-  (¬ (In k (ALDom sub))) -> ALFind  sub k = None.
-Proof using.
-  intros ? ? ?.
-  dALFind ss;[| refl].
-  provefalse.
-  symmetry in Heqss.
-  apply ALFindSome in Heqss.
-  apply ALInEta in Heqss. tauto.
-Qed.
-
-
-(* Move *)
-Lemma option_map_id {T:Type}: forall (k:option T), 
-  option_map id k = k.
-Proof using.
-  intros. destruct k; refl.
-Qed.
-
 Lemma subst_aux_list_ot n lbt o l:
   subst_aux_list n (oterm o lbt) l
   = oterm o (map (fun b  => subst_aux_bt_list n b l) lbt).
@@ -1316,24 +1202,6 @@ Proof using gts getIdCorr getId deqo.
   refl.
 Qed.
 
-Lemma seq_rev_N : forall l n,
-  rev (seq N.succ n l) = map (fun x => n + n + N.of_nat l-x-1) (seq N.succ n l).
-Proof using.
-  clear.
-  induction l; auto.
-  intro.
-  replace (S l) with (l + 1)%nat at 1 by omega.
-  rewrite Nnat.Nat2N.inj_succ.
-  rewrite Nseq_add. simpl.
-  rewrite rev_app_distr. simpl.
-  f_equal;[ lia |].
-  rewrite IHl.
-  rewrite  seq_shift.
-  rewrite map_map. unfold compose. simpl.
-  apply eq_maps. intros ? ?.
-  lia.
-Qed.
-
 
 Lemma fvars_below_subst_aux_simpl:
 (forall (e: @DTerm Name Opid) sub (n nl:N),
@@ -1415,27 +1283,6 @@ Proof using gts getIdCorr getId deqo.
     rewrite in_seq_Nplus. unfold NLength in *. lia. 
 Qed.
 
-(* Move *)
-Lemma lforall_rev {A:Type} (P: A -> Prop):
-  forall l, lforall P l -> lforall P (rev l).
-Proof using.
-  intros ?. unfold lforall. setoid_rewrite <- in_rev.
-  tauto.
-Qed.
-
-(* Move *)
-Lemma rev_combine {A B:Type} : forall (la : list A) (lb: list B),
-length la = length lb
--> rev (combine la lb) = combine (rev la) (rev lb).
-Proof using.
-  induction la; intros ? Heq; destruct lb as [|b lb]; invertsn Heq; [refl|].
-  simpl. rewrite combine_app;[| autorewrite with list; assumption].
-  rewrite IHla by assumption.
-  refl.
-Qed.
-
-(* Move *)
- 
 Lemma fromDB_ssubst_aux_eval:  forall (e : DTerm) names (lv : list DTerm),
   fvars_below (NLength lv) e
   -> lforall (fvars_below 0) lv

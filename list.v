@@ -3289,7 +3289,6 @@ Proof using.
   lia.
 Qed.
 
-(* Move to list.v *)
   Lemma seq_NoDup len start : NoDup (seq N.succ start len).
   Proof using.
     clear.
@@ -3298,6 +3297,23 @@ Qed.
     lia.
   Qed.
 
+Lemma seq_rev_N : forall l n,
+  rev (seq N.succ n l) = map (fun x => n + n + N.of_nat l-x-1) (seq N.succ n l).
+Proof using.
+  clear.
+  induction l; auto.
+  intro.
+  replace (S l) with (l + 1)%nat at 1 by omega.
+  rewrite Nnat.Nat2N.inj_succ.
+  rewrite Nseq_add. simpl.
+  rewrite rev_app_distr. simpl.
+  f_equal;[ lia |].
+  rewrite IHl.
+  rewrite  seq_shift.
+  rewrite map_map. unfold compose. simpl.
+  apply eq_maps. intros ? ?.
+  lia.
+Qed.
 
 Hint Rewrite @NLength_length : list.
 Hint Rewrite @NLength_length : SquiggleEq.
@@ -3311,5 +3327,47 @@ Proof using.
   induction l;auto.
 Qed.
 
+
+Lemma combine_app : forall {A B} (la1 la2 : list A) {lb1 lb2 : list B},
+  length la1 = length lb1
+  ->
+  combine (la1 ++ la2) (lb1 ++ lb2)
+  = (combine la1 lb1) ++ (combine la2 lb2).
+Proof using.
+  induction la1; intros ? ? ? Heq; destruct lb1 as [| b1 lb1]; invertsn Heq;[refl|].
+  rewrite combine_cons.
+  do 3 rewrite <- app_comm_cons.
+  rewrite combine_cons.
+  f_equal. eauto.
+Qed.
+
+
+
+
+(* Move *)
+Lemma lforall_rev {A:Type} (P: A -> Prop):
+  forall l, lforall P l -> lforall P (rev l).
+Proof using.
+  intros ?. unfold lforall. setoid_rewrite <- in_rev.
+  tauto.
+Qed.
+
+(* Move *)
+Lemma rev_combine {A B:Type} : forall (la : list A) (lb: list B),
+length la = length lb
+-> rev (combine la lb) = combine (rev la) (rev lb).
+Proof using.
+  induction la; intros ? Heq; destruct lb as [|b lb]; invertsn Heq; [refl|].
+  simpl. rewrite combine_app;[| autorewrite with list; assumption].
+  rewrite IHla by assumption.
+  refl.
+Qed.
+
+(* Move *)
+Lemma option_map_id {T:Type}: forall (k:option T), 
+  option_map id k = k.
+Proof using.
+  intros. destruct k; refl.
+Qed.
 
 
