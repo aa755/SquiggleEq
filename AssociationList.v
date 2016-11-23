@@ -126,11 +126,13 @@ Proof.
     destruct s; auto.
 Qed.
 
+
+
 Fixpoint ALFilter (sub : AssocList) (keys : list Key) : AssocList :=
   match sub with
   | nil => nil
   | (k, v) :: xs =>
-      if (in_deq _ deqKey k keys)
+      if (memberb _ k keys)
       then ALFilter xs keys
       else (k, v) :: ALFilter xs keys
   end.
@@ -151,7 +153,6 @@ Proof.
   induction sub; simpl; sp; allsimpl.
   - apply diff_nil.
   - rewrite diff_cons_r.
-    rw memberb_din.
     cases_if; simpl; f_equal; auto.
 Qed.
 
@@ -189,10 +190,24 @@ Proof.
 Qed.
 
 Ltac dec :=
-(try rewrite decide_decideP);
+(repeat rewrite decide_decideP);
+(repeat rewrite memberb_din);
 repeat match goal with
 [H:context[decide _] |- _] => rewrite decide_decideP in H
+|[H:context[memberb _ _ _] |- _] => rewrite memberb_din in H
 end.
+
+Lemma ALFind2Same : forall (sub: AssocList) v, ALFind sub v =
+        proj_as_option (ALFind2 sub v).
+Proof using.
+  induction sub as [| a]; intros; auto; simpl. 
+  destruct a. dec. dec.
+  destruct (decideP (k = v));
+  subst; autorewrite with SquiggleEq; simpl in *; auto.
+  rewrite IHsub. destruct ((ALFind2 sub v)); simpl;
+  try(destruct s; simpl); auto;
+  destruct (decideP (v = k)); cpx.
+Qed.
 
 
 
@@ -225,7 +240,7 @@ Lemma ALFindFilterNone :
   forall l v sub,
     (ALFind (ALFilter sub l) v = None)
     <=> (ALFind sub v = None [+] LIn v l).
-  induction sub; simpl; sp; split; introv H; sp; allsimpl.
+  induction sub; simpl; sp; split; introv H; sp; allsimpl; dec.
   - destruct (in_deq Key _ a0 l); allsimpl; dec;
     dest (DeqKey v a0); allsimpl;
     subst;
@@ -255,13 +270,12 @@ Lemma ALFilterAppR :
     ALFilter sub (vs1 ++ vs2)
     = ALFilter (ALFilter sub vs1) vs2.
 Proof.
-  induction sub; simpl; sp.
+  induction sub; simpl; sp; dec.
   rw <- memberb_din.
   rw <- memberb_din.
   rw memberb_app.
   destructr (memberb _ a0 vs1) as [m1 | m1]; simpl.
   apply IHsub.
-  rw <- memberb_din.
   allsimpl. destruct (memberb _ a0 vs2) as [m2 | m2];
   simpl; subst;
   try(rw IHsub); auto.
@@ -290,9 +304,9 @@ Lemma ALFilterDom : forall  sub lv,
   ALFilter sub (lv++ALDom sub) =[].
 Proof.
   induction sub as [|(v,u) sub Hind] ; introv ; auto;[].
-  allsimpl.
+  allsimpl; dec.
   cases_ifd Hd; cpx; allsimpl; allrw in_app_iff;
-  cpx.
+  cpx; dec.
   - rw cons_as_app. rw app_assoc. rw Hind; auto.
   - provefalse. apply Hdf. right. cpx.
 Qed.
@@ -424,7 +438,7 @@ Lemma ALFilterLIn :
       ! LIn v vars
     ).
 Proof.
-  induction sub; simpl; sp.
+  induction sub; simpl; sp; dec.
   split; sp. cases_if;
   simpl; allrw; split; sp; cpx.
 Qed.
@@ -471,9 +485,9 @@ forall sub lvk lvf,
   (ALKeepFirst (ALFilter sub lvf) lvk).
 Proof.
   induction sub; allsimpl;
-  autorewrite with fast; cpx;[].
+  autorewrite with fast; cpx; dec;[].
   intros. allsimpl.
-  destruct a.
+  destruct a. dec.
   cases_ifd H1d; cases_ifd H2d;
    allrw in_diff; exrepnd; allsimpl; cpx.
   - cases_ifd H3d; cpx. f_equal.
@@ -615,10 +629,13 @@ Proof.
 Qed.
 
 Ltac dec :=
-(try rewrite decide_decideP);
+(repeat rewrite decide_decideP);
+(repeat rewrite memberb_din);
 repeat match goal with
 [H:context[decide _] |- _] => rewrite decide_decideP in H
+|[H:context[memberb _ _ _] |- _] => rewrite memberb_din in H
 end.
+
 
 
 
@@ -694,11 +711,11 @@ Lemma ALMapFilterCommute :
           = ALMap fk fv (ALFilter  sub l).
 Proof.
   introv Hin.
-  induction sub; simpl; sp; allsimpl.
-  dec.
+  induction sub; simpl; sp; allsimpl;
+  dec. dec.
   cases_ifd Hd; cases_ifd Hc;
     simpl; auto; f_equal; auto.
-  - apply in_map_iff in Hdt. exrepnd. apply Hin in Hdt1.
+  - dec. apply in_map_iff in Hdt. exrepnd. apply Hin in Hdt1.
     subst. cpx.
   - rw in_map_iff in Hdf. provefalse.
     apply Hdf. eexists; eauto.
@@ -773,7 +790,7 @@ Proof using.
   + specialize (Hik _ (or_introl eq_refl)). symmetry in Hdt.
     simpl in Hik.
     apply Hik in Hdt. subst.
-    rewrite deq_refl. refl.
+    rewrite deqP_refl. refl.
   + rewrite IHsub. 
     * clear IHsub. dec. cases_if as Hd;
       subst; cpx.
@@ -807,4 +824,6 @@ Proof using.
   apply ALFindSome in Heqss.
   apply ALInEta in Heqss. tauto.
 Qed.
+
+
 
