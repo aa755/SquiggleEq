@@ -1337,20 +1337,22 @@ Qed.
 
 Lemma fvars_below_subst_aux_simpl:
 (forall (e: @DTerm Name Opid) sub (n nl:N),
-  fvars_below n e
+  nl <= n 
+  -> fvars_below n e
   -> lforall (fun s => fvars_below 0 (snd s)) sub
   -> (forall m, n-nl <= m < n -> In m (ALDom sub))
   -> fvars_below (n-nl) (subst_aux_simpl sub e))
 *
 (forall (e: @DBTerm Name Opid) sub (n nl:N),
-  fvars_below_bt n e
+  nl <= n 
+  -> fvars_below_bt n e
   -> lforall (fun s => fvars_below 0 (snd s)) sub
   -> (forall m, n-nl <= m < n -> In m (ALDom sub))
   -> fvars_below_bt (n-nl) (subst_aux_simpl_bt sub e)).
 Proof using.
   clear.
   apply NTerm_BTerm_ind.
-- intros ? ? ? ? Hfb Hs Hl.
+- intros ? ? ? ? ? Hfb Hs Hl.
   invertsn Hfb. simpl.
   dALFind ss; symmetry in Heqss.
   + apply ALFindSome in Heqss. apply Hs in Heqss. simpl in Heqss.
@@ -1358,18 +1360,26 @@ Proof using.
   + constructor. apply ALFindNone in Heqss.
     apply N.lt_nge. intros Hc. apply Heqss. clear Heqss.
     apply Hl. lia.
-- intros ? ? Hind ? ? ? Hfb Hfs Hlt.
+- intros ? ? Hind ? ? ? Hle Hfb Hfs Hlt.
   simpl. constructor.
   intros ? Hin. apply in_map_iff in Hin.
   exrepnd. subst. apply Hind; eauto.
   inverts Hfb. eauto.
-- intros ? ? Hind ? ? ? Hfb Hfs Hlt.
+- intros ? ? Hind ? ? ? Hle Hfb Hfs Hlt.
   inverts Hfb. simpl.
   constructor.
-  replace  (NLength lv + (n - nl)) with ((NLength lv + n) - nl).
- by lia.
-  apply Hind.
-- 
+  replace  (NLength lv + (n - nl)) with ((NLength lv + n) - nl) by lia.
+  apply Hind; auto; try lia.
+  + intros ? Hin. setoid_rewrite in_map_iff in Hin.
+    exrepnd. inverts Hin0. apply Hfs in Hin1. simpl in *. assumption. 
+  + intros ? ?. setoid_rewrite map_map.
+    unfold compose. simpl.
+    apply in_map_iff.
+    specialize (Hlt (m-NLength lv) ltac:(lia)).
+    setoid_rewrite in_map_iff in Hlt.
+    exrepnd. eexists; dands; eauto.
+    simpl in *. lia.
+Qed.
 
 
 
@@ -1396,8 +1406,45 @@ Proof using gts getIdCorr getId deqo.
     dands; [| lia].
     apply proj2 in Hin. apply Hfbl in Hin.
     assumption. 
-- (* need another proof *)
+- pose proof (fst fvars_below_subst_aux_simpl e (combine (seq N.succ 0 (length lv)) lv)
+      (NLength lv) (NLength lv)) as Hh.
+  eapply fvars_below_mono;[| apply Hh; auto]; try lia; clear Hh.
+  + intros ? Hin. destruct a. apply in_combine in Hin.
+    apply proj2 in Hin. simpl. apply Hfbl. assumption.
+  + intros. rewrite ALDomCombine;[| autorewrite with list; refl].
+    rewrite in_seq_Nplus. unfold NLength in *. lia. 
 Qed.
+
+(* Move *)
+
+Lemma lforall_rev {A} (P: A -> Prop):
+  forall l, lforall P l -> lforall P (rev l).
+Proof using.
+  intros ?. unfold lforall. setoid_rewrite <- in_rev.
+  tauto.
+Qed.
+
+Lemma fromDB_ssubst_aux_eval:  forall (e : DTerm) names (lv : list DTerm),
+  fvars_below (NLength lv) e
+  -> lforall (fvars_below 0) lv
+  -> fromDB 0 names (subst_aux_list 0 e lv)
+     ≡
+     substitution.ssubst_aux 
+        (fromDB (NLength lv) names e) 
+        (combine 
+          (map (var names) (rev (seq N.succ 0 (length lv)))) 
+          (map (fromDB 0 names) (rev lv))).
+Proof using gts getIdCorr getId deqo.
+  intros  ? ? ? Hfb Hfbl.
+  rewrite <- (rev_involutive lv).
+  rewrite fromDB_ssubst_aux_eval_aux; auto;
+    [ | unfold NLength; autorewrite with list; assumption|
+        apply lforall_rev; assumption].
+  rewrite rev_involutive.
+  unfold NLength; autorewrite with list.
+  refl.
+Qed.
+
 
 
 
