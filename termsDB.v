@@ -1219,10 +1219,10 @@ Proof using.
 Qed.
 
 Lemma fromDB_ssubst_aux_simple:
-  let subn s names ns := (ALMap (fun x => var names (ns -x -1)) (fromDB ns names) s) in
+  let subn s names ns := (ALMap (fun x => var names (ns -x -1)) (fromDB 0 names) s) in
   (forall (e : DTerm) (nf:N) names (sub : list (N*DTerm)),
     fvars_below nf e
-    -> lforall (fun s => fvars_below 0 (snd s) /\ (fst s) < nf) sub (* WLOG, because fvars are below nf *)
+    -> lforall (fun s => fvars_below 0 (snd s) /\ (fst s) < nf) sub (* the second conjunct is WLOG, because fvars are below nf *)
     -> fromDB nf names (subst_aux_simpl sub e)
        ≡
        substitution.ssubst_aux (fromDB nf names e) (subn sub names nf))
@@ -1243,7 +1243,10 @@ Proof using gts getIdCorr getId deqo.
   change (mkNVar (nf - n - 1, lookupNDef def names (nf - n - 1))) with
     (((λ x : N, mkNVar (nf - x - 1, lookupNDef def names (nf - x - 1)))) n).
   rewrite ALFindMap2.
-  + dALFind ss;refl.
+  + dALFind ss; try refl. simpl.
+    apply fromDBHigherAlpha.
+    symmetry in Heqss. apply ALFindSome in Heqss.
+    apply Hsf in Heqss. simpl in Heqss. tauto.
   + intros ? Hin Heq. apply (f_equal getId) in Heq.
     do 2 rewrite getIdCorr in Heq.
     apply Hsf in Hin. lia.
@@ -1295,7 +1298,7 @@ Lemma fromDB_ssubst_aux:
     -> fromDB (1+nf) names (subst_aux v nf e)
        ≡
        substitution.ssubst_aux 
-            (fromDB (1+nf) names e) [(var names 0,fromDB (1+nf) names v)]).
+            (fromDB (1+nf) names e) [(var names 0,fromDB 0 names v)]).
 Proof using gts getIdCorr getId deqo.
   intros.
   pose proof  (fst fromDB_ssubst_aux_simple e (1+nf) names [(nf, v)] H0) as Hh.
@@ -1312,6 +1315,90 @@ Proof using gts getIdCorr getId deqo.
   replace (1 + nf - nf - 1) with 0 by lia.
   refl.
 Qed.
+
+Lemma seq_rev_N : forall l n,
+  rev (seq N.succ n l) = map (fun x => n + n + N.of_nat l-x-1) (seq N.succ n l).
+Proof using.
+  clear.
+  induction l; auto.
+  intro.
+  replace (S l) with (l + 1)%nat at 1 by omega.
+  rewrite Nnat.Nat2N.inj_succ.
+  rewrite Nseq_add. simpl.
+  rewrite rev_app_distr. simpl.
+  f_equal;[ lia |].
+  rewrite IHl.
+  rewrite  seq_shift.
+  rewrite map_map. unfold compose. simpl.
+  apply eq_maps. intros ? ?.
+  lia.
+Qed.
+
+
+Lemma fvars_below_subst_aux_simpl:
+(forall (e: @DTerm Name Opid) sub (n nl:N),
+  fvars_below n e
+  -> lforall (fun s => fvars_below 0 (snd s)) sub
+  -> (forall m, n-nl <= m < n -> In m (ALDom sub))
+  -> fvars_below (n-nl) (subst_aux_simpl sub e))
+*
+(forall (e: @DBTerm Name Opid) sub (n nl:N),
+  fvars_below_bt n e
+  -> lforall (fun s => fvars_below 0 (snd s)) sub
+  -> (forall m, n-nl <= m < n -> In m (ALDom sub))
+  -> fvars_below_bt (n-nl) (subst_aux_simpl_bt sub e)).
+Proof using.
+  clear.
+  apply NTerm_BTerm_ind.
+- intros ? ? ? ? Hfb Hs Hl.
+  invertsn Hfb. simpl.
+  dALFind ss; symmetry in Heqss.
+  + apply ALFindSome in Heqss. apply Hs in Heqss. simpl in Heqss.
+    eapply fvars_below_mono; eauto. lia.
+  + constructor. apply ALFindNone in Heqss.
+    apply N.lt_nge. intros Hc. apply Heqss. clear Heqss.
+    apply Hl. lia.
+- intros ? ? Hind ? ? ? Hfb Hfs Hlt.
+  simpl. constructor.
+  intros ? Hin. apply in_map_iff in Hin.
+  exrepnd. subst. apply Hind; eauto.
+  inverts Hfb. eauto.
+- intros ? ? Hind ? ? ? Hfb Hfs Hlt.
+  inverts Hfb. simpl.
+  constructor.
+  replace  (NLength lv + (n - nl)) with ((NLength lv + n) - nl).
+ by lia.
+  apply Hind.
+- 
+
+
+
+Lemma fromDB_ssubst_aux_eval_aux:  forall (e : DTerm) names (lv : list DTerm),
+  fvars_below (NLength lv) e
+  -> lforall (fvars_below 0) lv
+  -> fromDB 0 names (subst_aux_list 0 e (rev lv))
+     ≡
+     substitution.ssubst_aux 
+        (fromDB (NLength lv) names e) 
+        (combine 
+          (map (var names) (rev (seq N.succ 0 (length lv)))) 
+          (map (fromDB 0 names) lv)).
+Proof using gts getIdCorr getId deqo.
+  intros  ? ? ? Hfb Hfbl.
+  rewrite (fst subst_aux_list_same_aux); auto.
+  rewrite fromDBHigherAlpha with (n1:=NLength lv) (names1:=names).
+- rewrite (fst fromDB_ssubst_aux_simple); auto.
+  + rewrite ALMapCombine.
+    rewrite seq_rev_N. rewrite map_map. unfold compose. simpl.
+    rewrite N.add_0_l. refl.
+  + intros ? Hin. destruct a. apply in_combine in Hin.
+    simpl. rewrite in_seq_Nplus in Hin. unfold NLength.
+    dands; [| lia].
+    apply proj2 in Hin. apply Hfbl in Hin.
+    assumption. 
+- (* need another proof *)
+Qed.
+
 
 
 (*
