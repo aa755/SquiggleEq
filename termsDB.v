@@ -1250,7 +1250,7 @@ Proof using gts getIdCorr getId deqo.
     exact Hee0.
 
 - intros ? ? Hind ? ? Hfb. simpl. unfold fromDB_bt. simpl.
-  f_equal;[]. unfold var.
+  unfold var.
   rewrite (fun v vars => proj2 (assert_memvar_false v vars));
     [| apply InMkVarCombine2;
         [ apply seq_length | rewrite in_seq_Nplus; lia]
@@ -1315,60 +1315,18 @@ Proof using gts getIdCorr getId deqo.
   apply alpha_eq_map_bt.
   unfold compose. simpl.
   invertsn Hfb. eauto.
-
-- intros ? ? Hind ? ? Hfb. simpl. unfold fromDB_bt. simpl.
-  f_equal;[]. unfold var.
-  rewrite (fun v vars => proj2 (assert_memvar_false v vars));
-    [| apply InMkVarCombine2;
-        [ apply seq_length | rewrite in_seq_Nplus; lia]
-    ].
-  rewrite <- N.add_assoc.
+- intros ? ? Hind ? ? Hfb Hfs. simpl. unfold fromDB_bt. simpl.
+  unfold var.
+  apply alpha_eq_bterm_congr.
   unfold fromDB in Hind.
   invertsn Hfb. fold (NLength lv).
-  replace (NLength lv + nf) with (nf + NLength lv) by lia.
-  replace ((NLength lv + (1 + nf))) with (1 + (nf + NLength lv)) in Hfb by lia.
   rewrite Hind by assumption.
-  apply alpha_eq_bterm_congr. unfold var.
   rewrite lookupNDef_inserts_neq_seq by lia.
   apply (fst subst_aux_alpha_sub). simpl.
   dands; trivial;[]. fold fromDB.
   apply fromDBHigherAlpha; auto; try lia.
 Qed.
 
-
-
-Lemma fromDB_ssubst_aux2:
-  forall (v : list DTerm),
-  lforall (fvars_below 0) v
-  ->
-  (forall (e : DTerm) names,
-    fvars_below (NLength v) e
-    -> fromDB (NLength v) names (subst_aux_list2 e v)
-       ≡
-       substitution.ssubst_aux 
-            (fromDB (NLength v) names e) 
-            (combine 
-                (map (var names) (seq N.succ 0 (length v)))
-                (map (fromDB (NLength v) names) v))).
-Proof using.
-  intro. rename v into l.
-  induction l; auto.
-- intros. simpl. rewrite ssubst_aux_nil. refl.
-- intros Hlf ? ? Hfb.
-  simpl.  unfold subst_aux_list2.
-Local Opaque N.pred.
-Local Opaque N.succ.
-Local Opaque N.of_nat.
-  simpl. unfold NLength. simpl.
-  repeat rewrite Nnat.Nat2N.inj_succ.
-  repeat rewrite N.pred_succ.
-  repeat rewrite <- N.add_1_l.
-  rewrite (fun v b=> fst (fromDB_ssubst_aux v b)).
-  rewrite IHl.
-SearchAbout N.pred N.succ.
-SearchAbout N.pred.
-  simpl.
-  simpl. 
 
 
 
