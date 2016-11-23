@@ -1416,14 +1416,26 @@ Proof using gts getIdCorr getId deqo.
 Qed.
 
 (* Move *)
-
-Lemma lforall_rev {A} (P: A -> Prop):
+Lemma lforall_rev {A:Type} (P: A -> Prop):
   forall l, lforall P l -> lforall P (rev l).
 Proof using.
   intros ?. unfold lforall. setoid_rewrite <- in_rev.
   tauto.
 Qed.
 
+(* Move *)
+Lemma rev_combine {A B:Type} : forall (la : list A) (lb: list B),
+length la = length lb
+-> rev (combine la lb) = combine (rev la) (rev lb).
+Proof using.
+  induction la; intros ? Heq; destruct lb as [|b lb]; invertsn Heq; [refl|].
+  simpl. rewrite combine_app;[| autorewrite with list; assumption].
+  rewrite IHla by assumption.
+  refl.
+Qed.
+
+(* Move *)
+ 
 Lemma fromDB_ssubst_aux_eval:  forall (e : DTerm) names (lv : list DTerm),
   fvars_below (NLength lv) e
   -> lforall (fvars_below 0) lv
@@ -1431,9 +1443,9 @@ Lemma fromDB_ssubst_aux_eval:  forall (e : DTerm) names (lv : list DTerm),
      ≡
      substitution.ssubst_aux 
         (fromDB (NLength lv) names e) 
-        (combine 
-          (map (var names) (rev (seq N.succ 0 (length lv)))) 
-          (map (fromDB 0 names) (rev lv))).
+        (rev (combine 
+                (map (var names) ((seq N.succ 0 (length lv)))) 
+                (map (fromDB 0 names) lv))).
 Proof using gts getIdCorr getId deqo.
   intros  ? ? ? Hfb Hfbl.
   rewrite <- (rev_involutive lv).
@@ -1442,37 +1454,10 @@ Proof using gts getIdCorr getId deqo.
         apply lforall_rev; assumption].
   rewrite rev_involutive.
   unfold NLength; autorewrite with list.
-  refl.
+  rewrite map_rev.
+  rewrite map_rev.
+  rewrite <- rev_combine;[| autorewrite with list]; refl.
 Qed.
-
-
-
-
-(*
-Lemma fromDBHigherAlpha2 : forall v ( nf n1 n2 : N) names1 names2,
-nf <= n1
--> nf <= n2
--> fvars_below nf v
--> fromDB n2 names2 v
-   ≡ fromDB n1 names1 v.
-Proof using gts getIdCorr getId.
-*)
-
-(*
-Lemma fromDB_ssubst_aux2:
-  forall (v : DTerm),
-  fvars_below 0 v
-  ->
-  (forall (e : DTerm) (nf:N) names,
-    fvars_below (1+nf) e
-    -> fromDB nf names (subst_aux v nf e)
-       ≡
-       substitution.ssubst_aux 
-            (fromDB (1+nf) names e) [(var names 0,fromDB 0 names v)]).
-Proof using gts getIdCorr getId deqo.
-  intros.
-  rewrite fromDBHigherAlpha.
-*)
 
 
 
