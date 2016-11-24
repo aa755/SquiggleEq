@@ -44,7 +44,6 @@ Require Import Eqdep_dec.
 Require Import varInterface.
 Require Import terms.
 Require Import terms2.
-Require Import lmap.
 Require Import AssociationList.
 (** printing #  $\times$ #×# *)
 (** printing $  $\times$ #×# *)

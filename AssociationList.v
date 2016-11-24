@@ -831,3 +831,46 @@ Proof using.
   apply ALInEta in Heqss. tauto.
 Qed.
 
+Notation lmap := AssocList.
+
+(*this is slightly different from ALFind2*)
+Lemma lmap_find :
+  forall {A B: Type}
+         (eqdec: Deq A) (sub: lmap A B) (a : A) ,
+    { b: B & LIn (a,b) sub}
+    + !(LIn a (fst (split sub))).
+Proof.
+   induction sub as [| (a', b') sub Hind]; intro a.
+   - right.  sp.
+   - destruct (decideP (a'= a)) as [Hc|Hc]; subst.
+      + left. exists b'. left; refl.
+      + destruct (Hind a) as [Hl | Hr]; exrepnd ;[left | right].
+          * exists b. right; auto.
+          * intro Hf. apply Hr. simpl in Hf. destruct (split sub).
+              dorn Hf; sp.
+Defined.
+
+Notation dom_lmap := ALDom.
+
+
+
+(**same as above, but the impelemtation is guaranteed to return the first match*)
+Lemma lmap_find_first: forall {A B: Type}
+  (eqdec: Deq A) (sub: lmap A B) (a : A) ,
+    { b: B & {n:nat & n < length sub
+            # nth n sub (a,b) = (a,b)
+            # (forall m, m<n ->  (nth m (dom_lmap sub) a) <> a) } }
+       + !LIn a (dom_lmap sub).
+Proof.
+   induction sub as [| (a', b') sub Hind]; intro a.
+   - right.  sp.
+   - destruct (decideP (a'=a)) as [Hc|Hc]; subst.
+      + left. exists b'. exists 0. split; simpl; auto. apply  lt_0_Sn.
+        split; auto. introv Hm; inverts Hm.
+      + destruct (Hind a) as [Hl | Hr]; exrepnd ;[left | right].
+          * exists b. exists (S n). repeat(split); auto; simpl. apply lt_n_S. auto.
+            introv Hlt. destruct m; auto. apply Hl1. apply lt_S_n; auto.
+          * introv Hf. apply Hr. simpl in Hf. 
+              dorn Hf; sp. 
+Defined.
+

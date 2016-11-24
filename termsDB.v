@@ -932,7 +932,7 @@ Proof using gts getIdCorr getId.
     replace ((n1 + (nf - n - 1) - nf)) with (n1-n-1) by lia.
     refl.
   + provefalse. apply sub_find_none2 in Heqsss.
-    apply Heqsss. unfold vr, dom_sub, lmap.dom_lmap, var.
+    apply Heqsss. unfold vr, dom_sub, dom_lmap, var.
     setoid_rewrite map_map. unfold compose. simpl.
     apply List.in_map_iff.
     exists (nf - n - 1).
@@ -967,7 +967,7 @@ Proof using gts getIdCorr getId.
   Fail Fail rewrite <- Hfb. (* we can rewrite here if we want *)
   rewrite sub_filter_disjoint1.
   Focus 2.
-    unfold vr. unfold dom_sub, lmap.dom_lmap.
+    unfold vr. unfold dom_sub, dom_lmap.
     setoid_rewrite map_map. unfold compose.
     Local Transparent var. simpl. unfold var.
     apply disjoint_map with (f:= getId).
@@ -1030,7 +1030,7 @@ Proof using gts getIdCorr getId.
       f_equal. f_equal;[| apply namesInsWierd].
       rewrite ssubst_aux_sub_trivial_disj.
 
-    Focus 2. unfold range, var_ren, dom_sub, lmap.dom_lmap.
+    Focus 2. unfold range, var_ren, dom_sub, dom_lmap.
       repeat rewrite flat_map_map. unfold compose.
       simpl. rewrite flat_map_single. unfold var.
       setoid_rewrite <- combine_map_fst;
