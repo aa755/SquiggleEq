@@ -1281,7 +1281,7 @@ Proof using gts getIdCorr getId deqo.
     rewrite in_seq_Nplus. unfold NLength in *. lia. 
 Qed.
 
-Lemma fromDB_ssubst_aux_eval:  forall (e : DTerm) names (lv : list DTerm),
+Lemma fromDB_ssubst_aux_eval_rev :  forall (e : DTerm) names (lv : list DTerm),
   fvars_below (NLength lv) e
   -> lforall (fvars_below 0) lv
   -> fromDB 0 names (subst_aux_list 0 e lv)
@@ -1304,7 +1304,29 @@ Proof using gts getIdCorr getId deqo.
   rewrite <- rev_combine;[| autorewrite with list]; refl.
 Qed.
 
-
+Lemma fromDB_ssubst_aux_eval:  forall (e : DTerm) names (lv : list DTerm),
+  fvars_below (NLength lv) e
+  -> lforall (fvars_below 0) lv
+  -> fromDB 0 names (subst_aux_list 0 e lv)
+     ≡
+     substitution.ssubst_aux 
+        (fromDB (NLength lv) names e) 
+        (combine 
+           (map (var names) ((seq N.succ 0 (length lv)))) 
+           (map (fromDB 0 names) lv)).
+Proof using gts getIdCorr getId deqo.
+  intros  ? ? ? Hfb Hfbl.
+  rewrite fromDB_ssubst_aux_eval_rev by assumption.
+  rewrite <- (fun r => app_nil_r (rev r)).
+  rewrite <- ssubst_aux_rev;[rewrite app_nil_r; refl|].
+  rewrite dom_sub_combine;[| autorewrite with list; refl].
+  unfold var.
+  apply (nodup_map getId).
+  rewrite map_map. unfold compose.
+  rewrite mapGetIdMkVar. simpl.
+  rewrite map_id.
+  apply seq_NoDup.
+Qed.
 
 End DBToNamed.
 

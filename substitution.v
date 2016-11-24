@@ -2884,42 +2884,68 @@ Proof using.
     apply ssubst_aux_swap ;sp.
 Qed.
 
-
-
-Lemma ssubst_aux_shift :
-  forall t (sub1 sub2 sub3 : @Substitution Opid),
-    (forall v t, LIn (v, t) (sub1 ++ sub2 ++ sub3) -> isprogram t)
-    -> disjoint (dom_sub sub1) (dom_sub sub2)
-    -> ssubst_aux t (sub1 ++ sub2 ++ sub3) = ssubst_aux t (sub2 ++ sub1 ++ sub3).
+Lemma ssubst_aux_shift_nb :
+(forall t (sub1 sub2 sub3 : @Substitution Opid),
+    disjoint (dom_sub sub1) (dom_sub sub2)
+    -> ssubst_aux t (sub1 ++ sub2 ++ sub3) = ssubst_aux t (sub2 ++ sub1 ++ sub3))
+*
+(forall t (sub1 sub2 sub3 : @Substitution Opid),
+    disjoint (dom_sub sub1) (dom_sub sub2)
+    -> ssubst_bterm_aux t (sub1 ++ sub2 ++ sub3) = ssubst_bterm_aux t (sub2 ++ sub1 ++ sub3)).
 Proof using.
-  nterm_ind t as [|o lbt ind] Case; simpl; introv k d.
+  apply NTerm_BTerm_ind.
+- introv d; simpl.
+  repeat (rw @sub_find_app).
+  remember (sub_find sub1 n); destruct o; symmetry in Heqo; auto.
+  apply sub_find_some in Heqo.
+  unfold disjoint in d.
+  apply in_dom_sub in Heqo.
+  apply d in Heqo.
+  rw <- @sub_find_none_iff in Heqo; rw Heqo; sp.
 
-  - Case "vterm".
-    repeat (rw @sub_find_app).
-    remember (sub_find sub1 n); destruct o; symmetry in Heqo; auto.
-    apply sub_find_some in Heqo.
-    unfold disjoint in d.
-    apply in_dom_sub in Heqo.
-    apply d in Heqo.
-    rw <- @sub_find_none_iff in Heqo; rw Heqo; sp.
+- introv Hind d. simpl. f_equal.
+  apply eq_maps; introv i. eauto.
+- introv Hind d. simpl. f_equal.
+  repeat (rw @sub_filter_app).
+  apply Hind; eauto.
+  allrw in_app_iff; sp; allrw @in_sub_filter; sp.
 
-  - Case "oterm".
-    f_equal.
-    apply eq_maps; introv i.
-    destruct x; simpl.
-    repeat (rw bvar_renamings_subst_isprogram; auto); simpl.
+  repeat (rw <- @dom_sub_sub_filter).
+  unfold disjoint; introv i1 i2.
+  allrw in_remove_nvars; exrepnd.
+  unfold disjoint in d; apply_in_hyp p; sp.
+Qed.
 
-    repeat (rw @sub_filter_app).
-    rewrite ind with (lv := l); sp.
+Notation ssubst_aux_shift := (fst ssubst_aux_shift_nb).
 
-    allrw in_app_iff; sp; allrw @in_sub_filter; sp;
-    apply k with (v := v); rw in_app_iff; sp;
-    rw in_app_iff; sp.
+Lemma ssubst_aux_rev:
+forall (sub : @Substitution Opid) t ,
+  no_repeats (dom_sub sub) 
+    -> ssubst_aux t sub = ssubst_aux t (rev sub).
+Proof using.
+  induction sub; intros t Hnr;
+    [do 2 rewrite ssubst_aux_nil; refl|].
+  simpl. rewrite cons_as_app.
+  rewrite <- (app_nil_r ([a] ++ sub)).
+  simpl in Hnr.
+  rewrite <- app_assoc.
+  rewrite ssubst_aux_shift with (sub3:=[]);[| noRepDis].
+  rewrite app_nil_r.
+Abort.
 
-    repeat (rw <- @dom_sub_sub_filter).
-    unfold disjoint; introv i1 i2.
-    allrw in_remove_nvars; exrepnd.
-    unfold disjoint in d; apply_in_hyp p; sp.
+
+Lemma ssubst_aux_rev:
+forall (sub sr: @Substitution Opid) t ,
+  no_repeats (dom_sub sub) 
+    -> ssubst_aux t (sub++sr) = ssubst_aux t ((rev sub)++sr).
+Proof using.
+  induction sub; intros ? ? Hnr;
+    [refl|].
+  simpl. rewrite cons_as_app.
+  simpl in Hnr.
+  rewrite ssubst_aux_shift;[| noRepDis].
+  rewrite <- app_assoc.
+  apply IHsub. noRepDis.
 Qed.
 
 Lemma ssubst_shift :
