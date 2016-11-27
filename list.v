@@ -3370,4 +3370,30 @@ Proof using.
   intros. destruct k; refl.
 Qed.
 
+Definition NLmax :  (list N) -> N  -> N :=
+  fold_left N.max.
 
+Lemma NLmax_le2 : forall  lp p1 p2, 
+  (p1 <= p2 -> NLmax lp p1 <= NLmax lp p2)%N.
+Proof using.
+  induction lp; auto.
+  intros ? ? Hle. simpl.
+  apply IHlp. lia.
+Qed.
+
+
+Lemma NLmax_le3 : forall  x lp p, 
+  (In x (p::lp) -> x <= NLmax lp p)%N.
+Proof.
+  induction lp; intros ? Hin.
+- apply in_single_iff in Hin. subst. reflexivity.
+- simpl in *. dorn Hin; [ | dorn Hin]; subst; auto.
+  + eapply transitivity;[apply IHlp; left; refl | apply NLmax_le2; lia].
+  + eapply transitivity;[apply IHlp; left; refl | apply NLmax_le2; lia].
+Qed.
+
+Lemma NLmax_le : forall  x lp, 
+  (In x lp -> x <= NLmax lp 0)%N.
+Proof.
+  intros. apply NLmax_le3. sp.
+Qed.
