@@ -44,11 +44,14 @@ Definition isvar (t : DTerm) :=
   end.
 
 
-Definition getOpid (n: DTerm) : option Opid :=
+Definition getOpidBTerms (n: DTerm) : option (Opid * list DBTerm) :=
 match n with
 | vterm _ => None
-| oterm o _ => Some o
-end. 
+| oterm o lb => Some (o, lb)
+end.
+
+Definition getOpid (n: DTerm) : option Opid :=
+  option_map fst (getOpidBTerms n).
 
 
 Definition get_nt  (bt: DBTerm ) : DTerm :=
@@ -129,6 +132,18 @@ with subst_aux_bt {Name Opid:Type} (v:@DTerm Name Opid)
 match e with
 | bterm m t => bterm m (subst_aux v (NLength m+k) t)%N
 end.
+
+
+Fixpoint maxFree {Name Opid:Type} (e:@DTerm Name Opid)
+  : Z :=
+(match e with
+| vterm i => Z.of_N i
+| oterm _ lbt => ZLmax (map maxFree_bt lbt) (-1)
+end)%Z
+with maxFree_bt {Name Opid:Type}  (e:@DBTerm Name Opid): Z:=
+(match e with
+| bterm m t => (maxFree t) - (Z.of_nat (length m))
+end)%Z.
 
 Require Import ExtLib.Data.Map.FMapPositive.
 
@@ -414,6 +429,35 @@ Proof using.
   lia.
 Qed.
 
+Lemma exp_wf_maxFree: 
+  (forall (s : @DTerm Name Opid) (n:N),
+    fvars_below n s
+    -> maxFree s < Z.of_N n)%Z
+  *
+  (forall (s : @DBTerm Name Opid) (n:N),
+    fvars_below_bt n s
+    -> maxFree_bt s < Z.of_N n)%Z.
+Proof using.
+  apply NTerm_BTerm_ind.
+- intros v n Hfb.
+   simpl in *.
+   inverts Hfb.
+   lia.
+- intros lb n Hind nn Hfb. 
+  simpl in *.
+  inverts Hfb.
+  apply ZLmax_lub_lt.
+  intros ? Hin. simpl in Hin.
+  dorn Hin; subst; simpl in *; try lia;[].
+  apply in_map_iff in Hin. exrepnd. subst.
+  eauto.
+- intros lb n Hind nn Hfb. simpl in *.
+  simpl in *.
+  invertsn Hfb. unfold NLength in Hfb.
+  apply Hind in Hfb. lia.
+Qed.
+
+
 Local Opaque lookupNDef.
 (* Local Opaque insertNs. *)
 Local Opaque insertN.
@@ -469,6 +513,9 @@ Proof using getIdCorr getId.
   apply in_combine_l in Hin1.
   rewrite getIdCorr. assumption.
 Qed.
+
+
+
 
 Let fvarsProp (n:N) names (vars : list NVar): Prop := 
 lforall
