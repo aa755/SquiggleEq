@@ -1,0 +1,15 @@
+*.vo
+*.v.d
+*.glob
+*.aux
+*.out
+*.html
+*.cache
+*.tex
+*.css
+*.sty
+*.bak
+*.crashcoqide
+#*#
+*.dblite
+Makefile.coq
