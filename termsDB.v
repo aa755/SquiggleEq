@@ -432,29 +432,37 @@ Qed.
 Lemma exp_wf_maxFree: 
   (forall (s : @DTerm Name Opid) (n:N),
     fvars_below n s
-    -> maxFree s < Z.of_N n)%Z
+    <-> maxFree s < Z.of_N n)%Z
   *
   (forall (s : @DBTerm Name Opid) (n:N),
     fvars_below_bt n s
-    -> maxFree_bt s < Z.of_N n)%Z.
+    <-> maxFree_bt s < Z.of_N n)%Z.
 Proof using.
   apply NTerm_BTerm_ind.
-- intros v n Hfb.
+- intros v n. split; intros Hfb;
    simpl in *.
-   inverts Hfb.
-   lia.
-- intros lb n Hind nn Hfb. 
-  simpl in *.
-  inverts Hfb.
-  apply ZLmax_lub_lt.
-  intros ? Hin. simpl in Hin.
-  dorn Hin; subst; simpl in *; try lia;[].
-  apply in_map_iff in Hin. exrepnd. subst.
-  eauto.
-- intros lb n Hind nn Hfb. simpl in *.
-  simpl in *.
-  invertsn Hfb. unfold NLength in Hfb.
-  apply Hind in Hfb. lia.
+   + inverts Hfb. lia.
+   + constructor. lia.
+- intros lb n Hind nn. split; intros Hfb;
+   simpl in *.
+  + inverts Hfb.
+    apply ZLmax_lub_lt.
+    intros ? Hin. simpl in Hin.
+    dorn Hin; subst; simpl in *; try lia;[].
+    apply in_map_iff in Hin. exrepnd. subst.
+    eapply Hind; eauto.
+  + constructor. intros ? Hin.
+    specialize (Hind _ Hin).
+    apply Hind. eapply Z.le_lt_trans; eauto.
+    clear Hfb.
+    eapply ZLmax_le3. right.
+    apply in_map. assumption.
+- intros lb n Hind nn.  split; intros Hfb;
+   simpl in *.
+  + invertsn Hfb. unfold NLength in Hfb.
+    apply Hind in Hfb. lia.
+  + constructor. unfold NLength in *.
+    apply Hind. lia.
 Qed.
 
 
