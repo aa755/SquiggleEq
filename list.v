@@ -3449,3 +3449,15 @@ Proof.
   setoid_rewrite <- Zsucc_pred in Hz.
   exact Hz.
 Qed.
+
+
+Lemma ZLmax_In : forall  lp p, 
+  LIn (ZLmax lp p) (p::lp).
+Proof.
+  induction lp; [simpl|]; auto.
+  simpl ZLmax.
+  intros.
+  specialize (IHlp (Z.max p a)).
+  destruct (Zmax_spec p a) as [Hh| Hh]; repnd;
+   rewrite Hh; rewrite Hh in IHlp; simpl in *; tauto.
+Qed.

@@ -634,135 +634,53 @@ Qed.
   Qed.
 
 
-Let fvarsProp2 (n:Z) (vars : list NVar): Prop := 
-exists v, In v vars /\ Z.of_N (getId v)  = n.
+Let fvarsProp2 (n:N) (mf : Z) (vars : list NVar): Prop := 
+exists v, In v vars /\ Z.of_N (getId v) = (Z.of_N n - mf -1)%Z.
 
-SearchAbout (Z->N).
-Print Z.to_N.
 Lemma fromDB_maxFree:
   (forall (s : DTerm) (n:N),
-    (Z.of_N n < maxFree s)%Z
-    -> forall names, fvarsProp2 (maxFree s) (@free_vars _ _ Opid 
-      (fromDB (Z.to_N (1+maxFree s)) names s)))
+    (0 <= maxFree s)%Z
+    -> (maxFree s < Z.of_N n)%Z
+    -> forall names, fvarsProp2 n (maxFree s) (@free_vars _ _ Opid 
+      (fromDB n names s)))
   *
   (forall (s : DBTerm) (n:N),
-    (Z.of_N n < maxFree_bt s)%Z
-    -> forall names, fvarsProp2 (maxFree_bt s)
-       (@free_vars_bterm _ _ Opid (fromDB_bt (Z.to_N (1+maxFree_bt s)) names s))).
+    (0 <= maxFree_bt s)%Z
+    -> (maxFree_bt s < Z.of_N n)%Z
+    -> forall names, fvarsProp2 n (maxFree_bt s)
+       (@free_vars_bterm _ _ Opid (fromDB_bt n names s))).
 Proof using getIdCorr.
   apply NTerm_BTerm_ind; unfold fvarsProp2.
-- intros nv n Hfb ?.
-  Local Opaque Z.add.
+- intros nv n Hfb ? ?.
   simpl.
-  simpl in *. eexists;split;[left;refl|].
-  repeat rewrite getIdCorr. f_equal.
-  rewrite Z2N.inj_add by lia.
-  rewrite N2Z.id. simpl. clear.
-
-SearchAbout Z.of_N Z.to_N.
-  rewrite Z2N.id.
-- intros ? ? Hind n Hfb ?.
+  simpl in *. eexists; split; [left;refl |].
+  repeat rewrite getIdCorr. lia.
+- intros ? ? Hind n Hfb Hlt ?.
   simpl in *.
-  admit. 
-- intros ? ? Hind n Hfb ?. simpl.
-  simpl in *.
-  rewrite Z2N.inj_add by lia.
-  replace 
-  (Z.to_N 1 + Z.to_N (maxFree nt - Z.of_nat (length lv)) + N.of_nat (length lv))
-    with (Z.to_N 1 + Z.to_N (maxFree nt)).
-  Focus 2.
-  rewrite <- N.add_assoc.
-  f_equal.
-  rewrite <- (Nat2Z.id (length lv) ) at 2.
-  rewrite Z_nat_N.
-  rewrite <- Z2N.inj_add by lia.
-  replace ((maxFree nt - Z.of_nat (length lv) + Z.of_nat (length lv)))%Z
-     with (maxFree nt) by lia. refl.
-  rewrite <- Z2N.inj_add by lia.  
-  rewrite <- Z2N.inj_add by lia.  
-  simpl.
-  specialize (Hind n ltac:(lia)
-    (insertNs names
-              (combine
-                 (seq N.succ (Z.to_N (1 + (maxFree nt - Z.of_nat (length lv))))
-                    (length lv)) lv))).
+  pose proof (ZLmax_In (map maxFree_bt lbt) (-1)) as Hin.
+  dorn Hin;[provefalse; lia |].
+  apply in_map_iff in Hin.
   exrepnd.
-  exists v. apply in_remove_nvars.
-  split; auto.
-  intros Hin.
-  apply fromDB_fvars in Hind0; [| apply exp_wf_maxFree; rewrite Z2N.id; lia].
-  apply (in_map getId) in Hin.
-  rewrite mapGetIdMapMkVarCombine in Hin.
-  apply in_seq_Nplus in Hin. apply 
-  repnd. clear Hin.
-  clear Hind0.
-  rewrite Z2N.inj_add in Hin0 by lia.  
-  rewrite Z2N.inj_add in Hind1 by lia.
-  rewrite Z2N.inj_sub in Hin0 by lia.
-  SearchAbout N Z.of_nat.
-  rewrite N.add_sub_assoc in Hin0 by lia.
-  SearchAbout N.sub N.add.
-  setoid_rewrite <- N.add_assoc in Hin0.
-  SearchAbout Z.to_N Z.of_nat.
-  lia.
-  SearchAbout Z.to_N Z.sub.
-  lia.  
-  clear Hfb.
-  rewrite 
-  
-
-  SearchAbout map getId map.
-    exact Hind0.
-  
-
-SearchAbout Z.to_N N.of_nat.
-
-SearchAbout Z.to_N Z.add.
-  replace 
-(Z.to_N (1 + (maxFree nt - Z.of_nat (length lv)))) with
-(Z.to_N (1 + maxFree nt) - Z.to_N (Z.of_nat (length lv))).
-Focus 2.
-  assert
- (((1 + (maxFree nt - Z.of_nat (length lv))) + Z.of_nat (length lv))
-  =
-  ((1 + maxFree nt)))%Z. lia.
-  assert (0 < (maxFree nt - Z.of_nat (length lv)))%Z. lia.
-
-  replace
- (Z.to_N (1 + (maxFree nt - Z.of_nat (length lv))) + N.of_nat (length lv))
- with
-  (Z.to_N (1 + maxFree nt)). Focus 2.
-  lia.
-  psatz Z.
-  nlia. 
-SearchAbout Z.to_N.
-  
-
-  Focus 2.
-  rewrite N.add_comm in Hin.
-  apply in_remove_nvars in Hin. repnd.
-  invertsn Hfb.
-  apply Hind in Hin0; [ | assumption].
-  clear Hind Hfb. exrepnd.
-  rewrite Hin0.
-  rewrite Hin0 in Hin.
-  rewrite Hin0 in Hin1.
-  clear Hin0.
-  repeat rewrite getIdCorr in *.
-  pose proof (N.ltb_spec0 (getId a) n) as Hc.
-  destruct (getId a <? n); invertsn Hc;[ clear Hin Hin1 | ].
-  + split;[ assumption |].
-    rewrite lookupNDef_inserts_neq_seq; auto.
-  + provefalse. apply Hin. apply in_map.
-    clear Hin. apply N.nlt_ge in Hc.
-    rewrite N.add_comm in Hin1.
-    pose proof (conj Hc Hin1) as Hcc. rewrite <- in_seq_Nplus in Hcc.
-    clear Hc Hin1.
-    pose proof (combine_map_fst (seq N.succ n (length lv)) lv 
-      (seq_length _ _ _ _)) as He.
-    rewrite He in Hcc.
-    apply lookupNDef_inserts_eq with (m:=names) (def0:=def) in Hcc.
-    exrepnd. rewrite Hcc1. assumption.
+  specialize (Hind _ Hin1 n ltac:(lia) ltac:(lia) names).
+  exrepnd. exists v.
+  rewrite flat_map_map. unfold compose. simpl.
+   dands; try lia; try eauto;[].
+  apply in_flat_map; eauto.
+- intros ? ? Hind n Hfb Hlt ?.
+  simpl in *. fold fromDB.
+  match goal with
+  [|- context[fromDB _ ?names _]] =>
+  specialize (Hind  (n + N.of_nat (length lv)) ltac:(lia) ltac:(lia) names)
+  end.
+  exrepnd.
+  exists v.
+  split;[| lia].
+  apply in_remove_nvars.
+  split;[assumption|].
+  intros Hinc.
+  apply (in_map getId) in Hinc.
+  rewrite mapGetIdMapMkVarCombine in Hinc.
+  apply in_seq_Nplus in Hinc. lia.
 Qed.
 
 Let bvarsProp (n:N) (md:nat) (vars : list NVar): Prop := 
