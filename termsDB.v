@@ -1400,26 +1400,41 @@ Proof using.
     simpl in *. lia.
 Qed.
 
+Lemma fvars_below_subst_aux:
+(forall (e: @DTerm Name Opid) lt ,
+  fvars_below (NLength lt) e
+  -> lforall (fun s => fvars_below 0 s) lt
+  -> fvars_below (NLength lt) (subst_aux_list 0 e lt)).
+Proof using.
+Abort.  
 
 
-Lemma fromDB_ssubst_aux_eval_aux:  forall (e : DTerm) names (lv : list DTerm),
+
+Lemma fromDB_ssubst_aux_eval_aux:  forall (e : DTerm) (names : pmap Name)
+  (ln:list Name) (lv : list DTerm),
   fvars_below (NLength lv) e
   -> lforall (fvars_below 0) lv
-  -> fromDB 0 names (subst_aux_list 0 e (rev lv))
+  -> let namesI := insertNs names (combine (list.seq N.succ 0 (length ln)) ln) in
+fromDB 0 names (subst_aux_list 0 e (rev lv))
      ≡
      substitution.ssubst_aux 
-        (fromDB (NLength lv) names e) 
+        (fromDB (NLength lv) namesI e) 
         (combine 
-          (map (var names) (rev (seq N.succ 0 (length lv)))) 
+          (map (var namesI) (rev (seq N.succ 0 (length lv)))) 
           (map (fromDB 0 names) lv)).
 Proof using gts getIdCorr getId deqo.
-  intros  ? ? ? Hfb Hfbl.
+  intros  ? ? ? ? Hfb Hfbl ?.
   rewrite (fst subst_aux_list_same_aux); auto.
-  rewrite fromDBHigherAlpha with (n1:=NLength lv) (names1:=names).
+  rewrite fromDBHigherAlpha with (n1:=NLength lv) 
+      (names1:=namesI).
 - rewrite (fst fromDB_ssubst_aux_simple); auto.
-  + rewrite ALMapCombine.
+  + rewrite ALMapCombine. unfold namesI.
     rewrite seq_rev_N. rewrite map_map. unfold compose. simpl.
-    rewrite N.add_0_l. refl.
+    rewrite N.add_0_l.
+    apply ssubst_aux_alpha_congr; autorewrite with list; try refl.
+    admit.
+    admit.
+    admit.
   + intros ? Hin. destruct a. apply in_combine in Hin.
     simpl. rewrite in_seq_Nplus in Hin. unfold NLength.
     dands; [| lia].
@@ -1431,23 +1446,24 @@ Proof using gts getIdCorr getId deqo.
   + intros ? Hin. destruct a. apply in_combine in Hin.
     apply proj2 in Hin. simpl. apply Hfbl. assumption.
   + intros. rewrite ALDomCombine;[| autorewrite with list; refl].
-    rewrite in_seq_Nplus. unfold NLength in *. lia. 
-Qed.
+    rewrite in_seq_Nplus. unfold NLength in *. lia.
+Admitted.
 
-Lemma fromDB_ssubst_aux_eval_rev :  forall (e : DTerm) names (lv : list DTerm),
+Lemma fromDB_ssubst_aux_eval_rev :  forall (e : DTerm) names (lv : list DTerm) ln,
+  let namesI := insertNs names (combine (list.seq N.succ 0 (length ln)) ln) in
   fvars_below (NLength lv) e
   -> lforall (fvars_below 0) lv
   -> fromDB 0 names (subst_aux_list 0 e lv)
      ≡
      substitution.ssubst_aux 
-        (fromDB (NLength lv) names e) 
+        (fromDB (NLength lv) namesI e) 
         (rev (combine 
-                (map (var names) ((seq N.succ 0 (length lv)))) 
+                (map (var namesI) ((seq N.succ 0 (length lv)))) 
                 (map (fromDB 0 names) lv))).
 Proof using gts getIdCorr getId deqo.
-  intros  ? ? ? Hfb Hfbl.
+  intros  ? ? ? ? ? Hfb Hfbl.
   rewrite <- (rev_involutive lv).
-  rewrite fromDB_ssubst_aux_eval_aux; auto;
+  rewrite fromDB_ssubst_aux_eval_aux with (ln:=ln); auto;
     [ | unfold NLength; autorewrite with list; assumption|
         apply lforall_rev; assumption].
   rewrite rev_involutive.
