@@ -587,6 +587,177 @@ Proof using getIdCorr.
     apply lookupNDef_inserts_eq with (m:=names) (def0:=def) in Hcc.
     exrepnd. rewrite Hcc1. assumption.
 Qed.
+(* comes up again and again *)
+Lemma lengthMapCombineSeq n2 lv:
+length (map mkNVar (combine (seq N.succ n2 (length lv)) lv)) = length lv.
+Proof using.
+  repeat rewrite map_length, length_combine_eq; 
+    repeat rewrite seq_length; refl.
+Qed.
+
+Lemma getIdMkVar x:
+getId (mkNVar x) = fst x.
+Proof using getId getIdCorr.
+  destruct x. simpl.
+  apply getIdCorr.
+Qed.
+
+
+Lemma mapGetIdMkVar  {T} lvn f:
+(map (λ x : T, getId (mkNVar (f x))) lvn)
+=(map (λ x : T, fst (f x)) lvn).
+Proof using getId getIdCorr.
+  intros.
+  Fail rewrite getIdMkVar.
+  Fail setoid_rewrite getIdMkVar.
+  apply map_ext.
+  intros.
+  rewrite getIdMkVar. refl.
+Qed.
+
+
+
+  Lemma mapFstSeqCombine n1 (lv: list Name):
+    (map fst (combine (seq N.succ n1 (length lv)) lv))
+    = (seq N.succ n1 (length lv)).
+  Proof using getIdCorr.
+    rewrite <- combine_map_fst2;[| rewrite seq_length; refl].
+    refl.
+  Qed.    
+
+  Lemma mapGetIdMapMkVarCombine n1 lv:
+    (map getId (map mkNVar (combine (seq N.succ n1 (length lv)) lv)))
+    = (seq N.succ n1 (length lv)).
+  Proof using getIdCorr.
+    rewrite map_map. unfold compose. simpl.
+    rewrite mapGetIdMkVar. apply mapFstSeqCombine.
+  Qed.
+
+
+Let fvarsProp2 (n:N) (vars : list NVar): Prop := 
+exists v, In v vars.
+
+SearchAbout (Z->N).
+Print Z.to_N.
+Lemma fromDB_maxFree:
+  (forall (s : DTerm) (n:N),
+    (Z.of_N n < maxFree s)%Z
+    -> forall names, fvarsProp2 n (@free_vars _ _ Opid 
+      (fromDB (Z.to_N (1+maxFree s)) names s)))
+  *
+  (forall (s : DBTerm) (n:N),
+    (Z.of_N n < maxFree_bt s)%Z
+    -> forall names, fvarsProp2 n
+       (@free_vars_bterm _ _ Opid (fromDB_bt (Z.to_N (1+maxFree_bt s)) names s))).
+Proof using getIdCorr.
+  apply NTerm_BTerm_ind; unfold fvarsProp2.
+- intros nv n Hfb ?.
+  Local Opaque Z.add.
+  simpl.
+  simpl in *. eexists;[left;refl].
+- intros ? ? Hind n Hfb ?.
+  simpl in *.
+  admit. 
+- intros ? ? Hind n Hfb ?. simpl.
+  simpl in *.
+  rewrite Z2N.inj_add by lia.
+  replace 
+  (Z.to_N 1 + Z.to_N (maxFree nt - Z.of_nat (length lv)) + N.of_nat (length lv))
+    with (Z.to_N 1 + Z.to_N (maxFree nt)).
+  Focus 2.
+  rewrite <- N.add_assoc.
+  f_equal.
+  rewrite <- (Nat2Z.id (length lv) ) at 2.
+  rewrite Z_nat_N.
+  rewrite <- Z2N.inj_add by lia.
+  replace ((maxFree nt - Z.of_nat (length lv) + Z.of_nat (length lv)))%Z
+     with (maxFree nt) by lia. refl.
+  rewrite <- Z2N.inj_add by lia.  
+  rewrite <- Z2N.inj_add by lia.  
+  simpl.
+  specialize (Hind n ltac:(lia)
+    (insertNs names
+              (combine
+                 (seq N.succ (Z.to_N (1 + (maxFree nt - Z.of_nat (length lv))))
+                    (length lv)) lv))).
+  exrepnd.
+  exists v. apply in_remove_nvars.
+  split; auto.
+  intros Hin.
+  apply fromDB_fvars in Hind0; [| apply exp_wf_maxFree; rewrite Z2N.id; lia].
+  apply (in_map getId) in Hin.
+  rewrite mapGetIdMapMkVarCombine in Hin.
+  apply in_seq_Nplus in Hin. apply 
+  repnd. clear Hin.
+  clear Hind0.
+  rewrite Z2N.inj_add in Hin0 by lia.  
+  rewrite Z2N.inj_add in Hind1 by lia.
+  rewrite Z2N.inj_sub in Hin0 by lia.
+  SearchAbout N Z.of_nat.
+  rewrite N.add_sub_assoc in Hin0 by lia.
+  SearchAbout N.sub N.add.
+  setoid_rewrite <- N.add_assoc in Hin0.
+  SearchAbout Z.to_N Z.of_nat.
+  lia.
+  SearchAbout Z.to_N Z.sub.
+  lia.  
+  clear Hfb.
+  rewrite 
+  
+
+  SearchAbout map getId map.
+    exact Hind0.
+  
+
+SearchAbout Z.to_N N.of_nat.
+
+SearchAbout Z.to_N Z.add.
+  replace 
+(Z.to_N (1 + (maxFree nt - Z.of_nat (length lv)))) with
+(Z.to_N (1 + maxFree nt) - Z.to_N (Z.of_nat (length lv))).
+Focus 2.
+  assert
+ (((1 + (maxFree nt - Z.of_nat (length lv))) + Z.of_nat (length lv))
+  =
+  ((1 + maxFree nt)))%Z. lia.
+  assert (0 < (maxFree nt - Z.of_nat (length lv)))%Z. lia.
+
+  replace
+ (Z.to_N (1 + (maxFree nt - Z.of_nat (length lv))) + N.of_nat (length lv))
+ with
+  (Z.to_N (1 + maxFree nt)). Focus 2.
+  lia.
+  psatz Z.
+  nlia. 
+SearchAbout Z.to_N.
+  
+
+  Focus 2.
+  rewrite N.add_comm in Hin.
+  apply in_remove_nvars in Hin. repnd.
+  invertsn Hfb.
+  apply Hind in Hin0; [ | assumption].
+  clear Hind Hfb. exrepnd.
+  rewrite Hin0.
+  rewrite Hin0 in Hin.
+  rewrite Hin0 in Hin1.
+  clear Hin0.
+  repeat rewrite getIdCorr in *.
+  pose proof (N.ltb_spec0 (getId a) n) as Hc.
+  destruct (getId a <? n); invertsn Hc;[ clear Hin Hin1 | ].
+  + split;[ assumption |].
+    rewrite lookupNDef_inserts_neq_seq; auto.
+  + provefalse. apply Hin. apply in_map.
+    clear Hin. apply N.nlt_ge in Hc.
+    rewrite N.add_comm in Hin1.
+    pose proof (conj Hc Hin1) as Hcc. rewrite <- in_seq_Nplus in Hcc.
+    clear Hc Hin1.
+    pose proof (combine_map_fst (seq N.succ n (length lv)) lv 
+      (seq_length _ _ _ _)) as He.
+    rewrite He in Hcc.
+    apply lookupNDef_inserts_eq with (m:=names) (def0:=def) in Hcc.
+    exrepnd. rewrite Hcc1. assumption.
+Qed.
 
 Let bvarsProp (n:N) (md:nat) (vars : list NVar): Prop := 
 lforall
@@ -867,52 +1038,6 @@ Proof.
 *)
 
 Definition NbinderDepth (v:@DTerm Name Opid) := N.of_nat (binderDepth v).
-
-(* comes up again and again *)
-Lemma lengthMapCombineSeq n2 lv:
-length (map mkNVar (combine (seq N.succ n2 (length lv)) lv)) = length lv.
-Proof using.
-  repeat rewrite map_length, length_combine_eq; 
-    repeat rewrite seq_length; refl.
-Qed.
-
-Lemma getIdMkVar x:
-getId (mkNVar x) = fst x.
-Proof using getId getIdCorr.
-  destruct x. simpl.
-  apply getIdCorr.
-Qed.
-
-
-Lemma mapGetIdMkVar  {T} lvn f:
-(map (λ x : T, getId (mkNVar (f x))) lvn)
-=(map (λ x : T, fst (f x)) lvn).
-Proof using getId getIdCorr.
-  intros.
-  Fail rewrite getIdMkVar.
-  Fail setoid_rewrite getIdMkVar.
-  apply map_ext.
-  intros.
-  rewrite getIdMkVar. refl.
-Qed.
-
-
-
-  Lemma mapFstSeqCombine n1 (lv: list Name):
-    (map fst (combine (seq N.succ n1 (length lv)) lv))
-    = (seq N.succ n1 (length lv)).
-  Proof using getIdCorr.
-    rewrite <- combine_map_fst2;[| rewrite seq_length; refl].
-    refl.
-  Qed.    
-
-  Lemma mapGetIdMapMkVarCombine n1 lv:
-    (map getId (map mkNVar (combine (seq N.succ n1 (length lv)) lv)))
-    = (seq N.succ n1 (length lv)).
-  Proof using getIdCorr.
-    rewrite map_map. unfold compose. simpl.
-    rewrite mapGetIdMkVar. apply mapFstSeqCombine.
-  Qed.
 
 
 
