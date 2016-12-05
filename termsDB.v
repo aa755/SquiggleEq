@@ -1405,18 +1405,21 @@ Qed.
 Lemma fromDB_ssubst_aux_eval_aux:  forall (e : DTerm) names (lv : list DTerm),
   fvars_below (NLength lv) e
   -> lforall (fvars_below 0) lv
-  -> fromDB 0 names (subst_aux_list 0 e (rev lv))
+  -> (fromDB 0 names (subst_aux_list 0 e (rev lv))
      ≡
      substitution.ssubst_aux 
         (fromDB (NLength lv) names e) 
         (combine 
           (map (var names) (rev (seq N.succ 0 (length lv)))) 
-          (map (fromDB 0 names) lv)).
+          (map (fromDB 0 names) lv)))
+      /\ fvars_below 0 (subst_aux_list 0 e (rev lv)).
 Proof using gts getIdCorr getId deqo.
   intros  ? ? ? Hfb Hfbl.
   rewrite (fst subst_aux_list_same_aux); auto.
-  rewrite fromDBHigherAlpha with (n1:=NLength lv) (names1:=names).
-- rewrite (fst fromDB_ssubst_aux_simple); auto.
+  assert (forall A B:Prop, ((A->B) /\ A) -> B /\ A) as Ht by tauto.
+  apply Ht. clear Ht. split. 
+- intros Ht. rewrite fromDBHigherAlpha with (n1:=NLength lv) (names1:=names); auto.
+  rewrite (fst fromDB_ssubst_aux_simple); auto.
   + rewrite ALMapCombine.
     rewrite seq_rev_N. rewrite map_map. unfold compose. simpl.
     rewrite N.add_0_l. refl.
@@ -1424,7 +1427,7 @@ Proof using gts getIdCorr getId deqo.
     simpl. rewrite in_seq_Nplus in Hin. unfold NLength.
     dands; [| lia].
     apply proj2 in Hin. apply Hfbl in Hin.
-    assumption. 
+    assumption.
 - pose proof (fst fvars_below_subst_aux_simpl e (combine (seq N.succ 0 (length lv)) lv)
       (NLength lv) (NLength lv)) as Hh.
   eapply fvars_below_mono;[| apply Hh; auto]; try lia; clear Hh.
@@ -1437,24 +1440,29 @@ Qed.
 Lemma fromDB_ssubst_aux_eval_rev :  forall (e : DTerm) names (lv : list DTerm),
   fvars_below (NLength lv) e
   -> lforall (fvars_below 0) lv
-  -> fromDB 0 names (subst_aux_list 0 e lv)
+  -> (fromDB 0 names (subst_aux_list 0 e lv)
      ≡
      substitution.ssubst_aux 
         (fromDB (NLength lv) names e) 
         (rev (combine 
                 (map (var names) ((seq N.succ 0 (length lv)))) 
-                (map (fromDB 0 names) lv))).
+                (map (fromDB 0 names) lv))))
+      /\ fvars_below 0 (subst_aux_list 0 e lv).
 Proof using gts getIdCorr getId deqo.
   intros  ? ? ? Hfb Hfbl.
   rewrite <- (rev_involutive lv).
-  rewrite fromDB_ssubst_aux_eval_aux; auto;
-    [ | unfold NLength; autorewrite with list; assumption|
-        apply lforall_rev; assumption].
-  rewrite rev_involutive.
-  unfold NLength; autorewrite with list.
-  rewrite map_rev.
-  rewrite map_rev.
-  rewrite <- rev_combine;[| autorewrite with list]; refl.
+  pose proof (fromDB_ssubst_aux_eval_aux e names (rev lv)) as Hh.
+  rewrite rev_involutive in Hh.
+  unfold NLength in *; autorewrite with list in *.
+  apply lforall_rev in Hfbl.
+  specialize (Hh Hfb Hfbl).
+  repnd.
+  dands; try assumption.
+  clear Hh Hfb Hfbl.
+  rewrite map_rev in Hh0.
+  rewrite map_rev in Hh0.
+  rewrite <- rev_combine in Hh0 ;[| autorewrite with list; refl].
+  assumption.
 Qed.
 
 Lemma fromDB_ssubst_aux_eval:  forall (e : DTerm) names (lv : list DTerm),
@@ -1469,7 +1477,7 @@ Lemma fromDB_ssubst_aux_eval:  forall (e : DTerm) names (lv : list DTerm),
            (map (fromDB 0 names) lv)).
 Proof using gts getIdCorr getId deqo.
   intros  ? ? ? Hfb Hfbl.
-  rewrite fromDB_ssubst_aux_eval_rev by assumption.
+  rewrite (proj1 (fromDB_ssubst_aux_eval_rev e names lv Hfb Hfbl)) by assumption.
   rewrite <- (fun r => app_nil_r (rev r)).
   rewrite <- ssubst_aux_rev;[rewrite app_nil_r; refl|].
   rewrite dom_sub_combine;[| autorewrite with list; refl].
@@ -1515,6 +1523,42 @@ Proof using gts getIdCorr getId deqo.
   intros ? Hin.
   apply Hfbl in Hin.
   apply fromDB_closed. assumption.
+Qed.
+
+Lemma fvars_below_subst_aux_list:
+(forall (e: @DTerm Name Opid) lt ,
+  fvars_below (NLength lt) e
+  -> lforall (fun s => fvars_below 0 s) lt
+  -> fvars_below 0 (subst_aux_list 0 e lt)).
+Proof using gts getIdCorr getId deqo
+   vartyp var deqv.
+  intros ? ? Hfb Hl.
+  eapply fromDB_ssubst_aux_eval_rev with (names:=Empty)in Hfb;[| apply Hl].
+  apply proj2 in Hfb. exact Hfb.
+Qed.
+
+Lemma fromDB_ssubst_eval2:  forall (e : DTerm) names (lv : list DTerm) ln,
+ let namesI := insertNs names (combine (list.seq N.succ 0 (length ln)) ln) in
+  fvars_below (NLength lv) e
+  -> lforall (fvars_below 0) lv
+  -> fromDB 0 namesI (subst_aux_list 0 e lv) (* unsafe substitution -- no lifting *)
+     ≡
+     substitution.ssubst (* capture avoiding substitution *)
+        (fromDB (NLength lv) namesI e) 
+        (combine 
+           (map (var namesI) ((seq N.succ 0 (length lv)))) 
+           (map (fromDB 0 names) lv)).
+Proof using gts getIdCorr getId deqo.
+  intros  ? ? ? ? ? Hfb Hfbl.
+  rewrite fromDB_ssubst_eval by assumption.
+  apply ssubst_alpha_congr;[| | | split];
+     autorewrite with list; try refl.
+  intros ? Hin.
+  rewrite map_nth2 with (d:= vterm 0) by assumption.
+  rewrite map_nth2 with (d:= vterm 0) by assumption.
+  apply fromDBHigherAlpha.
+  apply Hfbl. apply nth_In.
+  assumption.
 Qed.
 
 (* this is a the version with lifting. 

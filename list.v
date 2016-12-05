@@ -3461,3 +3461,13 @@ Proof.
   destruct (Zmax_spec p a) as [Hh| Hh]; repnd;
    rewrite Hh; rewrite Hh in IHlp; simpl in *; tauto.
 Qed.
+
+Hint Rewrite seq_length: list.
+
+Lemma length_combine_seq {A B:Type} (lnm: list A) (f: B->B) (s:B): 
+length (combine (seq f s (length lnm)) lnm) = length lnm.
+Proof using.
+  rewrite length_combine_eq; autorewrite with list; refl.
+Qed.
+
+Hint Rewrite @length_combine_seq: list.
