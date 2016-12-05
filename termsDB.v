@@ -634,27 +634,33 @@ Qed.
   Qed.
 
 
-Let fvarsProp2 (n:N) (vars : list NVar): Prop := 
-exists v, In v vars.
+Let fvarsProp2 (n:Z) (vars : list NVar): Prop := 
+exists v, In v vars /\ Z.of_N (getId v)  = n.
 
 SearchAbout (Z->N).
 Print Z.to_N.
 Lemma fromDB_maxFree:
   (forall (s : DTerm) (n:N),
     (Z.of_N n < maxFree s)%Z
-    -> forall names, fvarsProp2 n (@free_vars _ _ Opid 
+    -> forall names, fvarsProp2 (maxFree s) (@free_vars _ _ Opid 
       (fromDB (Z.to_N (1+maxFree s)) names s)))
   *
   (forall (s : DBTerm) (n:N),
     (Z.of_N n < maxFree_bt s)%Z
-    -> forall names, fvarsProp2 n
+    -> forall names, fvarsProp2 (maxFree_bt s)
        (@free_vars_bterm _ _ Opid (fromDB_bt (Z.to_N (1+maxFree_bt s)) names s))).
 Proof using getIdCorr.
   apply NTerm_BTerm_ind; unfold fvarsProp2.
 - intros nv n Hfb ?.
   Local Opaque Z.add.
   simpl.
-  simpl in *. eexists;[left;refl].
+  simpl in *. eexists;split;[left;refl|].
+  repeat rewrite getIdCorr. f_equal.
+  rewrite Z2N.inj_add by lia.
+  rewrite N2Z.id. simpl. clear.
+
+SearchAbout Z.of_N Z.to_N.
+  rewrite Z2N.id.
 - intros ? ? Hind n Hfb ?.
   simpl in *.
   admit. 
