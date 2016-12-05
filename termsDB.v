@@ -1424,6 +1424,42 @@ Proof using gts getIdCorr getId deqo.
   apply seq_NoDup.
 Qed.
 
+Lemma fromDB_closed :  forall (e : DTerm) names,
+  fvars_below 0 e
+  -> terms.closed (fromDB 0 names e).
+Proof using getIdCorr getId.
+  intros ? ? Hin.
+  apply (fst fromDB_fvars) with (names:=names) in Hin.
+  unfold fvarsProp in Hin.
+  unfold terms.closed.
+  rewrite <- null_iff_nil.
+  intros ? Hinn.
+  apply Hin in Hinn.
+  lia.
+Qed.
+
+
+Lemma fromDB_ssubst_eval:  forall (e : DTerm) names (lv : list DTerm),
+  fvars_below (NLength lv) e
+  -> lforall (fvars_below 0) lv
+  -> fromDB 0 names (subst_aux_list 0 e lv) (* unsafe substitution -- no lifting *)
+     ≡
+     substitution.ssubst (* capture avoiding substitution *)
+        (fromDB (NLength lv) names e) 
+        (combine 
+           (map (var names) ((seq N.succ 0 (length lv)))) 
+           (map (fromDB 0 names) lv)).
+Proof using gts getIdCorr getId deqo.
+  intros  ? ? ? Hfb Hfbl.
+  change_to_ssubst_aux8;[apply fromDB_ssubst_aux_eval; assumption|].
+  rewrite dom_range_combine;[| autorewrite with list; refl].
+  setoid_rewrite flat_map_map. unfold compose. simpl.
+  rewrite ( proj2 (flat_map_empty _ _ _ _));[disjoint_reasoning | ].
+  intros ? Hin.
+  apply Hfbl in Hin.
+  apply fromDB_closed. assumption.
+Qed.
+
 (* this is a the version with lifting. 
 Now that we may substitute with non-closed terms, 
   what should the first argument of fromDB be?
