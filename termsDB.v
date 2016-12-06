@@ -1541,7 +1541,7 @@ Lemma fromDB_ssubst_eval2:  forall (e : DTerm) names (lv : list DTerm) ln,
  let namesI := insertNs names (combine (list.seq N.succ 0 (length ln)) ln) in
   fvars_below (NLength lv) e
   -> lforall (fvars_below 0) lv
-  -> fromDB 0 namesI (subst_aux_list 0 e lv) (* unsafe substitution -- no lifting *)
+  -> fromDB 0 names (subst_aux_list 0 e lv) (* unsafe substitution -- no lifting *)
      ≡
      substitution.ssubst (* capture avoiding substitution *)
         (fromDB (NLength lv) namesI e) 
@@ -1550,6 +1550,8 @@ Lemma fromDB_ssubst_eval2:  forall (e : DTerm) names (lv : list DTerm) ln,
            (map (fromDB 0 names) lv)).
 Proof using gts getIdCorr getId deqo.
   intros  ? ? ? ? ? Hfb Hfbl.
+  rewrite fromDBHigherAlpha with (n1:=0) (names1:=namesI); auto;
+    [| apply fvars_below_subst_aux_list; auto; fail].
   rewrite fromDB_ssubst_eval by assumption.
   apply ssubst_alpha_congr;[| | | split];
      autorewrite with list; try refl.
@@ -1560,6 +1562,8 @@ Proof using gts getIdCorr getId deqo.
   apply Hfbl. apply nth_In.
   assumption.
 Qed.
+
+
 
 (* this is a the version with lifting. 
 Now that we may substitute with non-closed terms, 
