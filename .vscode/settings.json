@@ -1,0 +1,15 @@
+// Workspace settings
+{
+    "files.exclude": {
+        "**/*.vo": true,
+        "**/*.tex": true,
+        "**/*.v.d": true,
+        "**/*.aux": true,
+        "**/*.css": true,
+        "**/*.html": true,
+        "**/*.crashcoqide": true,
+        "**/*.sty": true,
+        "**/*.dblite": true,
+        "**/*.glob": true
+    }
+}
