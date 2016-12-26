@@ -181,6 +181,33 @@ match e with
     terms.bterm bvars (fromDB defn mkVar (max+ N.of_nat len) names dt)
 end.
 
+(* Move *)
+Fixpoint firstIndex {T:Type} {d: Deq T} (f:T) (l : list T) : option N :=
+match l with
+| [] => None
+| h::tl => if (decide (h=f)) then Some 0 else option_map N.succ (firstIndex f tl)
+end.
+
+(* deqn: Deq Name is incorrect getName may not be injective *)
+Fixpoint toDB {Name Opid NVar : Type} {deqn: Deq NVar} (getName : NVar -> Name) 
+  (context : list NVar)
+   (e:@NTerm NVar Opid) {struct e}
+  : (@DTerm Name Opid) :=
+match e with
+| terms.vterm n => vterm (opExtract 0(*error*) (firstIndex n context))
+| terms.oterm o lbt => oterm o (map (toDB_bt getName context) lbt)
+end
+with toDB_bt {Name Opid NVar : Type} {deqn: Deq NVar} (getName : NVar -> Name) 
+  (context : list NVar)
+   (e:@BTerm NVar Opid) {struct e}
+  : (@DBTerm Name Opid) :=
+match e with
+| terms.bterm lv nt =>
+    let context := lv++context in
+    bterm (map getName lv) (toDB getName context nt)
+end.
+
+
 Fixpoint shift {Name Opid : Type} (d(*isp*) s(*tart*) :N)
    (e:@DTerm Name Opid) {struct e}
   : (@DTerm Name Opid) :=

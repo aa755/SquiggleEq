@@ -1,4 +1,4 @@
-// Workspace settings
+// http://stackoverflow.com/a/36193178/391753
 {
     "files.exclude": {
         "**/*.vo": true,
