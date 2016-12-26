@@ -1732,7 +1732,7 @@ Lemma fromDB_toDB_id:
     fvars_below_bt nf e
     -> toDB_bt getName context (fromDB_bt nf names e)
        = e).
-Proof using getId getIdCorr.
+Proof using getId getIdCorr getNameCorr.
   simpl.
   apply NTerm_BTerm_ind.
 - intros ? ? ? Hfb. simpl.
@@ -1774,8 +1774,21 @@ Proof using getId getIdCorr.
   + clear Hfb. unfold NLength. rewrite Nnat.Nat2N.id.
     setoid_rewrite <- map_map. f_equal.
     rewrite map_id.
-    SearchAbout seq rev.
-    admit.
+    match goal with
+    | [|- _= ?r ] => rewrite <- (rev_involutive r)
+    end.
+    f_equal.
+    repeat rewrite <- map_rev.
+    f_equal.
+    rewrite seq_rev_N.
+    rewrite map_map. unfold compose.
+    Local Transparent N.add. simpl.
+    rewrite namesInsWierd1 with (nf:= 0) (names:=names) at 1.
+    apply eq_maps.
+    intros ? Hin.
+    apply in_seq_Nplus in Hin.
+    f_equal;[lia|].
+    f_equal; lia.
   + rewrite Nnat.N2Nat.id.
     replace (0 + NLength lv) with (NLength lv + 0) by lia.
     rewrite seq_map with (fa:= N.succ);[|intros; lia].
