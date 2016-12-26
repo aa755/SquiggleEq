@@ -29,7 +29,7 @@ Require Import list.
 
 Definition freshVarsNAux (n:nat) 
   (c : N) (avoid original : list N) : list N :=
-let maxn := NLmax avoid  0 in
+let maxn := N.succ (NLmax avoid  0) in
 List.map (fun x => (numClasses*x)+c)%N (seq N.succ (maxn) n).
 
 
@@ -76,8 +76,12 @@ Proof.
 
 - intros ? Hin Hinc.
   apply in_map_iff in Hin. exrepnd.
-  pose proof (seq_NMax _ t avoid _ Hin1 Hinc) as Hin.
-  subst. apply in_seq_Nplus in Hin1.
+  rename Hin1 into Hin.
+  rewrite seq_shift in Hin.
+  apply in_map_iff in Hin. exrepnd. subst.
+  rename a0 into t.
+  pose proof (seq_NMax _ _ avoid _ Hin2 Hinc) as Hin.
+  subst. apply in_seq_Nplus in Hin2.
    destruct oc as [c | ]; 
   [destruct c as [c p]|]; simpl in *;
   [apply N.ltb_lt in p |]; try nia.
@@ -86,8 +90,11 @@ Proof.
   apply in_map_iff in Hin.
   exrepnd.
   subst.
-  unfold varClassP.
-  destruct c; refl.
+  unfold varClassN.
+  
+  destruct c. simpl in *.
+  
+  f_equal.
 Qed.
 
 Global Instance vartypePos : VarType positive bool.

@@ -616,4 +616,19 @@ Proof using.
   intros x y. exists (deqOption x y). apply deqOptionCorr.
 Defined.
 
+Definition decSubtype {T:Type} (P: T -> Prop) {dec: forall t:T, Decidable (P t)} : Type :=
+  sig (fun t => decide (P t)= true).
 
+Lemma decSubtypeProofIrr {T:Type} (P: T -> Prop) {dec: forall t:T, Decidable (P t)}:
+  forall (a b: decSubtype P),
+    proj1_sig a = proj1_sig b -> a=b.
+Proof using.
+  intros ? ? Heq.
+  destruct a.
+  destruct b.
+  simpl in *. subst.
+  apply dep_pair_eq with (eq0:=eq_refl).
+  simpl.
+  apply Eqdep_dec.UIP_dec.
+  decide equality.
+Defined.
