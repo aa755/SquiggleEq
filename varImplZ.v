@@ -64,7 +64,7 @@ Lemma seq_maxlp : forall a v avoid n,
  -> (v <= a)%positive.
 Proof using.
   intros ? ? ? ? Hin1 Hina.
-  apply in_seql in Hin1. subst.
+  apply in_seql in Hin1.
   pose proof (maxlp_le v avoid xH (or_intror Hina)).
   lia.
 Qed.
