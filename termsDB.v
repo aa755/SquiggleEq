@@ -203,7 +203,7 @@ with toDB_bt {Name Opid NVar : Type} {deqn: Deq NVar} (getName : NVar -> Name)
   : (@DBTerm Name Opid) :=
 match e with
 | terms.bterm lv nt =>
-    let context := lv++context in
+    let context := (rev lv)++context in
     bterm (map getName lv) (toDB getName context nt)
 end.
 
@@ -1628,7 +1628,6 @@ Proof using gts getIdCorr getId deqo.
 Abort.
 
 
-Variable getName : NVar -> Name.
 
 (* Move: handy for backward reasoning *)
 Lemma opExtractSome  (A : Type) (d: A)  (op: option A) (x:A):
@@ -1714,10 +1713,14 @@ Proof.
 - apply IHl; auto. intros ? ? ? ?. apply Hin; right; auto.
 Qed.
 
+Variable getName : NVar -> Name.
+
+Hypothesis getNameCorr:  ∀ p, getName (mkNVar p) = snd p.
+
 Lemma fromDB_toDB_id:
   (forall (e : DTerm) (nf :N) names,
     let context := map (fun x => 
-        (* the largest fvar is bound most closely *)
+        (* the largest fvar is bound most closely, so the list is decreasing *)
         mkNVar (nf -x-1, lookupNDef def names (nf -x-1))) (seq N.succ 0 (N.to_nat nf)) in
     fvars_below nf e
     -> toDB getName context (fromDB nf names e)
@@ -1725,7 +1728,7 @@ Lemma fromDB_toDB_id:
   *
   (forall (e : DBTerm) (nf :N) names,
     let context := map (fun x => 
-        mkNVar (x, lookupNDef def names x)) (seq N.succ 0 (N.to_nat nf)) in
+        mkNVar (nf -x-1, lookupNDef def names (nf -x-1))) (seq N.succ 0 (N.to_nat nf)) in
     fvars_below_bt nf e
     -> toDB_bt getName context (fromDB_bt nf names e)
        = e).
@@ -1748,17 +1751,44 @@ Proof using getId getIdCorr.
     rewrite in_seq_Nplus in H1in.
     rewrite in_seq_Nplus in H2in.
     lia.
-- 
-
-  
-  induction nf.
-   revert induction nf. unfold opExtract.
-  rewrite sub_findALFind. unfold var.
-  change (mkNVar (nf + d - i - 1, lookupNDef def names (nf +d - i - 1))) with
-    (((λ x : N, mkNVar (nf +d- x - 1, lookupNDef def names (nf +d - x - 1)))) i).
-  rewrite ALFindMap2.
-  + dALFind ss; try refl. simpl.
-
+- intros ? ? Hind ? ? Hfb. inverts Hfb.
+  simpl. f_equal.
+  repeat rewrite map_map.
+  rewrite <- (map_id lbt) at 2.
+  apply eq_maps. eauto.
+- intros ? ? Hind  ? ? Hfb. invertsn Hfb. simpl.
+  rewrite map_map. unfold compose.
+  erewrite eq_maps;[| intros; apply getNameCorr].
+  rewrite <- combine_map_snd;[| autorewrite with list; refl].
+  f_equal.
+  rewrite N.add_comm in Hfb.
+  specialize (Hind (nf+ NLength lv) 
+    (insertNs names (combine (seq N.succ nf (length lv)) lv)) Hfb).
+  rewrite <- Hind at 2.
+  clear Hind.
+  f_equal.
+  rewrite N.add_comm.
+  rewrite Nnat.N2Nat.inj_add.
+  rewrite Nseq_add.
+  rewrite map_app. f_equal.
+  + clear Hfb. unfold NLength. rewrite Nnat.Nat2N.id.
+    setoid_rewrite <- map_map. f_equal.
+    rewrite map_id.
+    SearchAbout seq rev.
+    admit.
+  + rewrite Nnat.N2Nat.id.
+    replace (0 + NLength lv) with (NLength lv + 0) by lia.
+    rewrite seq_map with (fa:= N.succ);[|intros; lia].
+    rewrite map_map. unfold compose. simpl.
+    setoid_rewrite eq_maps at 2.
+    Focus 2. intros.
+    replace  (NLength lv + nf - (NLength lv + x) - 1) with
+      (nf - x - 1) by lia.  refl.
+    apply eq_maps.
+    intros ? Hin. f_equal. f_equal.
+    apply in_seq_Nplus in Hin. repnd.
+    rewrite lookupNDef_inserts_neq_seq; auto. lia.
+Qed.
 
 End DBToNamed.
 
