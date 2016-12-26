@@ -181,12 +181,6 @@ match e with
     terms.bterm bvars (fromDB defn mkVar (max+ N.of_nat len) names dt)
 end.
 
-(* Move *)
-Fixpoint firstIndex {T:Type} {d: Deq T} (f:T) (l : list T) : option N :=
-match l with
-| [] => None
-| h::tl => if (decide (h=f)) then Some 0 else option_map N.succ (firstIndex f tl)
-end.
 
 (* deqn: Deq Name is incorrect getName may not be injective *)
 Fixpoint toDB {Name Opid NVar : Type} {deqn: Deq NVar} (getName : NVar -> Name) 
@@ -1629,89 +1623,7 @@ Abort.
 
 
 
-(* Move: handy for backward reasoning *)
-Lemma opExtractSome  (A : Type) (d: A)  (op: option A) (x:A):
-  op = Some x
-  -> opExtract d op = x.
-Proof using.
-  clear. intros. subst. refl.
-Qed.
 
-  
-Print opExtract.
-
-
-Lemma firstIndexNoDup {T:Type} {d: Deq T} (f:T) (l : list T) n:
-  nth_error l n = Some f
-  -> NoDup l
-  -> firstIndex f l = Some (N.of_nat n).
-Proof using.
-  clear.
-  revert n.
-  induction l; simpl; intros ? Heq Hnd.
-- clear Hnd. destruct n; inverts Heq.
-Local Opaque N.of_nat.
-- destruct n; simpl in *;
-    [inverts Heq;rewrite deq_refl; refl| ].
-  invertsna Hnd  Hnd.
-  specialize (IHl _ Heq Hnd0).
-  clear Hnd0.
-  apply nth_error_In in Heq.
-  rewrite decide_decideP.
-  cases_if; subst;[contradiction|].
-  rewrite IHl. simpl.
-  rewrite Nnat.Nat2N.inj_succ.
-  refl.
-Local Transparent N.of_nat.
-Qed.  
-
-Lemma firstIndexNoDupN {T:Type} {d: Deq T} (f:T) (l : list T) n:
-  nth_error l (N.to_nat n) = Some f
-  -> NoDup l
-  -> firstIndex f l = Some n.
-Proof using.
-  rewrite <- Nnat.N2Nat.id at 2.
-  apply firstIndexNoDup.
-Qed.
-
-Lemma nth_error_map  (A B : Type) (f: A->B) (l : list A) (n : nat):
-  nth_error (map f l) n = option_map f (nth_error l n).
-Proof using.
-  revert n.
-  induction l; intros  n; destruct n; auto.
-  simpl. eauto.
-Qed.
-
-Lemma seq_nth_select start (nf n:nat):
-  (n < nf)%nat
-  -> (nth_error (seq N.succ start nf) n) = Some (start + N.of_nat n).
-Proof using.
-  revert  nf n start. clear.
-  induction nf; intros ? ? Hlt; destruct n; auto;  simpl in *; 
-    try omega;[f_equal; lia| ].
-  simpl. specialize (IHnf n (N.succ start) ltac:(omega)).
-  rewrite IHnf.
-  f_equal. lia.
-Qed.
-
-Definition injective_fun_conditional {A B : Type}  (C : A->Prop) (f : A → B) :=
-  ∀ a1 a2 : A,  C a1 ->  C a2 ->
-  f a1 = f a2 → a1 = a2.
-
-
-Lemma NoDupInjectiveMap2 (A B : Type) (f : A → B) l:
-  injective_fun_conditional (fun a => In a l) f
-  → NoDup l → NoDup (map f l).
-Proof.
-  intros Hin. induction l; [simpl; constructor |].
-  intros Hnd. inverts Hnd.
-  simpl. constructor; eauto.
-- intros Hl.
-  apply in_map_iff in Hl. subst.
-  exrepnd.
-  apply Hin in Hl0; subst; cpx.
-- apply IHl; auto. intros ? ? ? ?. apply Hin; right; auto.
-Qed.
 
 Variable getName : NVar -> Name.
 
