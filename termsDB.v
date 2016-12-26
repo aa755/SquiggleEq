@@ -1627,6 +1627,139 @@ Proof using gts getIdCorr getId deqo.
   + dALFind ss; try refl. simpl.
 Abort.
 
+
+Variable getName : NVar -> Name.
+
+(* Move: handy for backward reasoning *)
+Lemma opExtractSome  (A : Type) (d: A)  (op: option A) (x:A):
+  op = Some x
+  -> opExtract d op = x.
+Proof using.
+  clear. intros. subst. refl.
+Qed.
+
+  
+Print opExtract.
+
+
+Lemma firstIndexNoDup {T:Type} {d: Deq T} (f:T) (l : list T) n:
+  nth_error l n = Some f
+  -> NoDup l
+  -> firstIndex f l = Some (N.of_nat n).
+Proof using.
+  clear.
+  revert n.
+  induction l; simpl; intros ? Heq Hnd.
+- clear Hnd. destruct n; inverts Heq.
+Local Opaque N.of_nat.
+- destruct n; simpl in *;
+    [inverts Heq;rewrite deq_refl; refl| ].
+  invertsna Hnd  Hnd.
+  specialize (IHl _ Heq Hnd0).
+  clear Hnd0.
+  apply nth_error_In in Heq.
+  rewrite decide_decideP.
+  cases_if; subst;[contradiction|].
+  rewrite IHl. simpl.
+  rewrite Nnat.Nat2N.inj_succ.
+  refl.
+Local Transparent N.of_nat.
+Qed.  
+
+Lemma firstIndexNoDupN {T:Type} {d: Deq T} (f:T) (l : list T) n:
+  nth_error l (N.to_nat n) = Some f
+  -> NoDup l
+  -> firstIndex f l = Some n.
+Proof using.
+  rewrite <- Nnat.N2Nat.id at 2.
+  apply firstIndexNoDup.
+Qed.
+
+Lemma nth_error_map  (A B : Type) (f: A->B) (l : list A) (n : nat):
+  nth_error (map f l) n = option_map f (nth_error l n).
+Proof using.
+  revert n.
+  induction l; intros  n; destruct n; auto.
+  simpl. eauto.
+Qed.
+
+Lemma seq_nth_select start (nf n:nat):
+  (n < nf)%nat
+  -> (nth_error (seq N.succ start nf) n) = Some (start + N.of_nat n).
+Proof using.
+  revert  nf n start. clear.
+  induction nf; intros ? ? Hlt; destruct n; auto;  simpl in *; 
+    try omega;[f_equal; lia| ].
+  simpl. specialize (IHnf n (N.succ start) ltac:(omega)).
+  rewrite IHnf.
+  f_equal. lia.
+Qed.
+
+Definition injective_fun_conditional {A B : Type}  (C : A->Prop) (f : A → B) :=
+  ∀ a1 a2 : A,  C a1 ->  C a2 ->
+  f a1 = f a2 → a1 = a2.
+
+
+Lemma NoDupInjectiveMap2 (A B : Type) (f : A → B) l:
+  injective_fun_conditional (fun a => In a l) f
+  → NoDup l → NoDup (map f l).
+Proof.
+  intros Hin. induction l; [simpl; constructor |].
+  intros Hnd. inverts Hnd.
+  simpl. constructor; eauto.
+- intros Hl.
+  apply in_map_iff in Hl. subst.
+  exrepnd.
+  apply Hin in Hl0; subst; cpx.
+- apply IHl; auto. intros ? ? ? ?. apply Hin; right; auto.
+Qed.
+
+Lemma fromDB_toDB_id:
+  (forall (e : DTerm) (nf :N) names,
+    let context := map (fun x => 
+        (* the largest fvar is bound most closely *)
+        mkNVar (nf -x-1, lookupNDef def names (nf -x-1))) (seq N.succ 0 (N.to_nat nf)) in
+    fvars_below nf e
+    -> toDB getName context (fromDB nf names e)
+       = e)
+  *
+  (forall (e : DBTerm) (nf :N) names,
+    let context := map (fun x => 
+        mkNVar (x, lookupNDef def names x)) (seq N.succ 0 (N.to_nat nf)) in
+    fvars_below_bt nf e
+    -> toDB_bt getName context (fromDB_bt nf names e)
+       = e).
+Proof using getId getIdCorr.
+  simpl.
+  apply NTerm_BTerm_ind.
+- intros ? ? ? Hfb. simpl.
+  f_equal.
+  apply opExtractSome.
+  invertsn Hfb. revert Hfb.
+  intro.
+  apply firstIndexNoDupN.
+  + rewrite nth_error_map.
+    rewrite seq_nth_select;[| lia].
+    simpl. repeat f_equal; lia.
+  + apply NoDupInjectiveMap2;[| apply seq_NoDup].
+    intros ? ? H1in H2in Heq.
+    apply (f_equal getId) in Heq.
+    repeat rewrite getIdCorr in Heq.
+    rewrite in_seq_Nplus in H1in.
+    rewrite in_seq_Nplus in H2in.
+    lia.
+- 
+
+  
+  induction nf.
+   revert induction nf. unfold opExtract.
+  rewrite sub_findALFind. unfold var.
+  change (mkNVar (nf + d - i - 1, lookupNDef def names (nf +d - i - 1))) with
+    (((λ x : N, mkNVar (nf +d- x - 1, lookupNDef def names (nf +d - x - 1)))) i).
+  rewrite ALFindMap2.
+  + dALFind ss; try refl. simpl.
+
+
 End DBToNamed.
 
 
