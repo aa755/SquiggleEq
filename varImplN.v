@@ -12,7 +12,16 @@ Open Scope N_scope.
 
 Hypothesis numClassesPos: 0 < numClasses.
 
-Let class := (sig (fun n => N.ltb n numClasses = true)).
+(* Move *)
+Global Instance  decLtN (a b:N):
+ DecidableClass.Decidable ((a<b)%N).
+Proof using.
+  Fail (eauto with typeclass_instances; fail).
+  exists (N.ltb a b).
+  apply N.ltb_lt.
+Defined.
+
+Let class := decSubtype (fun n => (n<numClasses)%N).
 
 Global Instance varClassN : VarClass N class.
 Proof using numClasses numClassesPos.
@@ -91,13 +100,20 @@ Proof.
   exrepnd.
   subst.
   unfold varClassN.
-  
-  destruct c. simpl in *.
-  
-  f_equal.
+  apply decSubtypeProofIrr.
+  simpl.
+  destruct c as [c p]; simpl in *. clear Hin1.
+  apply N.ltb_lt in p.
+  rewrite N.add_comm.
+  rewrite N.mul_comm.
+  rewrite N.mod_add;[| lia].
+  clear a.
+  rewrite N.mod_small; lia.
 Qed.
 
-Global Instance vartypePos : VarType positive bool.
+Global Instance vartypeN : VarType N class.
   apply Build_VarType.
-  exact freshVarsPosCorrect.
+  exact freshVarsNCorrect.
 Defined.
+
+End NClasses.
