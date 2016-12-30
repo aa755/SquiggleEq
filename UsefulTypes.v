@@ -632,3 +632,11 @@ Proof using.
   apply Eqdep_dec.UIP_dec.
   decide equality.
 Defined.
+
+Global Instance  decLtN (a b:N):
+ DecidableClass.Decidable ((a<b)%N).
+Proof using.
+  Fail (eauto with typeclass_instances; fail).
+  exists (N.ltb a b).
+  apply N.ltb_lt.
+Defined.

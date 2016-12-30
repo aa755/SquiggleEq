@@ -1,40 +1,41 @@
 Require Import UsefulTypes.
 
-Require Import Coq.Arith.Arith Coq.NArith.BinNat Coq.Strings.String Coq.Lists.List Coq.omega.Omega 
+Require Import Coq.Arith.Arith Coq.NArith.BinNat
+  Coq.Strings.String Coq.Lists.List Coq.omega.Omega
   Coq.Program.Program Coq.micromega.Psatz.
 
 
 Require Import varInterface.
 Section NClasses.
 
+Require Import list.
+Require Import DecidableClass.
+
 Variable numClasses : N.
 Open Scope N_scope.
 
-Hypothesis numClassesPos: 0 < numClasses.
-
-(* Move *)
-Global Instance  decLtN (a b:N):
- DecidableClass.Decidable ((a<b)%N).
-Proof using.
-  Fail (eauto with typeclass_instances; fail).
-  exists (N.ltb a b).
-  apply N.ltb_lt.
-Defined.
+Hypothesis numClassesPos: decide (0 < numClasses)%N=true.
 
 Let class := decSubtype (fun n => (n<numClasses)%N).
 
-Global Instance varClassN : VarClass N class.
+(* nobody should match on the proof *)
+Lemma modDecPos p: decide (p mod numClasses < numClasses) = true.
+Proof.
+  apply N.ltb_lt.
+  apply N.mod_lt.
+  apply N.neq_0_lt_0.
+  setoid_rewrite Decidable_spec in numClassesPos.
+  assumption.
+Qed.
+
+Local Instance varClassN : VarClass N class.
 Proof using numClasses numClassesPos.
-intros p.
-exists (p mod numClasses).
-apply N.ltb_lt.
-apply N.mod_lt.
-apply N.neq_0_lt_0.
-assumption.
+  intros p.
+  exists (p mod numClasses).
+  apply modDecPos.
 Defined.
 
 
-Require Import list.
 
 Definition freshVarsNAux (n:nat) 
   (c : N) (avoid original : list N) : list N :=
@@ -42,7 +43,7 @@ let maxn := N.succ (NLmax avoid  0) in
 List.map (fun x => (numClasses*x)+c)%N (seq N.succ (maxn) n).
 
 
-Global Instance freshVarsN : FreshVars N class:=
+Local Instance freshVarsN : FreshVars N class:=
 fun (n:nat) 
   (c : option class) (avoid original : list N)
 =>
@@ -53,7 +54,6 @@ let c : N :=
   end in
   freshVarsNAux n c avoid original.
 
-Require Import tactics.
 
 Lemma seq_NMax : forall a v avoid n,
  LIn a (seq N.succ (NLmax avoid 0) n)
@@ -67,6 +67,7 @@ Proof using.
   lia.
 Qed.
 
+Require Import tactics.
 
 Lemma freshVarsNCorrect:
 forall (n : nat) (oc : option class) (avoid original : list N),
@@ -75,8 +76,11 @@ let lf := freshVarsN n oc avoid original in
 (forall c : class, oc = Some c -> forall v : N, In v lf -> varClassN v = c).
 Proof.
   intros.
+  pose proof numClassesPos as numClassesPosb.
+  setoid_rewrite Decidable_spec in numClassesPosb.
   split;[split;[|split]|]; subst lf; simpl; unfold freshVarsN,freshVarsNAux.
 - apply NoDupInjectiveMap;[|apply seq_NoDup].
+  setoid_rewrite Decidable_spec in numClassesPos.
   destruct oc; [destruct c as [c p]|];
   unfold injective_fun; intros;
   cpx; inversion H; simpl in *; auto;
@@ -111,7 +115,7 @@ Proof.
   rewrite N.mod_small; lia.
 Qed.
 
-Global Instance vartypeN : VarType N class.
+Local Instance vartypeN : VarType N class.
   apply Build_VarType.
   exact freshVarsNCorrect.
 Defined.
