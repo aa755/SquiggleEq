@@ -1292,6 +1292,7 @@ Proof using.
     Local Opaque ssubst_bterm_aux.
      simpl.
     addFreshVarsSpec2 lvn Hfr. repnd.
+    rewrite <- decide_disjoint_ite.
     cases_ifn Hd;[| apply alphaeqbt_refl].
     unfold all_vars in Hfr1.
     add_changebvar_spec ss Hdd. simpl.
@@ -2300,6 +2301,8 @@ Proof using varclass.
   subst lvv. generalize (v :: lv). intro lvv.
   Local Opaque ssubst_bterm_aux change_bvars_alphabt.
   simpl.
+  rewrite <- decide_disjoint_ite.
+
   cases_ifn Hd; clear Hd; intros Hin;
     (eapply lforall_subset;[apply boundvars_ssubst_bterm_aux_subset|]);
     setoid_rewrite varsOfClassApp; simpl;

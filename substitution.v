@@ -1137,7 +1137,7 @@ with ssubst_bterm  {NVar VarCl}  {d : Deq NVar}
   | bterm lv nt => 
       let bt :=
          let sfr := flat_map free_vars (range sub) in
-        if dec_disjointv (lv++bound_vars nt) sfr 
+        if decide_disjoint (lv++bound_vars nt) sfr 
         then bt 
         else change_bvars_alphabt sfr bt
         in ssubst_bterm_aux bt sub
@@ -1215,6 +1215,7 @@ Proof using.
        apply Hind; auto; 
        disjoint_reasoningv; fail
      | clear Hind].
+  rewrite <- decide_disjoint_ite.
   cases_if;[| contradiction].
   simpl. refl.
 Qed.
