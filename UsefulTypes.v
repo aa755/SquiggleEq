@@ -106,15 +106,16 @@ Class DecidableSumbool (P:Prop) := decSumbool : {P} + {!P}.
 
 Global Instance  decAsSumbool {P:Prop} `{DecidableSumbool P} : Decidable P.
 Proof.
-  destruct H;[exists true | exists false]; try tauto.
-  split; congruence.
+  destruct H;[exists true | exists false].
+  - split; intro H;[exact p | exact eq_refl].
+  - split; intro H;[inversion H| apply False_rect; apply n,H].
 Defined.
 
 Class DeqSumbool T := deceqSumbool :> forall (a b:T), DecidableSumbool (a=b).
 
 Global Instance  deqAsSumbool {T:Type} `{DeqSumbool T} : Deq T.
 Proof.
-   intros ? ?.  eauto with typeclass_instances.
+   intros ? ?. apply decAsSumbool.
 Defined.
 
 Global Instance deq_prod {A B : Type} `{Deq A} `{Deq B}
@@ -640,3 +641,84 @@ Proof using.
   exists (N.ltb a b).
   apply N.ltb_lt.
 Defined.
+
+Require Import String.
+Require Import Ascii.
+
+(** Efficienty string equality:
+  Adapted from a post by Randy Pollack
+https://sympa.inria.fr/sympa/arc/coq-club/2016-12/msg00126.html
+*)
+
+Definition xor (b1 b2:bool) : bool :=
+  match b1, b2 with
+    | true, true => true
+    | false, false => true
+    | _, _ => false
+  end.
+Definition ascii_dec_bool (a b:ascii): bool :=
+  match a, b with
+    | Ascii a0 a1 a2 a3 a4 a5 a6 a7,
+      Ascii b0 b1 b2 b3 b4 b5 b6 b7 =>
+      andb (andb (andb (xor a0 b0) (xor a1 b1))
+                 (andb (xor a2 b2) (xor a3 b3)))
+           (andb (andb (xor a4 b4) (xor a5 b5))
+                 (andb (xor a6 b6) (xor a7 b7)))
+  end.
+
+Fixpoint string_eq_bool (a1 a2:string) : bool :=
+  match a1, a2 with
+    | String b bs, String c cs =>
+      (ascii_dec_bool b c) && (string_eq_bool bs cs)
+    | EmptyString, EmptyString => true
+    | _, _ => false
+  end.
+
+Definition isInl {A B:Type} (p: A+B) : bool :=
+match p with
+| inl _ => true
+| inr _ => false
+end.
+
+Definition isLeft {A B:Prop} (p: sumbool A B) : bool :=
+match p with
+| left _ => true
+| right _ => false
+end.
+
+(*
+Lemma  string_eq_bool a1 a2 (a1s a2:string) :
+string_eq_bool (String a1 a1s) (String a2 a2s)  = 
+string_eq_bool 
+*)
+Lemma ascii_eq_bool_correct1 (a1 a2:ascii) :
+ascii_dec_bool a1 a2 = isLeft (ascii_dec a1 a2).
+Proof using.
+destruct a1, a2.
+(* destructing each pair results in 2 subgoals instead of 4. Also, those
+terms are simpler.
+Naively destructing will create 2^16 large suboals *)
+destruct b,b7; simpl; try reflexivity;
+destruct b0,b8; simpl; try reflexivity;
+destruct b1,b9; simpl; try reflexivity;
+destruct b2,b10; simpl; try reflexivity;
+destruct b3,b11; simpl; try reflexivity;
+destruct b4,b12; simpl; try reflexivity;
+destruct b5,b13; simpl; try reflexivity;
+destruct b6,b14; simpl; try reflexivity.
+Qed.
+
+
+Lemma string_eq_bool_correct1 (a1 a2:string) :
+string_eq_bool a1 a2 = isLeft (string_dec a1 a2).
+Proof using.
+  revert a2.
+  induction a1 as [| a1 a1s Hind].
+- destruct a2 as [| a2  a2s]; simpl; refl.
+- intros a2s. simpl string_eq_bool.
+  destruct a2s;[refl|].
+  rewrite Hind. clear Hind.
+  simpl. rewrite ascii_eq_bool_correct1.
+  destruct (string_dec a1s a2s); destruct (ascii_dec a1 a); refl.
+Qed.
+  

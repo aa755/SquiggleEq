@@ -2286,6 +2286,9 @@ Proof.
     rw disjoint_app_r. apply t_iff_refl.
 Qed.
 
+Definition decide_disjoint {T:Type} {deqt: Deq T} (la lb: list T) : bool :=
+ball (List.map (fun x=>negb (memberb _ x lb)) la).
+
 Lemma dec_disjoint :
   forall {T:Type} (deqt: Deq T) (la lb: list T),
     disjoint la lb + (!disjoint la lb).
@@ -2295,6 +2298,32 @@ Proof.
   - destruct (in_deq T deqt a lb);[right|left];sp;disjoint_reasoning;sp.
   - sp. apply nd. disjoint_reasoning; sp.
 Defined.
+
+
+Lemma  decide_disjoint_correct {T:Type} {deqt: Deq T} (la lb: list T) :
+isInl (dec_disjoint _ la lb) =  decide_disjoint la lb.
+Proof using.
+  induction la as [|a la IHla]; sp.
+  unfold decide_disjoint. simpl.
+  setoid_rewrite <- IHla. clear IHla.
+  destruct (dec_disjoint deqt la lb); sp;[| simpl; rewrite andb_false_r; refl].
+  unfold negb.
+  rewrite memberb_din.
+  simpl.
+  destruct (in_deq T deqt a lb); refl.
+Qed.
+
+
+Lemma decide_disjoint_ite:
+  forall (S T : Type) (deq : Deq S) (la lb : list S) (ct cf : T),
+  (if dec_disjoint deq la lb then ct else cf) = 
+      (if decide_disjoint la lb then ct else cf).
+Proof.
+  intros.
+  rewrite <- decide_disjoint_correct.
+  destruct (dec_disjoint deq la lb); refl.
+Qed.
+
 
 Ltac simpl_list :=
   match goal with
