@@ -721,4 +721,12 @@ Proof using.
   simpl. rewrite ascii_eq_bool_correct1.
   destruct (string_dec a1s a2s); destruct (ascii_dec a1 a); refl.
 Qed.
-  
+
+Global Instance deq_string : Deq string.
+intros s1 s2.
+exists (string_eq_bool s1 s2).
+rewrite string_eq_bool_correct1.
+destruct (string_dec s1 s2); simpl.
+-split; intro H;[exact e | exact eq_refl].
+- split; intro H;[inversion H| apply False_rect; apply n,H].
+Defined.
