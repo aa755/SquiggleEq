@@ -256,5 +256,17 @@ match t with
     flatten [spaces; pv; "." ; pt]
 end.
 
+Definition btMapNt {O V} (f: @NTerm O V -> @NTerm O V)
+   (b: @BTerm O V) : @BTerm O V :=
+match b with
+|bterm lv nt => bterm lv (f nt)
+end.
+
+Definition btSkipBinders {O V} (n:nat)
+   (b: @BTerm O V) : @BTerm O V :=
+match b with
+|bterm lv nt => bterm (skipn n lv) nt
+end.
+
 
 

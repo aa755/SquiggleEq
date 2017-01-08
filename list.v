@@ -3585,3 +3585,7 @@ Proof.
   apply Hin in Hl0; subst; sp.
 - apply IHl; auto. intros ? ? ? ?. apply Hin; right; auto.
 Qed.
+
+Definition boolNthTrue (len n:nat) : list bool:=
+map (fun m => if decide(n=m) then true else false )(List.seq 0 len).
+
