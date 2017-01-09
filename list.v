@@ -2324,6 +2324,12 @@ Proof.
   destruct (dec_disjoint deq la lb); refl.
 Qed.
 
+Global Instance decideDisjoint {T:Type} {deqt: Deq T} (la lb: list T) 
+  : Decidable (disjoint la lb).
+exists (decide_disjoint la lb).
+  rewrite <- decide_disjoint_correct.
+  destruct (dec_disjoint deqt la lb); simpl; firstorder.
+Defined.
 
 Ltac simpl_list :=
   match goal with
@@ -3589,3 +3595,30 @@ Qed.
 Definition boolNthTrue (len n:nat) : list bool:=
 map (fun m => if decide(n=m) then true else false )(List.seq 0 len).
 
+Print NoDup.
+
+Fixpoint noDupB {A:Type} {deq : Deq A} (la: list A) : bool :=
+match la with
+| [] => true
+| h::tl => andb (negb (decide (In h tl))) (noDupB tl)
+end.
+
+Lemma noDupBCorrect {A:Type} {deq : Deq A} (la: list A) : 
+  noDupB la = true <-> NoDup la.
+Proof.
+  induction la; simpl;[split; intro Hyp; eauto using NoDup_nil,NoDup_cons| ].
+  unfold negb.
+  rewrite memberb_din.
+  destruct (in_deq A deq a la); split; intro Hyp; try inverts Hyp;
+    repeat rewrite andb_true_l in *;
+    try congruence; eauto using NoDup_cons.
+  - apply NoDup_cons; eauto. apply IHla. assumption.
+  - apply IHla. assumption.
+Qed.
+
+
+
+Global Instance decideNoDup {A:Type} {deq : Deq A} (la: list A) : Decidable (NoDup la).
+  exists (noDupB la).
+  rewrite noDupBCorrect. refl.
+Defined. 
