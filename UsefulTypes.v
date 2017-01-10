@@ -730,3 +730,8 @@ destruct (string_dec s1 s2); simpl.
 -split; intro H;[exact e | exact eq_refl].
 - split; intro H;[inversion H| apply False_rect; apply n,H].
 Defined.
+
+(* Move *)
+Definition decide_true {P} {deqq: Decidable P} : P -> decide P = true := 
+ltac:(apply Decidable_complete).
+
