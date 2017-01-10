@@ -667,45 +667,63 @@ Qed.
 The following lemma is the property we promised to prove while definining [ssubst].
 *)
 
-Lemma change_bvars_alpha_spec_aux: forall lv,
-  (forall nt, 
+Fixpoint uniqueBindersDisjointFrom (lvd: list NVar) (t: NTerm) : bool :=
+match t with
+| terms.vterm v => true
+| oterm o lbt => ball (map (uniqueBindersDisjointFrom_bt lvd) lbt)
+end
+with uniqueBindersDisjointFrom_bt (lvd: list NVar) (t: BTerm) : bool :=
+match t with
+| bterm lv nt => 
+  (decide (disjoint lv lvd)) && (decide (NoDup lv)) 
+    && (uniqueBindersDisjointFrom (lv++lvd) nt)
+end.
+
+
+(* prove that uniqueBindersDisjointFrom implies disjoint boundvars --
+it additionally also captures uniqueness *)
+
+Print bound_vars.
+Lemma change_bvars_alpha_spec_aux:
+  (forall nt lv, 
   let nt' := change_bvars_alpha lv nt in
-  disjoint lv (bound_vars nt') #alpha_eq nt nt')
-  * (forall bt,
+  (uniqueBindersDisjointFrom lv nt' = true) #alpha_eq nt nt')
+  * (forall bt lv,
   let bt' := change_bvars_alphabt lv bt in
-  disjoint lv (bound_vars_bterm bt') #alpha_eq_bterm bt bt').
+  (uniqueBindersDisjointFrom_bt lv bt' = true) #alpha_eq_bterm bt bt' 
+    ).
 Proof using.
   intros. apply NTerm_BTerm_ind;
     [intro v; cpx| |].
   - intros ? ? Hind.
-   simpl. split.
-    + rewrite disjoint_flat_map_r.
-      intros ? Hin.
-      apply in_map_iff in Hin.
-      exrepnd. subst.
-      apply Hind. auto.
-    + 
-      constructor; try (rw map_length; auto);[].
+   simpl. split;[|].
+    + rewrite map_map. unfold compose.
+      rewrite ball_map_true.
+      intros. apply Hind. assumption.
+
+    +constructor; try (rw map_length; auto);[].
       introv Hlt. rw @selectbt_map; auto.
       pose proof (selectbt_in2 n lbt Hlt) as XX; exrepnd.
       destruct bt as [blv bnt]. rewrite XX0.
       apply Hind. auto.
 
 - intros blv bnt Hnt. split.
-   +  introv Hin Hinc. rename t into vv.
-      allsimpl. subst.
-      simpl in *.
-       addFreshVarsSpec2 vn pp.
+Local Opaque decide.
+   +  simpl.
+      addFreshVarsSpec2 vn pp.
       exrepnd. allsimpl.
-      duplicate Hin.
-      repnd.
-      apply Hnt0 in Hin0.
-      setoid_rewrite boundvars_ssubst_aux_vars in Hinc; sp.
+      rewrite decide_true by disjoint_reasoningv.
+      rewrite decide_true by assumption.
+      simpl.
+      (* prove that ssubst_aux var_ren preserves unique Binders.
+      then apply hind. *)
+      admit.
+(*      setoid_rewrite boundvars_ssubst_aux_vars in Hinc; sp.
       apply disjoint_sym  in pp1.
       apply disjoint_app_l in pp1. repnd. apply pp2 in Hin.
       apply in_app_iff in Hinc.
       simpl in *.  
-      dorn Hinc; sp.
+      dorn Hinc; sp. *)
   
 
   +  allsimpl. subst.
@@ -736,7 +754,7 @@ Proof using.
     apply alpha3_ssubst_aux_allvars_congr2;sp.
     Focus 2. disjoint_reasoningv.
     apply alpha_eq3_if.
-    eauto.
+    apply Hnt.
 Qed.
 
 Definition change_bvars_alpha_spec: forall (nt : NTerm) (lv : list NVar),
@@ -2691,7 +2709,75 @@ Proof using.
   dands; spc.
 Qed.
 
+
+
+
+Lemma change_bvars_alpha_uniq_binders:
+  (forall nt lvd, 
+  let nt' := change_bvars_alpha lvd nt in
+  uniqueBindersDisjointFrom lvd nt' = true)
+  * (forall bt lvd,
+  let bt' := change_bvars_alphabt lvd bt in
+  uniqueBindersDisjointFrom_bt lvd bt' = true).
+Proof using.
+  intros. apply NTerm_BTerm_ind;
+    [intro v; cpx; fail| |].
+
+- intros ? ? Hind ?.
+   simpl. rewrite map_map. unfold compose.
+   apply ball_map_true. eauto.
+- simpl. intros ? ? Hind ?.
+  rewrite Hind.
+ intros blv bnt Hnt. split.
+   +  introv Hin Hinc. rename t into vv.
+      allsimpl. subst.
+      simpl in *.
+       addFreshVarsSpec2 vn pp.
+      exrepnd. allsimpl.
+      duplicate Hin.
+      repnd.
+      apply Hnt0 in Hin0.
+      setoid_rewrite boundvars_ssubst_aux_vars in Hinc; sp.
+      apply disjoint_sym  in pp1.
+      apply disjoint_app_l in pp1. repnd. apply pp2 in Hin.
+      apply in_app_iff in Hinc.
+      simpl in *.  
+      dorn Hinc; sp.
   
+
+  +  allsimpl. subst.
+     simpl. addFreshVarsSpec2 vn pp.
+      destruct (fresh_vars (length blv) (lv ++ vn ++ (all_vars bnt) 
+        ++ all_vars
+     (change_bvars_alpha lv bnt))) as [lvn pal].
+    exrepnd. allsimpl.
+    disjoint_reasoningv.
+     apply al_bterm with (lv:=lvn); sp.
+    unfold all_vars. rw @boundvars_ssubst_aux_vars;sp;
+    try(disjoint_reasoningv).
+    introv Hin Hinc.
+    applydup pal5 in Hin.
+    apply free_vars_ssubst_aux in Hinc;
+    [ |apply disjoint_bv_vars; sp].
+    dorn Hinc; exrepnd; sp. apply in_var_ren in Hinc0. exrepnd.
+    subst.
+    allsimpl.
+    dorn Hinc1; sp.
+    subst.
+    apply pal3 in Hin. sp.
+    rewrite <- ssubst_ssubst_aux; 
+    spcls; disjoint_reasoningv. rewrite ssubst_nest_vars_same; sp;
+    try congruence; try disjoint_reasoningv.
+    apply alpha_eq_if3 with (lv:=nil).
+    change_to_ssubst_aux8.
+    apply alpha3_ssubst_aux_allvars_congr2;sp.
+    Focus 2. disjoint_reasoningv.
+    apply alpha_eq3_if.
+    eauto.
+Qed.
+
+SearchAbout change_bvars_alpha.
+
 
 Lemma sub_rel_ssubst_sub_alpha : forall subr subl subla,
   sub_range_rel alpha_eq subl subla
@@ -3929,6 +4015,10 @@ Proof.
   rewrite <- H1a.
   assumption.
 Qed.
+
+
+
+
 
 End AlphaGeneric.
 
