@@ -3621,4 +3621,17 @@ Qed.
 Global Instance decideNoDup {A:Type} {deq : Deq A} (la: list A) : Decidable (NoDup la).
   exists (noDupB la).
   rewrite noDupBCorrect. refl.
-Defined. 
+Defined.
+
+Lemma NoDupApp {A:Type} (la lb: list A): 
+  NoDup la -> NoDup lb -> disjoint la lb -> NoDup (la++lb).
+Proof using.
+  induction la; auto;[].
+  intros H1d H2d Hdis.
+  rewrite <- app_comm_cons.
+  inverts H1d.
+  apply disjoint_cons_l in Hdis. repnd.
+  constructor;[ rewrite in_app_iff; tauto| eauto].
+Qed.
+
+ 

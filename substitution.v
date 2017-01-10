@@ -1081,6 +1081,34 @@ match bt with
          bterm lvn (ssubst_aux bnt' (var_ren blv lvn))
 end.
 
+Fixpoint uniq_change_bvars_alpha {NVar VarCl : Type}
+`{Deq NVar}
+    {fv : FreshVars NVar VarCl}
+    {vc : VarClass NVar VarCl}
+{Opid} (lv : list NVar ) (t : (@NTerm NVar Opid)) 
+: (@NTerm NVar Opid) :=
+match t with
+| vterm v => vterm v
+| oterm o lbt => oterm o 
+  (snd 
+    (List.fold_right (fun b (r: (list NVar) * list BTerm) => let (rlv, rb) := r in
+    (* todo: one pass ?*)    
+     let b := @uniq_change_bvars_alphabt NVar _  _ fv vc Opid rlv b in
+     (bound_vars_bterm b++rlv, b::rb)) (lv,[]) lbt))
+end
+with uniq_change_bvars_alphabt {NVar VarCl : Type} 
+`{Deq NVar}    {fv: FreshVars NVar VarCl}
+    {vc : VarClass NVar VarCl}
+  {Opid} lv
+(bt: @BTerm NVar Opid) 
+: (@BTerm NVar Opid):=
+match bt with
+| bterm blv bnt => 
+    let bnt' := uniq_change_bvars_alpha lv bnt in
+    let lvn := freshReplacements blv (lv++(all_vars bnt')) in (* only boundvars ?*)
+         (bterm lvn (ssubst_aux bnt' (var_ren blv lvn)))
+end.
+
 
 
 (** % \noindent \\* %
