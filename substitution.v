@@ -1071,11 +1071,8 @@ with change_bvars_alphabt {NVar VarCl : Type}
 match bt with
 | bterm blv bnt => 
     let bnt' := change_bvars_alpha lv bnt in
-  (* All boundvars are produced by the [freshReplacements] function,
-    which produces unique (no_repeats) variables.
-    Also, these variables are disjoint from the bound variables of
-    the subterm bnt'.
-    So all occurrences of bound variables in the result are distinct.
+  (* two sibling bterms in an oterm may share bound variables. use the
+  [uniq_change_bvars_alpha] is all bvars need to be unique
     *)
     let lvn := freshReplacements blv (lv++(all_vars bnt')) in
          bterm lvn (ssubst_aux bnt' (var_ren blv lvn))

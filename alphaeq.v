@@ -716,31 +716,44 @@ Proof using.
     exrepnd. allsimpl.
     disjoint_reasoningv.
      apply al_bterm with (lv:=lvn); sp.
-    unfold all_vars. rw @boundvars_ssubst_aux_vars;sp;
-    try(disjoint_reasoningv).
-    introv Hin Hinc.
-    applydup pal5 in Hin.
-    apply free_vars_ssubst_aux in Hinc;
-    [ |apply disjoint_bv_vars; sp].
-    dorn Hinc; exrepnd; sp. apply in_var_ren in Hinc0. exrepnd.
-    subst.
-    allsimpl.
-    dorn Hinc1; sp.
-    subst.
-    apply pal3 in Hin. sp.
-    rewrite <- ssubst_ssubst_aux; 
-    spcls; disjoint_reasoningv. rewrite ssubst_nest_vars_same; sp;
-    try congruence; try disjoint_reasoningv.
-    apply alpha_eq_if3 with (lv:=nil).
-    change_to_ssubst_aux8.
-    apply alpha3_ssubst_aux_allvars_congr2;sp.
-    Focus 2. disjoint_reasoningv.
-    apply alpha_eq3_if.
-    eauto.
+    * unfold all_vars. rw @boundvars_ssubst_aux_vars;sp;
+      try(disjoint_reasoningv).
+      introv Hin Hinc.
+      applydup pal5 in Hin.
+      apply free_vars_ssubst_aux in Hinc;
+      [ |apply disjoint_bv_vars; sp].
+      dorn Hinc; exrepnd; sp. apply in_var_ren in Hinc0. exrepnd.
+      subst.
+      allsimpl.
+      dorn Hinc1; sp.
+      subst.
+      apply pal3 in Hin. sp.
+      
+    * rewrite <- ssubst_ssubst_aux; 
+      spcls; disjoint_reasoningv. rewrite ssubst_nest_vars_same; sp;
+      try congruence; try disjoint_reasoningv.
+      apply alpha_eq_if3 with (lv:=nil).
+      change_to_ssubst_aux8.
+      apply alpha3_ssubst_aux_allvars_congr2;sp.
+      Focus 2. disjoint_reasoningv.
+      apply alpha_eq3_if.
+      eauto.
 Qed.
 
+Lemma alpha_eq_cons : forall o1 o2 lbt1 lbt2 b1 b2,
+alpha_eq_bterm b1 b2
+-> alpha_eq (oterm o1 lbt1) (oterm o1 lbt2)
+-> alpha_eq (oterm o2 (b1::lbt1)) (oterm o2 (b2::lbt2)).
+Proof using.
+  introv Halb Halo.
+  inverts Halo as Hlen Halo.
+  constructor; simpl; try congruence.
+  intros.
+  destruct n as [| n]; unfold selectbt; simpl; eauto;[].
+  apply Halo. omega.
+Qed.
 
-Let uniqVarLb :BTerm -> list NVar * list BTerm -> list NVar * list BTerm 
+Definition uniqVarLb :BTerm -> list NVar * list BTerm -> list NVar * list BTerm 
 := (fun (b : BTerm) (r : list NVar * list BTerm) =>
               let (rlv, rb) := r in
               (bound_vars_bterm (uniq_change_bvars_alphabt rlv b)++ rlv,
@@ -749,7 +762,7 @@ Let uniqVarLb :BTerm -> list NVar * list BTerm -> list NVar * list BTerm
 Lemma uniqVarLbFst : forall lbt lv, 
 let (rlv, rbt) := fold_right uniqVarLb (lv,[]) lbt in
 rlv = flat_map bound_vars_bterm rbt ++ lv.
-Proof.
+Proof using.
   induction lbt; intros; simpl; auto; autorewrite with list.
   specialize (IHlbt lv).
   destruct (fold_right uniqVarLb (lv, []) lbt).
@@ -767,6 +780,7 @@ Lemma uniq_change_bvars_alpha_spec_aux:
   let bt' := bterm blv bnt in
   NoDup (bound_vars_bterm bt') # disjoint lv (bound_vars_bterm bt') #alpha_eq_bterm bt bt').
 Proof using.
+  clear gts.
   intros. apply NTerm_BTerm_ind;
     [intro v; cpx| |].
 - intros ? ? Hind.
@@ -787,67 +801,61 @@ Proof using.
   simpl in *.
   destruct (uniq_change_bvars_alphabt rlv b ) as [blv bnt].
   subst rlv. repnd.
+  dands;simpl in *.
+  + apply NoDupApp; auto.
+    repeat disjoint_reasoning.
+  + disjoint_reasoningv.
+  + apply alpha_eq_cons with (o1:=o); assumption.
+- intros blv bnt Hnt lv. allsimpl. subst.
+  specialize (Hnt lv).
+  addFreshVarsSpec2 vn pp.
+  exrepnd. allsimpl.
   dands.
-  + simpl in *. repnd.
-    apply NoDupApp; auto.
-    repeat disjoint_reasoning.
+   + setoid_rewrite boundvars_ssubst_aux_vars;[|congruence].
+     apply NoDupApp; noRepDis.
 
-  + simpl.
-    repeat disjoint_reasoning.
-
-  + constructor; try (rw map_length; auto);[].
-      introv Hlt. rw @selectbt_map; auto.
-      pose proof (selectbt_in2 n lbt Hlt) as XX; exrepnd.
-      destruct bt as [blv bnt]. rewrite XX0.
-      apply Hind. auto.
-
-- intros blv bnt Hnt. split.
    +  introv Hin Hinc. rename t into vv.
       allsimpl. subst.
       simpl in *.
-       addFreshVarsSpec2 vn pp.
-      exrepnd. allsimpl.
       duplicate Hin.
       repnd.
-      apply Hnt0 in Hin0.
       setoid_rewrite boundvars_ssubst_aux_vars in Hinc; sp.
       apply disjoint_sym  in pp1.
       apply disjoint_app_l in pp1. repnd. apply pp2 in Hin.
       apply in_app_iff in Hinc.
       simpl in *.  
       dorn Hinc; sp.
-  
+      unfold disjoint in pp2. firstorder.
 
-  +  allsimpl. subst.
-     simpl. addFreshVarsSpec2 vn pp.
-      destruct (fresh_vars (length blv) (lv ++ vn ++ (all_vars bnt) 
+  + destruct (fresh_vars (length blv) (lv ++ vn ++ (all_vars bnt) 
         ++ all_vars
-     (change_bvars_alpha lv bnt))) as [lvn pal].
+     (uniq_change_bvars_alpha lv bnt))) as [lvn pal].
     exrepnd. allsimpl.
     disjoint_reasoningv.
-     apply al_bterm with (lv:=lvn); sp.
-    unfold all_vars. rw @boundvars_ssubst_aux_vars;sp;
-    try(disjoint_reasoningv).
-    introv Hin Hinc.
-    applydup pal5 in Hin.
-    apply free_vars_ssubst_aux in Hinc;
-    [ |apply disjoint_bv_vars; sp].
-    dorn Hinc; exrepnd; sp. apply in_var_ren in Hinc0. exrepnd.
-    subst.
-    allsimpl.
-    dorn Hinc1; sp.
-    subst.
-    apply pal3 in Hin. sp.
-    rewrite <- ssubst_ssubst_aux; 
-    spcls; disjoint_reasoningv. rewrite ssubst_nest_vars_same; sp;
-    try congruence; try disjoint_reasoningv.
-    apply alpha_eq_if3 with (lv:=nil).
-    change_to_ssubst_aux8.
-    apply alpha3_ssubst_aux_allvars_congr2;sp.
-    Focus 2. disjoint_reasoningv.
-    apply alpha_eq3_if.
-    eauto.
+    apply al_bterm with (lv:=lvn); sp.
+    * unfold all_vars. rw @boundvars_ssubst_aux_vars;sp;
+      try(disjoint_reasoningv).
+      introv Hin Hinc.
+      applydup pal5 in Hin.
+      apply free_vars_ssubst_aux in Hinc;
+      [ |apply disjoint_bv_vars; sp].
+      dorn Hinc; exrepnd; sp. apply in_var_ren in Hinc0. exrepnd.
+      subst.
+      allsimpl.
+      dorn Hinc1; sp.
+      subst.
+      apply pal3 in Hin. sp.
+    * rewrite <- ssubst_ssubst_aux; 
+      spcls; disjoint_reasoningv. rewrite ssubst_nest_vars_same; sp;
+      try congruence; try disjoint_reasoningv.
+      apply alpha_eq_if3 with (lv:=nil).
+      change_to_ssubst_aux8.
+      apply alpha3_ssubst_aux_allvars_congr2;sp.
+      Focus 2. disjoint_reasoningv.
+      apply alpha_eq3_if.
+      eauto.
 Qed.
+
 
 Definition change_bvars_alpha_spec: forall (nt : NTerm) (lv : list NVar),
        disjoint lv (bound_vars (change_bvars_alpha lv nt)) # alpha_eq nt (change_bvars_alpha lv nt)
