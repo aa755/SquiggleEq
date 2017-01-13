@@ -268,5 +268,9 @@ match b with
 |bterm lv nt => bterm (skipn n lv) nt
 end.
 
+Definition tvmap_bterm := 
+fun {V1 V2 O : Type} (fv : V1-> V2) =>
+@tmap_bterm V1 V2 O O fv (@id O).
+
 
 

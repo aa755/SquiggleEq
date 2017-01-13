@@ -3634,4 +3634,17 @@ Proof using.
   constructor;[ rewrite in_app_iff; tauto| eauto].
 Qed.
 
+(**
+Partition a list : those satisfying f go to lhs*)
+Fixpoint partition {A:Type} (f: A -> bool) (l: list A): (list A * list A) :=
+match l with
+| [] => ([],[])
+| h::tl => let (l,r) := partition f tl in 
+  if f h then (h::l,r) else  (l,h::r)
+end.
+
+Definition merge {A :Type} (la lb : list A) :=
+flat_map (fun p => [fst p; snd p]) (combine la lb).
+
+
  

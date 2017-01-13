@@ -1215,6 +1215,14 @@ Definition apply_bterm  (bt :BTerm) (lnt: list NTerm) : NTerm :=
     that we proved about [ssubst].
  *)
 
+Definition apply_bterm_partial
+   (b: BTerm) (lt: list NTerm): BTerm :=
+match b with
+|bterm lv nt =>
+ let lvRemaining := skipn (length lt) lv in
+ bterm lvRemaining (apply_bterm b lt)
+end.
+
 Hint Rewrite @sub_filter_nil_r : SquiggleEq.
 
 
