@@ -3646,5 +3646,18 @@ end.
 Definition merge {A :Type} (la lb : list A) :=
 flat_map (fun p => [fst p; snd p]) (combine la lb).
 
+Definition numberElems {A:Type }(l: list A) : list (nat*A) :=
+  combine (List.seq 0 (length l)) l.
+
+(* A fixpoint that maintains a circular counter may be faster than doing the
+remainder operation again and again? *)
+Definition filter_mod {A:Type }(l: list A)  (period rem:N) : (list A) 
+:=
+(let ls := combine (seq N.succ 0 (length l)) l in
+let l := filter (fun p => decide ((fst p) mod period = rem)) ls in
+(map snd l))%N.
+
+
+
 
  

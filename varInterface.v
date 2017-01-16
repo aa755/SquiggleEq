@@ -1514,7 +1514,11 @@ Proof.
   Local Opaque beq_var.
 Qed.
 
+
+
 End Vars2Class.
+
+Definition varClassTypeOf (V:Type)  {T:Type} {_ : VarClass V T} := T.
 
   Hint Resolve @varsOfClassSubset : subset.
 
