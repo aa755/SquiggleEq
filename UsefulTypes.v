@@ -415,6 +415,21 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma eq_rect2_rev
+     : forall (T : Type) (x : T) (P : forall t : T, eq t x -> Type),
+       P x (eq_refl x) -> forall (y : T) (e : eq y x), P y e.
+Proof.
+  intros. subst.
+  assumption.
+Defined.
+
+Lemma eq_rect2
+     : forall (T : Type) (x : T) (P : forall t : T, eq x t -> Type),
+       P x (eq_refl x) -> forall (y : T) (e : eq x y), P y e.
+Proof.
+  intros.
+  rewrite <-e. assumption.
+Defined.
 
 
 Ltac apply_tiff_f H1 H2 :=
