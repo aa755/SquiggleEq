@@ -168,6 +168,19 @@ Fixpoint free_vars {NVar} `{Deq NVar} {Opid:Type}
   | bterm  lv nt => remove_nvars lv (@free_vars NVar _  Opid nt)
   end.
 
+Fixpoint allVars {NVar}  {Opid:Type}
+  (t:NTerm) {struct t}: list NVar :=
+  match t with
+  | vterm v => [v]
+  | oterm op bts => flat_map (@allVars_bterm NVar Opid )  bts
+  end
+ with allVars_bterm {NVar} {Opid:Type}
+    (bt : @BTerm NVar Opid)
+  {struct bt} : list NVar :=
+  match bt with
+  | bterm  lv nt => lv ++ (@allVars NVar  Opid nt)
+  end.
+
 Fixpoint bound_vars {NVar} `{Deq NVar} {Opid:Type} (t : NTerm) : list NVar :=
   match t with
   | vterm v => []
