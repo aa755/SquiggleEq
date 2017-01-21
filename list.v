@@ -3659,5 +3659,10 @@ let l := filter (fun p => decide ((fst p) mod period = rem)) ls in
 
 
 
+Definition headTail {A:Type} (defhead: A) (la: list A) : (A * list A) :=
+match la with
+| h::tl => (h,tl)
+| _ => (defhead, [])
+end.
 
  
