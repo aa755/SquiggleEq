@@ -181,8 +181,9 @@ match e with
     terms.bterm bvars (fromDB defn mkVar (max+ N.of_nat len) names dt)
 end.
 
-
-(* deqn: Deq Name is incorrect getName may not be injective *)
+(* WARNING : picks vterm 0 if the variable is not found. Thus may delay detection
+of bugs. The client should check that e has no free vars, or in general, 
+subst (free_vars e) context *)
 Fixpoint toDB {Name Opid NVar : Type} {deqn: Deq NVar} (getName : NVar -> Name) 
   (context : list NVar)
    (e:@NTerm NVar Opid) {struct e}

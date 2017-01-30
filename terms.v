@@ -43,6 +43,7 @@ Inductive NTerm : Type :=
 with BTerm : Type :=
 | bterm: (list NVar) -> NTerm -> BTerm.
 
+
 (*
   The [Opid] type contains one element corresponding to every operator
   of the language, e.g. lambda abstraction, funtion application,

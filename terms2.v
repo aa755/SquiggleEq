@@ -115,6 +115,24 @@ with wftb {NVar:Type} {Opid:Type} {gts : GenericTermSig Opid} (bt : @BTerm NVar 
     | bterm vars t => wft t
   end.
 
+Scheme  Equality for list.
+
+  
+  Fixpoint NTerm_beq {NVar:Type} {Opid:Type} `{Deq NVar} `{Deq Opid} 
+    (t1 t2: @NTerm NVar Opid) : bool :=
+  match (t1, t2) with
+  | (terms.vterm v1, terms.vterm v2) => decide (v1=v2)
+  | (terms.oterm o1 lbt1, terms.oterm o2 lbt2)
+    => andb (decide (o1=o2)) (list_beq _ (@BTerm_beq NVar Opid _ _) lbt1 lbt2)
+  |(_,_)=> false
+  end
+with BTerm_beq {NVar:Type} {Opid:Type}  `{Deq NVar} `{Deq Opid} (t1 t2: 
+@BTerm NVar Opid) : bool :=
+  match (t1, t2) with
+  | (terms.bterm lv1 t1, terms.bterm lv2 t2) => 
+    andb (decide (lv1=lv2)) (@NTerm_beq NVar Opid _ _ t1 t2)
+  end.
+
 Section terms3Generic.
 
 Context {NVar VarClass} {deqnvar : Deq NVar} 
@@ -1396,6 +1414,19 @@ Proof using.
   exact vterm_inj.
 Qed.
 
+
+
+Lemma NTerm_beq_correct (a b: @terms.NTerm NVar Opid):  NTerm_beq a b = true <=> a = b.
+Admitted.
+
+Global Instance deqNterm : Deq NTerm.
+Proof.
+  intros a b. exists (NTerm_beq a b).
+  apply NTerm_beq_correct.
+Defined.
+
+
+(*
 Global Instance deq_nterm : DeqSumbool NTerm.
 Proof using deqnvar hdeq.
   intros x.
@@ -1429,6 +1460,7 @@ Proof using deqnvar hdeq.
     destruct (Hind nt1 lv2 (injL(eq_refl _) ) nt2); subst;
     [left; auto |  right; intro Hc; inverts Hc;sp ].
 Defined.
+*)
 
 Lemma lin_lift_vterm :
   forall v lv,
@@ -1445,7 +1477,8 @@ forall lvi lvr,
   map vterm (remove_nvars lvi lvr)
   = @lremove _ _ (map vterm lvi) (map vterm lvr).
 Proof using.
-  clear gts.
+(*   simpl.
+  clear gts. *)
   intros. apply map_diff_commute.
   introv Hc. inverts Hc. auto.
 Qed.
