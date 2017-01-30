@@ -133,6 +133,12 @@ with BTerm_beq {NVar:Type} {Opid:Type}  `{Deq NVar} `{Deq Opid} (t1 t2:
     andb (decide (lv1=lv2)) (@NTerm_beq NVar Opid _ _ t1 t2)
   end.
 
+(*
+Lemma NTerm_beq_correct {NVar:Type} {Opid:Type} `{Deq NVar} `{Deq Opid} 
+(a b: @terms.NTerm NVar Opid):  NTerm_beq a b = true <=> a = b.
+Admitted.
+*)
+
 Section terms3Generic.
 
 Context {NVar VarClass} {deqnvar : Deq NVar} 
@@ -1414,19 +1420,14 @@ Proof using.
   exact vterm_inj.
 Qed.
 
-
-
-Lemma NTerm_beq_correct (a b: @terms.NTerm NVar Opid):  NTerm_beq a b = true <=> a = b.
-Admitted.
-
+(*
 Global Instance deqNterm : Deq NTerm.
 Proof.
   intros a b. exists (NTerm_beq a b).
   apply NTerm_beq_correct.
 Defined.
+*)
 
-
-(*
 Global Instance deq_nterm : DeqSumbool NTerm.
 Proof using deqnvar hdeq.
   intros x.
@@ -1460,7 +1461,6 @@ Proof using deqnvar hdeq.
     destruct (Hind nt1 lv2 (injL(eq_refl _) ) nt2); subst;
     [left; auto |  right; intro Hc; inverts Hc;sp ].
 Defined.
-*)
 
 Lemma lin_lift_vterm :
   forall v lv,
@@ -1562,7 +1562,7 @@ Proof using deqnvar hdeq.
   destruct (decideP (lvx=lvy)); subst;sp;
   right; introv Heq;
   inverts Heq; cpx.
-Qed. (*FIX *)
+Qed. 
 
 
 Inductive nt_wf2 : NTerm -> [univ] :=
