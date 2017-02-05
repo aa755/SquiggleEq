@@ -7,8 +7,8 @@ Import ListNotations.
 
 
 Definition flatten {m} {A: Type} `{Monad m} (lm:list (m A)) : m (list A) :=
-fold_right (fun a l => l <- l;; 
-                       a <- a;; 
+fold_right (fun a l => a <- a;; 
+                       l <- l;; 
                       ret (a :: l))
           (ret []) 
           lm.
