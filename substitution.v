@@ -2325,6 +2325,8 @@ Proof using.
   apply subst_aux_preserves_wf; auto.
 Qed.
 
+
+
 (** TODO: non aux version *)
 Definition substwf (t : WTerm) (v : NVar) (u : WTerm) : WTerm :=
   let (a,x) := t in
@@ -6594,6 +6596,8 @@ Proof using varcl freshv.
     simpl in *. unfold isvarc in H. dsub_find sc; auto.
     destruct scs; auto. contradiction.
 Qed.
+
+
 
 End SubstGeneric2.
 

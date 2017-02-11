@@ -2105,6 +2105,27 @@ Proof using varclass.
   rewrite <- i; sp.
 Qed.
 
+Lemma subst_preserves_wf_term :
+  forall t : NTerm,
+  forall v : NVar,
+  forall u : NTerm,
+    wf_term t
+    -> wf_term u
+    -> wf_term (subst t v u).
+Proof using varclass.
+  intros t v u ? ?.
+  apply ssubst_preserves_wf_term; auto.
+  intros ? ? Hin.
+  repeat (in_reasoning). inverts Hin.
+  repeat (rewrite  nt_wf_eq); sp.
+Qed.
+
+(** TODO: non aux version *)
+Definition subst_wf (t : WTerm) (v : NVar) (u : WTerm) : WTerm :=
+  let (a,x) := t in
+  let (b,y) := u in
+    exist wf_term (subst a v b) (subst_preserves_wf_term a v b x y).
+
 Lemma ssubst_wf_term :
   forall sub t,
     wf_term (ssubst t sub)
