@@ -3665,4 +3665,18 @@ match la with
 | _ => (defhead, [])
 end.
 
- 
+
+(* Same as combine, but pads the RHS instead of dropping the xtra items in LHS *)
+Fixpoint combineDef2 {A B:Type} (l : list A) (l' : list B) (db:B): list (A*B) :=
+      match l,l' with
+        | x::tl, y::tl' => (x,y)::(combineDef2 tl tl' db)
+        | x::tl, [] => (x,db)::(combineDef2 tl [] db)
+        | [],_ => []
+      end.
+
+Lemma combineDef2len {A B:Type} (db:B) (l : list A) (l' : list B)  :
+  length (combineDef2 l l' db) = length l.
+Proof using.
+  revert l'. induction l; auto; destruct l'; simpl; auto.
+Qed.
+

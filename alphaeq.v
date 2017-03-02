@@ -2120,7 +2120,6 @@ Proof using varclass.
   repeat (rewrite  nt_wf_eq); sp.
 Qed.
 
-(** TODO: non aux version *)
 Definition subst_wf (t : WTerm) (v : NVar) (u : WTerm) : WTerm :=
   let (a,x) := t in
   let (b,y) := u in

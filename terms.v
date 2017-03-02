@@ -284,7 +284,13 @@ end.
 
 Definition tvmap_bterm := 
 fun {V1 V2 O : Type} (fv : V1-> V2) =>
-@tmap_bterm V1 V2 O O fv (@id O).
+  @tmap_bterm V1 V2 O O fv (@id O).
+
+Definition getFirstBTermVars {V O }(t:list (@BTerm V O)) : list V:=
+  match t with
+  | (bterm lv _)::_ => lv
+  | [] => []
+  end.
 
 
 

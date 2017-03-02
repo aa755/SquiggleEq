@@ -7069,3 +7069,7 @@ Proof using.
     disjoint_reasoningv.
 Qed.
 
+Definition apply_bterm_unsafe := 
+fun {NVar VarClass0 : Type} {deqnvar : Deq NVar} {varcl : VarClass NVar VarClass0}
+  {freshv : FreshVars NVar VarClass0} {Opid : Type} (bt : @BTerm NVar Opid) (lnt : list NTerm) =>
+  ssubst_aux (get_nt bt) (combine (get_vars bt) lnt).

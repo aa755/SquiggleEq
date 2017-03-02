@@ -1719,5 +1719,10 @@ Qed.
 End DBToNamed.
 
 
+Definition getFirstBTermNames {V O }(t:list (@DBTerm V O)) : list V:=
+  match t with
+  | (bterm lv _)::_ => lv
+  | [] => []
+  end.
 
 

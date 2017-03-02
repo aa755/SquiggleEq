@@ -746,7 +746,17 @@ destruct (string_dec s1 s2); simpl.
 - split; intro H;[inversion H| apply False_rect; apply n,H].
 Defined.
 
-(* Move *)
 Definition decide_true {P} {deqq: Decidable P} : P -> decide P = true := 
 ltac:(apply Decidable_complete).
 
+Definition isSuffixOf (s ss : string) :=
+  let lens := length s in
+  let ssend := substring (length ss - lens) lens  ss in
+  decide (ssend=s).
+
+(*
+Eval compute in (isSufficeOf "o" "hello").
+Eval compute in (isSufficeOf "lo" "hello").
+Eval compute in (isSufficeOf "" "hello").
+Eval compute in (isSufficeOf "l" "hello").
+*)

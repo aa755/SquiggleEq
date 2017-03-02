@@ -19,3 +19,4 @@
 ./AssociationList.v
 ./list.v
 ./ExtLibMisc.v
+./wftermSet.v
