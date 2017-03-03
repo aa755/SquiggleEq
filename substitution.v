@@ -1344,6 +1344,9 @@ Proof using.
 Qed.
 
 
+Definition ssubst_auxv (subv : list (NVar*NVar)) (t:NTerm):=
+  ssubst_aux t (map (fun p:(NVar*NVar) => let (vs,vt):=p in (vs, vterm vt)) subv).
+
 
 Hint Rewrite ssubst_nil.
 
@@ -7073,3 +7076,4 @@ Definition apply_bterm_unsafe :=
 fun {NVar VarClass0 : Type} {deqnvar : Deq NVar} {varcl : VarClass NVar VarClass0}
   {freshv : FreshVars NVar VarClass0} {Opid : Type} (bt : @BTerm NVar Opid) (lnt : list NTerm) =>
   ssubst_aux (get_nt bt) (combine (get_vars bt) lnt).
+

@@ -760,3 +760,8 @@ Eval compute in (isSufficeOf "lo" "hello").
 Eval compute in (isSufficeOf "" "hello").
 Eval compute in (isSufficeOf "l" "hello").
 *)
+Definition pairMapl {A B A2:Type} (f: A-> A2) (p:A*B) : A2*B :=
+  let (a,b) := p in (f a, b).
+
+Definition pairMapr {A B B2:Type} (f: B-> B2) (p:A*B) : A*B2 :=
+  let (a,b) := p in (a, f b).
