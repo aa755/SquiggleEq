@@ -699,8 +699,8 @@ Lemma in_sub_free_vars :
 Proof using.
   induction sub; simpl; sp; allsimpl.
   allrw in_app_iff; sp.
-  exists a0 a; sp. apply IHsub in H. sp.
-  exists x t; sp.
+  exists a0,a; sp. apply IHsub in H. sp.
+  exists x,t; sp.
 Qed.
 
 Lemma in_sub_free_vars_iff :
@@ -713,9 +713,9 @@ Proof using.
   split; sp.
   rw in_app_iff.
   rw IHsub; split; sp; inj; sp.
-  exists a0 a; sp.
-  exists x t; sp.
-  right; exists x t; sp.
+  exists a0,a; sp.
+  exists x,t; sp.
+  right; exists x,t; sp.
 Qed.
 
 Lemma subset_free_vars_mem :
@@ -3491,10 +3491,10 @@ Proof using. nterm_ind1 nt as [vn | o lbt Hind] Case; introv Hdis Hin.
       subst;simpl in Hin;
       ((rw <- beq_var_refl in Hin;auto)
           || (rw not_eq_beq_var_false in Hin;auto)).
-      + right. exists vs ts. sp; auto.
+      + right. exists vs,ts. sp; auto.
       + cases (sub_find sub vn) as Hf.
           * applydup @sub_find_some in Hf.
-             right; exists vn n; split; auto. right;auto. simpl. split; auto.
+             right; exists vn,n; split; auto. right;auto. simpl. split; auto.
           * left; auto.
   - Case "oterm".
     simpl in Hin. rw lin_flat_map in Hin.
@@ -4038,7 +4038,7 @@ Proof using.
       allrw @in_sub_filter; sp.
       allrw in_sub_keep_first; sp.
       right.
-      exists x0 t; sp.
+      exists x0,t; sp.
       allrw in_sub_keep_first; sp.
       rw lin_flat_map.
       exists (bterm l n); simpl; sp.
@@ -4090,7 +4090,7 @@ Proof using.
       rw Hg.
       rw in_app_iff.
       rw @in_sub_free_vars_iff; right.
-      exists x0 t; sp.
+      exists x0,t; sp.
       rw in_sub_keep_first; sp.
       rw sub_find_sub_filter_some; sp.
       applydup @sub_find_some in H3.
@@ -4978,8 +4978,6 @@ Proof using.
   subst. rename n0 into n. GC.
   repeat (dpair_eq).
   exists n; dands; cpx; try congruence.
-  rewrite H1s2l; auto.
-  rewrite H1s2l; auto.
 Qed.
 
 Lemma sub_find_some_none_contra: forall lv lnt1 lnt2 v t1,
@@ -5052,7 +5050,7 @@ Proof using.
   apply NTerm_BTerm_ind.
   - simpl. intros v ? Hin. right. 
     dsub_find sn; cpx;[].
-    exists v sns. split; auto.
+    exists v,sns. split; auto.
 
   - simpl. intros _ ? Hind ? Hin.
     rewrite flat_map_map in Hin. 
@@ -5726,10 +5724,10 @@ Proof using. nterm_ind1 nt as [vn | o lbt Hind] Case; introv Hin.
       subst;simpl in Hin;
       ((rw <- beq_var_refl in Hin;auto) 
           || (rw not_eq_beq_var_false in Hin;auto)).
-      + right. exists vs ts. sp; auto.
+      + right. exists vs,ts. sp; auto.
       + cases (sub_find sub vn) as Hf.
           * applydup @sub_find_some in Hf.
-             right; exists vn n; split; auto. right;auto. simpl. split; auto.
+             right; exists vn,n; split; auto. right;auto. simpl. split; auto.
           * left;split;auto. allsimpl;subst. introv Hc. dorn Hc; subst; sp.
             subst. apply sub_find_none2 in Hf. sp.
   - Case "oterm".
@@ -6052,7 +6050,7 @@ Proof using.
     rw @memvar_dmemvar. rw @memvar_dmemvar. 
     apply binrel_list_cons in Hl1. repnd. duplicate Hl0.
     cases_ifd Ha; eapply Hind with (lnta := lnta) in Hl0 ; eauto;[].
-    exrepnd. exists (v::lvi') (ha :: lnta') (hb :: lntb').
+    exrepnd. exists (v::lvi'), (ha :: lnta'), (hb :: lntb').
     allsimpl. dands; spc; try (f_equal;spc).
     apply binrel_list_cons; sp.
 Qed.

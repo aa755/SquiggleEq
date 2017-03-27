@@ -1425,7 +1425,7 @@ Proof.
   induction l using rev_list_indT.
   left; auto.
   right; auto.
-  exists l a; auto.
+  exists l. exists a; auto.
 Qed.
 
 Lemma rev_list_dest2 :
@@ -1435,7 +1435,7 @@ Proof.
   induction l using rev_list_indT.
   left; auto.
   right; auto.
-  exists l a; auto.
+  exists l. exists a; auto.
 Qed.
 
 Ltac rev_list_dest l :=

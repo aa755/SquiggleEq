@@ -1625,6 +1625,7 @@ Ltac alphahypsd :=
   | [H: alpha_eq_bterm (bterm [_,_] _) _ |- _] => apply alphaeqbt_2v in H; exrepnd; subst
   end.
 
+
 Ltac alphahypdfv H :=
 match type of H with
 | (forall _:nat, (_< ?m) -> alpha_eq_bterm _ _) => 
@@ -1641,13 +1642,13 @@ end.
 
 Ltac get_lt_rhs H :=
 match type of H with
-| _ < ?m => constr:m
+| _ < ?m => constr:(m)
 end.
 
 Ltac get_alphabt_hyp HH :=
 let m:= get_lt_rhs HH in 
 match goal with 
-| [ H : (forall _ : nat, _ < m -> _) |- _ ] => constr:H
+| [ H : (forall _ : nat, _ < m -> _) |- _ ] => constr:(H)
 end.
 
 Ltac prove_alpha_eq :=
@@ -1791,7 +1792,7 @@ Qed.
 
 Ltac get_alpha_lhs H :=
 match type of H with
-| alpha_eq  ?m _ => constr:m
+| alpha_eq  ?m _ => constr:(m)
 end.
 
 Lemma symmetricSubRangeRel (R:NTerm -> NTerm -> Prop) : 
@@ -1832,7 +1833,7 @@ Proof using.
   destruct subr as [ |(vr,tr) subr]; try invertsn Hsr.
   - repeat (apply ex_intro with ( x:=nil)); dands; spc. apply binrel_list_nil.
   - repnd. apply Hind in Hsr. exrepnd.
-    exists (vr::lv) (tl::lntl) (tr::lntr).
+    exists (vr::lv), (tl::lntl), (tr::lntr).
     allsimpl. dands; f_equal; spc.
     apply binrel_list_cons; spc.
 Qed.
