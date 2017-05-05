@@ -3680,3 +3680,159 @@ Proof using.
   revert l'. induction l; auto; destruct l'; simpl; auto.
 Qed.
 
+
+Lemma option_map_map {A B C : Type} (f : A -> B) (g : B -> C) (l : option A):
+let map := option_map in
+   map _ _ g (map _ _ f l) = map _ _ (fun x : A => g (f x)) l.
+Proof.
+  destruct l; refl.
+Qed.
+
+Require Import ExtLib.Structures.Monads.
+Require Import ExtLib.Data.Monads.OptionMonad.
+
+Lemma fold_option_bind {A B : Type}  (f : A -> option B) (o : option A):
+  @bind option _ _ _ o f =
+match o with
+| Some a => f a
+| None => None
+end.
+Proof. reflexivity. Qed.
+
+ Lemma fold_option_map {A B : Type}  (f : A -> B) (o : option A):
+  option_map f o=
+match o with
+| Some a => Some (f a)
+| None => None
+end.
+Proof. reflexivity. Qed.
+
+Require Import ExtLibMisc.
+Lemma option_map_ext (A B : Type) (f g : A -> B):
+  (forall a : A, f a = g a) -> forall l : option A, option_map f l = option_map g l.
+Proof using.
+  intros feq ?.
+  destruct l; simpl; [ fequal; eauto |  reflexivity ].
+Qed.
+
+Require Import Basics.
+Open Scope program_scope.
+Lemma opmap_flatten_map {A B C:Type} {fb : A-> option B} {fm: B -> C} la :
+  option_map (map fm) (flatten (map fb la)) = flatten (map (option_map fm ∘ fb) la).
+Proof using.
+  induction la; auto.
+  simpl.
+  rewrite <- IHla. clear IHla.
+  destruct (map fb la); unfold compose; destruct (fb a); auto;
+   simpl; auto; destruct (flatten l); simpl; auto; destruct o; auto.
+Qed.
+
+Lemma opmap_bind {A B C:Type} {fb : A-> option B} {fm: B -> C} oa :
+  option_map fm (@bind option _ _ _ oa fb) = (@bind option _ _ _ oa ((option_map fm)∘ fb)).
+Proof using.
+  destruct oa; refl.
+Qed.
+
+Lemma matchNoneNone {A B :Type} (oa : option A) (b: B) :
+  match oa with
+  | Some _ => b
+  | None => b
+  end = b.
+Proof using.
+  destruct oa; refl.
+Qed.
+
+(* delete ? 
+Lemma opmap_flatten_map2 {A B C D:Type} {fb : A-> option B} {fm: B -> C} (fo : list C -> D) la :
+  option_map (fun lb => fo (map fm lb)) (flatten (map fb la))
+  =
+  option_map fo (flatten (map ((option_map fm) ∘ fb) la)).
+Proof using.
+  rewrite <- option_map_map. f_equal.
+  eapply opmap_flatten_map; eauto.
+Qed.
+ *)
+
+Require Import ExtLib.Data.Option Coq.Classes.RelationClasses.
+
+(** move and replace in Extlib.Datatypes.Option? this is a generalization (heterogenization)*)
+Fixpoint Roption {A B:Type} (R: A->B->Prop)  (oa: option A) (ob: option B) : Prop :=
+  match oa,ob with
+  | Some a, Some b => R a b
+  | None, None => True
+  | _, _ => False
+  end.
+
+Fixpoint Rlist {A B:Type} (R: A->B->Prop)  (oa: list A) (ob: list B) : Prop :=
+  match oa,ob with
+  | a::oa, b::ob => R a b /\ Rlist R oa ob
+  | [], [] => True
+  | _, _ => False
+  end.
+
+
+(* Move to Common.ExtlibMisc. *)
+Global Instance RoptionRefl T {R: T-> T-> Prop}
+       {rr: Reflexive R} : Reflexive (Roption R).
+Proof using.
+  intros x. destruct x; simpl; auto.
+Qed.
+
+Global Instance RoptionSymm T {R: T-> T-> Prop}
+       {rr: Symmetric R} : Symmetric (Roption R).
+Proof using.
+  intros x y H. destruct x; destruct y; simpl in *; auto.
+Qed.
+
+Global Instance RoptionTrans T {R: T-> T-> Prop}
+       {rr: Transitive R} : Transitive (Roption R).
+Proof using.
+  intros x y z Ha Hb. destruct x; destruct y; destruct z; simpl in *; eauto.
+  contradiction.
+Qed.
+
+Require Import Morphisms.
+Global Instance ProperRoption {A B: Type} {f : A->B} Ra Rb  (Hp: Proper (Ra ==> Rb) f) :
+  Proper (Roption Ra ==> Roption Rb) (option_map f).
+Proof using.
+  intros oa ob. destruct oa; destruct ob; simpl; eauto.
+Qed.  
+(* Move to SquiggleEq.list *)
+Lemma RlistNth {A B:Type} (R: A-> B-> Prop) (la : list A) (lb : list B):
+  Rlist R la lb <->
+       (Datatypes.length la = Datatypes.length lb /\
+       (forall (n : nat) a b, n < length la -> R (nth n la a) (nth n lb b))).
+Proof using.
+  revert lb.
+  induction la; intros lb; split; intros Hyp; destruct lb as [ | b lb]; simpl in *;
+    dlists_len;  try firstorder; try f_equal; try constructor; try firstorder;
+      rename H0 into Hyps0.
+- specialize (IHla lb).  rewrite IHla in Hyps0.
+  apply proj2 in Hyps0.
+  destruct n; eauto.
+  apply Hyps0. omega.
+- specialize (Hyps0 0). simpl in *. apply Hyps0; eauto. omega.
+- apply IHla. dands; auto. intros. specialize (Hyps0 (S n)). simpl in *.
+  apply Hyps0. omega.
+Qed.
+
+
+Lemma RoptionFlatten {A B:Type} (R : A->B-> Prop) (la: list (option A)) (lb: list (option B)):  
+ Rlist (Roption R) la lb -> Roption (Rlist R) (flatten la) (flatten lb).
+Proof using.
+  revert lb.
+  induction la; simpl; destruct lb as [ |b lb]; intros Hr; simpl in *; try tauto; repnd.
+  apply IHla in Hr.
+  destruct (flatten la) as [ | la];
+  destruct (flatten lb) as [ | lb];simpl in *; try tauto;
+  destruct a; destruct b; simpl in *; try tauto.
+Qed.    
+
+Lemma RlistMap {I A B:Type} (fa: I-> A) (fb: I-> B) (R: A-> B-> Prop) li:
+  Rlist R (map fa li) (map fb li)
+  <-> (forall i, In i li -> R (fa i) (fb i)).
+Proof using.
+  induction li; simpl; try tauto;[].
+  firstorder.
+  subst. assumption.
+Qed.
