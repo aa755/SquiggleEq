@@ -4069,7 +4069,22 @@ Proof.
   assumption.
 Qed.
 
+
 End AlphaGeneric.
+
+Lemma alpha_eq_map_bt_op
+      {NVar VarClass0 : Type} {deqnvar : Deq NVar} (varcl : VarClass NVar VarClass0)
+      (freshv : FreshVars NVar VarClass0) (varclass : VarType NVar VarClass0)
+      (Opid : Type) (o : Opid) (f g : option (list (@BTerm NVar Opid))):
+  (Roption (Rlist alpha_eq_bterm) f g ) ->
+  (Roption alpha_eq) (option_map (oterm o) f) (option_map (oterm o) g).
+Proof using.
+  intros Hb.
+  destruct f as [ |f];
+  destruct g as [ |g]; simpl in *; auto.
+  apply RlistNth in Hb.
+  constructor; firstorder.
+Qed.
 
 Ltac ntwfauto :=
 unfold apply_bterm in *;

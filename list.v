@@ -3836,3 +3836,44 @@ Proof using.
   firstorder.
   subst. assumption.
 Qed.
+
+
+Import MonadNotation.
+Lemma isSomeBindRet {A B:Type}: forall (v:option A) (f:A->B),
+  isSome v 
+  -> isSome (x <- v ;; (ret (f x))).
+Proof using.
+  intros ? ? His.
+  simpl. destruct v; auto.
+Qed.
+
+Lemma isSomeFlatten {A} : forall (lo : list (option A)),
+  (forall a, In a lo -> isSome a)
+  -> isSome (flatten lo).
+Proof using.
+  unfold flatten. intros ? Hin.
+  induction lo; simpl in *; auto.
+  dLin_hyp.
+  destruct a; simpl in *; try tauto; auto.
+  intros.
+  specialize (IHlo Hin). clear Hin.
+  match type of IHlo with
+    isSome ?s  => destruct s
+  end; auto.
+Qed.
+
+Lemma combine_eta {A B:Type} : forall (lp: list (A*B)), combine (map fst lp) (map snd lp) = lp.
+Proof using.
+  clear. intros.
+  rewrite combine_map.
+  rewrite map_ext with (g:=id);[ apply map_id | ].
+  intros. destruct a; auto.
+Qed.
+
+Lemma flatten_map_Some {A B:Type} (f: A->B) (vs: list A):
+  (flatten (map (fun x : A => Some (f x)) vs)) = Some (map f vs).
+Proof using.
+  induction vs; auto.
+  simpl. rewrite IHvs. reflexivity.
+Qed.  
+

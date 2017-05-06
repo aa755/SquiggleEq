@@ -270,8 +270,9 @@ match t with
     flatten [spaces; pv; "." ; pt]
 end.
 
-Definition btMapNt {O V} (f: @NTerm O V -> @NTerm O V)
-   (b: @BTerm O V) : @BTerm O V :=
+(* Move. and replace in SquiggleEq.terms*)
+Definition btMapNt {O O2 V} (f: @NTerm V O  -> @NTerm V O2)
+   (b: @BTerm V O) : @BTerm V O2 :=
 match b with
 |bterm lv nt => bterm lv (f nt)
 end.
