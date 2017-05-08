@@ -874,3 +874,14 @@ Proof.
               dorn Hf; sp. 
 Defined.
 
+
+Lemma ALFindMap3:
+forall {KA KB VA VB : Type} {DKA : Deq KA} {DKB : Deq KB}
+         (fv : VA -> VB) (sub : lmap KA VA) (k : KA),
+       ALFind (ALMap id fv sub) k = option_map fv (ALFind sub k).
+Proof using.
+  intros.
+  apply (ALFindMap2 id fv).
+  intros; destruct s; simpl in *; assumption.
+Qed.
+

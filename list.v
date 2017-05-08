@@ -2683,6 +2683,27 @@ Proof.
     split; auto. omega. 
 Qed.
 
+Lemma find_map_same_compose2 {A B: Type} (f : A -> bool) 
+  (h : A -> B) (g : B -> bool) :
+(forall a, (compose g h) a = f a)
+-> forall (l: list A),
+   find g (map h l) = option_map h (find f l).
+Proof.
+  intros Hc ?.
+  induction l; auto;
+  simpl in *. unfold compose in Hc.
+  rewrite Hc.
+  destruct (f a); auto.
+Qed.
+
+Lemma find_ext {A: Type} (f g : A -> bool)  (l: list A):
+  (forall a, f a= g a) -> (find f l= find g l).
+Proof.
+  intros Heq. induction l; auto; simpl in *.
+  rewrite Heq.
+  cases_if; eauto.
+Qed.
+
 Lemma find_map_same_compose {A B: Type} (f : A -> bool) 
   (h : A -> B) (g : B -> bool) :
 (forall a, (compose g h) a = f a)
@@ -2690,12 +2711,8 @@ Lemma find_map_same_compose {A B: Type} (f : A -> bool)
   find f l = Some s
   -> find g (map h l) = Some (h s).
 Proof.
-  intros Hc ?.
-  induction l; auto; intros Hf;[inverts Hf|].
-  simpl in *. unfold compose in Hc.
-  rewrite Hc.
-  destruct (f a); auto.
-  inverts Hf. refl.  
+  intros. erewrite find_map_same_compose2; eauto.
+  rewrite H0. refl.
 Qed.
 
 Lemma combine_map {A B C: Type} (f:A->B) (g: A->C) (la:list A):
@@ -3877,3 +3894,16 @@ Proof using.
   simpl. rewrite IHvs. reflexivity.
 Qed.  
 
+Lemma opmap_flatten_map2 {A B C D:Type} {fb : A-> option B} {fm: B -> C} (fo : list C -> D) la :
+  option_map (fun lb => fo (map fm lb)) (flatten (map fb la))
+  =
+  option_map fo (flatten (map ((option_map fm) ∘ fb) la)).
+Proof using.
+  rewrite <- option_map_map. f_equal.
+  eapply opmap_flatten_map; eauto.
+Qed.
+
+Definition option_rectp {A:Type} := @option_rect A (fun a => Prop).
+
+(**  Move to SquiggEq.list *)
+Ltac inreasoning := intros; repeat in_reasoning; subst.

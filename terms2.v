@@ -2108,3 +2108,26 @@ Hint Rewrite remove_var_nil remove_nvars_nil_r:  SquiggleEq.
 
 
 
+Lemma isProgramLNoBnd {O V} {deqv: Deq V} {gtso : GenericTermSig O}
+      (lbt: list (@BTerm V O)) m:
+  map num_bvars lbt = repeat 0 m
+  -> lforall isprogram_bt lbt
+  -> lforall isprogram (map get_nt lbt).
+Proof using.
+  revert m. 
+  induction lbt; unfold lforall; simpl in *;[ firstorder; fail | ].
+  intros ? Hm.
+  simpl in *.
+  simpl.
+  destruct m; [invertsn Hm | ].
+  simpl in *. inverts Hm as Hma Hm.
+  rewrite Hma in Hm.
+  specialize (IHlbt _ Hm).
+  destruct a as [lv nt].
+  destruct lv; [ |  inverts Hma].
+  revert IHlbt. revert Hm. unfold lforall. clear.
+  intros.
+  pose proof (H _ ltac:(left; refl)).
+  apply isprogram_bt_nobnd in H1.
+  firstorder; subst; simpl; firstorder.
+Qed.

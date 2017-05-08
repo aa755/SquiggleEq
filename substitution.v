@@ -7075,3 +7075,15 @@ fun {NVar VarClass0 : Type} {deqnvar : Deq NVar} {varcl : VarClass NVar VarClass
   {freshv : FreshVars NVar VarClass0} {Opid : Type} (bt : @BTerm NVar Opid) (lnt : list NTerm) =>
   ssubst_aux (get_nt bt) (combine (get_vars bt) lnt).
 
+Require Import AssociationList.
+Lemma sub_find_map:
+  forall (NVar : Type) (H : Deq NVar) (gtsi gtso : Type) (f : @NTerm NVar gtsi -> @NTerm NVar gtso)
+    (v : NVar) (sub : @Substitution NVar gtsi) ,
+    @sub_find NVar H gtso (@map_sub_range NVar gtsi gtso f sub) v
+= option_map f (@sub_find NVar H gtsi sub v).
+Proof using.
+  intros.
+  unfold sub_find, map_sub_range.
+  setoid_rewrite (ALFindMap3 f).
+  refl.
+Qed.  
