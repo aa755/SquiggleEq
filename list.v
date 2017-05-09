@@ -3905,5 +3905,53 @@ Qed.
 
 Definition option_rectp {A:Type} := @option_rect A (fun a => Prop).
 
-(**  Move to SquiggEq.list *)
 Ltac inreasoning := intros; repeat in_reasoning; subst.
+
+Lemma flattenSomeImplies {A:Type} ola (la : list A):
+  flatten ola = Some la
+  -> forall a oa, In (oa,a) (combine ola la) -> oa = Some a.
+Proof.
+  revert la.
+  induction ola; intros ? Hf ? ? Hin; simpl in *; [tauto | ].
+  simpl in *.
+  destruct a; invertsn Hf.
+  destruct la as [ | ha la]; invertsn Hin; try invertsn Hin.
+- destruct (flatten ola); invertsn Hf. refl.
+- apply IHola with (la:=la); auto.
+  destruct (flatten ola); invertsn Hf. refl.
+Qed.
+
+Lemma flattenSomeImpliesLen {A:Type} ola (la : list A):
+  flatten ola = Some la
+  -> length ola = length la.
+Proof.
+  revert la.
+  induction ola; intros ? Hf;  [invertsn Hf;  refl |  ].
+  simpl in *.
+  destruct a; invertsn Hf.
+  destruct (flatten ola); invertsn Hf.
+  simpl. f_equal. eauto.
+Qed.  
+
+Hint Rewrite repeat_length : list.
+
+Lemma lin_combine_map: forall {A B C D :Type} 
+  (fa: A->C) (fb: B->D)  (a:A) (b:B) (la: list A) (lb: list B),
+  LIn (a, b) (combine la lb)
+  -> LIn (fa a,fb b) (combine (map fa la) (map fb lb)).
+Proof using.
+  induction la; intros ? Hp; sp.
+  simpl. destruct lb; sp.
+  simpl. dorn Hp; try invertsn Hp; firstorder.
+Qed.
+
+Lemma lin_combine_map_implies : forall {A B C D :Type} 
+  (fa: A->C) (fb: B->D)  (c:C) (d:D) (la: list A) (lb: list B),
+    LIn (c,d) (combine (map fa la) (map fb lb))
+    -> exists (a:A) (b:B), In (a,b) (combine la lb) /\ c = fa a /\ d = fb b.
+Proof using.
+  induction la; intros ? Hp; firstorder.
+  destruct lb; invertsn Hp.
+- invertsn Hp. eexists. eexists. dands; eauto. firstorder.
+- apply IHla in Hp. exrepnd. subst. eexists. eexists. dands; eauto. firstorder.
+Qed.

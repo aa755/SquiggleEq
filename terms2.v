@@ -2131,3 +2131,17 @@ Proof using.
   apply isprogram_bt_nobnd in H1.
   firstorder; subst; simpl; firstorder.
 Qed.
+
+
+Lemma map0lbt2 {V O}: forall (lbt: list (@BTerm V O)) m,
+map num_bvars lbt = repeat 0 m
+->  lbt = map (bterm []) (map get_nt lbt).
+Proof using.
+  induction lbt; simpl; auto.
+  intros ? Hn.
+  destruct a. inverts Hn as Hn Hnn. unfold num_bvars in Hn.
+  simpl in Hn. dlist_len_name l Hh.
+  destruct m; invertsn Hn.
+  destruct l; invertsn Hn.
+  simpl. f_equal. eauto.
+Qed.
