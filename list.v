@@ -3955,3 +3955,22 @@ Proof using.
 - invertsn Hp. eexists. eexists. dands; eauto. firstorder.
 - apply IHla in Hp. exrepnd. subst. eexists. eexists. dands; eauto. firstorder.
 Qed.
+
+Lemma  map_flat_map (A B C : Type) (f : B -> list C) (g : C -> A) (l : list B):
+    map g (flat_map f l) = flat_map ((map g) ∘ f) l.
+Proof using.
+  induction l; auto.
+  simpl. rewrite map_app. rewrite IHl. refl.
+Qed.
+
+Lemma disjoint_map_if (A B : Type) (f : A -> B) (l1 l2 : list A):
+  injective_fun f ->
+  disjoint l1 l2 -> disjoint (map f l1) (map f l2).
+Proof using.
+  intros Hinj. unfold disjoint. unfold injective_fun in Hinj.
+  intros Hd ? Hin Hinc.
+  apply in_map_iff in Hin. exrepnd. subst.
+  apply in_map_iff in Hinc. exrepnd.
+  apply Hinj in Hinc0. subst. firstorder.
+Qed.
+
