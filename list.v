@@ -3974,3 +3974,56 @@ Proof using.
   apply Hinj in Hinc0. subst. firstorder.
 Qed.
 
+Ltac disjoint_reasoning2 :=
+match goal with
+| [  |- disjoint _ (_ ++ _) ] => apply disjoint_app_r;split
+| [  |- disjoint (_ ++ _) _ ] => apply disjoint_app_l;split
+| [  |- disjoint _ (_ :: (_ :: _)) ] => apply disjoint_cons_r;split
+| [  |- disjoint (_ :: (_ :: _)) _ ] => apply disjoint_cons_l;split
+| [  |- disjoint _ (_ :: ?v) ] => notNil v;apply disjoint_cons_r;split
+| [  |- disjoint (_ :: ?v) _ ] => notNil v;apply disjoint_cons_l;split
+| [  |- disjoint _ _ ] => (sp;fail  || apply disjoint_sym; sp;fail)
+| [  |- _ <> _] => apply disjoint_neq_iff
+| [  |- ! (LIn _ _)] => apply disjoint_singleton_l
+(** important to leave it the way it was .. so that repeat progress won't loop*)
+| [ H: disjoint _ (_ ++ _) |- _ ] => apply disjoint_app_r in H;sp
+| [ H: disjoint (_ ++ _) _ |- _ ] => apply disjoint_app_l in H;sp
+| [ H: disjoint _ (_ :: (_ :: _)) |- _ ] => apply disjoint_cons_r in H;sp
+| [ H: disjoint (_ :: (_ :: _)) _ |- _ ] => apply disjoint_cons_l in H;sp
+| [ H: disjoint _ (_ :: ?v) |- _ ] => notNil v;apply disjoint_cons_r in H;sp
+| [ H: disjoint (_ :: ?v) _ |- _ ] => notNil v;apply disjoint_cons_l in H;sp
+| [ H: !(disjoint  _ []) |- _ ] => provefalse; apply H; apply disjoint_nil_r
+| [ H: !(disjoint  [] _) |- _ ] => provefalse; apply H; apply disjoint_nil_l
+| [ H: (disjoint  _ []) |- _ ] => clear H
+| [ H: (disjoint  [] _) |- _ ] => clear H
+| [ H: ! (LIn _ _) |- _] => apply disjoint_singleton_l in H
+| [ H: _ <> _  |- _] => apply disjoint_neq_iff in H
+end.
+
+Ltac noRepDis1 :=
+autorewrite with SquiggleEq;
+(repeat match goal with
+[H: no_repeats [] |- _] => clear H
+|[H: ! (LIn _ _) |- _] => apply disjoint_singleton_l in H
+|[|- ! (LIn _ _)] => apply disjoint_singleton_l
+|[H: no_repeats (_::_) |- _] =>
+  let Hnrd := fresh "Hnrd" in
+  apply no_repeats_as_disjoint in H;
+  destruct H as [Hnrd H]
+end); repeat (progress disjoint_reasoning2); 
+repeat rewrite in_single_iff in *; subst; try tauto.
+
+Lemma noDupApp {A:Type} (la lb : list A):
+  NoDup (la++lb)
+  <-> NoDup la /\ NoDup lb /\ disjoint la lb.
+Proof using.
+  revert lb.
+  induction la; [simpl; split; intros; dands; autorewrite with list in *; auto; try constructor;
+                 try tauto
+                 |].
+  intros ?. rewrite <- app_comm_cons.
+  rewrite NoDup_cons_iff.
+  rewrite IHla.
+  split; intros; repnd; dands; auto; noRepDis1.
+  constructor; noRepDis1.
+Qed. 
