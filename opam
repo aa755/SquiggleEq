@@ -1,4 +1,5 @@
 opam-version: "1.2"
+version: "1.0.2.dev"
 homepage: "https://github.com/aa755/SquiggleEq"
 dev-repo: "https://github.com/aa755/SquiggleEq#dev"
 bug-reports: "https://github.com/aa755/SquiggleEq/issues"
