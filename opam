@@ -1,0 +1,16 @@
+opam-version: "1.2"
+homepage: "https://github.com/aa755/SquiggleEq"
+dev-repo: "https://github.com/aa755/SquiggleEq#dev"
+bug-reports: "https://github.com/aa755/SquiggleEq/issues"
+authors: ["Abhishek Anand"]
+license: "BSD"
+build: [
+  [make "-j%{jobs}%"]
+]
+install: [
+  [make "install"]
+]
+remove: ["rm" "-R" "%{lib}%/coq/user-contrib/SquiggleEq"]
+depends: [
+  "coq" {>= "8.5~beta3" & < "8.5.dev"}
+]
