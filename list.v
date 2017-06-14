@@ -3840,10 +3840,10 @@ Proof using.
   revert lb.
   induction la; simpl; destruct lb as [ |b lb]; intros Hr; simpl in *; try tauto; repnd.
   apply IHla in Hr.
-  destruct (flatten la) as [ | la];
-  destruct (flatten lb) as [ | lb];simpl in *; try tauto;
+  destruct (flatten la);
+  destruct (flatten lb);simpl in *; try tauto;
   destruct a; destruct b; simpl in *; try tauto.
-Qed.    
+Qed.
 
 Lemma RlistMap {I A B:Type} (fa: I-> A) (fb: I-> B) (R: A-> B-> Prop) li:
   Rlist R (map fa li) (map fb li)
