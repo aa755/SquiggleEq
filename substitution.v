@@ -6618,7 +6618,37 @@ Proof using varcl freshv.
     destruct scs; auto. contradiction.
 Qed.
 
+(**
+This doesn't hold. consider the substitution in the beta reduction of
+(\x.\y.x) (\y.y) --> (\y.(\y.y))
+The input was in barendredgt form, but the output is not.
+We need the boundvars of [lamBody] to be distinct from [bound_vars appArg] (to maintain BC)
+and [free_vars appArg] (to avoid capture)
+*)
 
+Lemma betaPreservesBC (appOpid:Opid) (lamBody appArg:NTerm) (lamVar:NVar):
+  let lam := bterm [lamVar] lamBody in
+  inBarendredgtConvention (oterm appOpid [lam ; bterm [] appArg])=true
+  -> inBarendredgtConvention (apply_bterm lam [appArg]) = true.
+Proof using.
+  Local Opaque decide.
+  simpl. unfold inBarendredgtConvention. simpl. unfold apply_bterm.
+  simpl.
+  rwsimplC. intros Hyp.
+  setoid_rewrite decide_true  in Hyp  at 2;[| disjoint_reasoningv].
+  simpl. ring_simplify in Hyp. repeat rewrite andb_true_iff in Hyp.
+  repnd.
+  dands.
+Abort.
+(*
+Section Test.
+  Variable l:Opid.
+  Let f := (oterm l [bterm [nvarx] (oterm l [bterm [nvary] (vterm nvarx)])]).
+  Let arg := (oterm l [bterm [nvary] (vterm nvary)]).
+  Eval compute in (checkBC [] f). (* vars need to be concrete for this to run *)
+End Test.  
+ *)
+  
 
 End SubstGeneric2.
 
