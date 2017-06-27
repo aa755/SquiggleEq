@@ -6640,6 +6640,7 @@ Proof using.
   repnd.
   dands.
 Abort.
+
 (*
 Section Test.
   Variable l:Opid.
@@ -6649,6 +6650,54 @@ Section Test.
 End Test.  
  *)
   
+Definition bcSubst (t:NTerm) (sub: Substitution) : NTerm :=
+  let fvSub := flat_map free_vars (range sub) in 
+  let tp := change_bvars_alpha fvSub t in
+  ssubst_aux tp sub.
+
+Lemma betaPreservesBC (lamVar:NVar) (appArg lamBody:NTerm) lv:
+  disjoint (all_vars appArg) (bound_vars lamBody)
+  -> checkBC lv appArg = true
+  -> checkBC lv lamBody = true
+  -> checkBC lv (ssubst_aux lamBody [(lamVar, appArg)]) = true.
+Proof using.
+  revert lv.
+  induction lamBody using NTerm_better_ind;
+    [intros; simpl; cases_if; auto; fail|].
+  simpl. intros lv Hdis Hca Hcl.
+  rewrite map_map. unfold compose. simpl.
+Abort.
+
+Lemma betaPreservesBC (lamVar:NVar) (appArg:NTerm):
+ (forall (lamBody:NTerm) lv,
+  disjoint (all_vars appArg) (bound_vars lamBody)
+  -> checkBC lv appArg = true
+  -> checkBC lv lamBody = true
+  -> checkBC lv (ssubst_aux lamBody [(lamVar, appArg)]) = true)
+ *
+ (forall (lamBody:BTerm) lv,
+  disjoint (all_vars appArg) (bound_vars_bterm lamBody)
+  -> checkBC lv appArg = true
+  -> checkBC_bt lv lamBody = true
+  -> checkBC_bt lv (ssubst_bterm_aux lamBody [(lamVar, appArg)]) = true).
+Proof using.
+  apply NTerm_BTerm_ind;
+    [intros; simpl; cases_if; auto; fail| |].
+- simpl. intros o lbt Hind lv Hdis Hca Hcl.
+  rewrite map_map. unfold compose. simpl.
+  apply ball_map_true.
+  rewrite ball_map_true in Hcl.
+  intros ? Hin. specialize (Hind _ Hin lv).
+  rewrite disjoint_flat_map_r in Hdis.
+  apply Hind; auto; fail.
+- intros blv bnt Hind lv Hdis Hca Hcl.
+  simpl in *.
+  apply andb_true.
+  apply andb_true in Hcl. repnd.
+  dands;[| assumption].
+  cases_if;[rewrite ssubst_aux_nil; assumption|].
+  apply Hind; auto;[disjoint_reasoningv|].
+Abort.
 
 End SubstGeneric2.
 
@@ -6658,6 +6707,7 @@ Proof using.
   induction sub; auto.
   simpl. f_equal. auto.
 Qed.
+
 Lemma map_sub_range_combine {NVar} {gtsi} {gtso} : forall (f : @NTerm NVar gtsi -> @NTerm NVar gtso) lv nt,
     map_sub_range f (combine lv nt) = combine lv (map f nt). 
 Proof using.
