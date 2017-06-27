@@ -1078,6 +1078,23 @@ match bt with
          bterm lvn (ssubst_aux bnt' (var_ren blv lvn))
 end.
 
+Fixpoint checkBC {NVar: Type}
+`{Deq NVar}
+{Opid} (lv : list NVar) (t : (@NTerm NVar Opid)) 
+: bool :=
+match t with
+| vterm v => true
+| oterm o lbt => ball (map (checkBC_bt lv) lbt)
+end
+with checkBC_bt {NVar: Type} 
+ `{Deq NVar}
+  {Opid} (lv : list NVar)
+(bt: @BTerm NVar Opid) 
+: bool :=
+match bt with
+| bterm blv bnt => (checkBC (blv++lv) bnt) && decide (disjoint blv lv)
+end.
+
 Fixpoint uniq_change_bvars_alpha {NVar VarCl : Type}
 `{Deq NVar}
     {fv : FreshVars NVar VarCl}
@@ -1223,8 +1240,11 @@ match b with
  bterm lvRemaining (apply_bterm b lt)
 end.
 
+
 Hint Rewrite @sub_filter_nil_r : SquiggleEq.
 
+Definition inBarendredgtConvention (t:NTerm) : bool :=
+  checkBC (free_vars t) t.
 
 Lemma ssubst_ssubst_aux_nb : 
   (forall (t:NTerm) sub, 
