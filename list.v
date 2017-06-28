@@ -4026,4 +4026,20 @@ Proof using.
   rewrite IHla.
   split; intros; repnd; dands; auto; noRepDis1.
   constructor; noRepDis1.
-Qed. 
+Qed.
+
+
+Lemma diffAddCancel {A:Type} {deq: Deq A} (lr lv : list A):
+subset lv (lr ++ (lremove lr lv)).
+Proof using.
+  unfold eq_set, subset.
+  setoid_rewrite in_app_iff.
+  setoid_rewrite in_diff. firstorder.
+  destruct (decideP (In x lr)); firstorder.
+Qed.
+
+Lemma removeConsCancel {A:Type} {deq: Deq A} (r:A)(lv : list A):
+  subset lv (r::(remove r lv)).
+Proof using.
+  apply (diffAddCancel [r]).
+Qed.

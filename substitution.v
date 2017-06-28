@@ -6655,18 +6655,46 @@ Definition bcSubst (t:NTerm) (sub: Substitution) : NTerm :=
   let tp := change_bvars_alpha fvSub t in
   ssubst_aux tp sub.
 
-Lemma betaPreservesBC (lamVar:NVar) (appArg lamBody:NTerm) lv:
-  disjoint (all_vars appArg) (bound_vars lamBody)
-  -> checkBC lv appArg = true
-  -> checkBC lv lamBody = true
-  -> checkBC lv (ssubst_aux lamBody [(lamVar, appArg)]) = true.
+
+Lemma checkBCSubset :
+ (forall (appArg:NTerm) lvBig lv,
+      subset lv lvBig -> checkBC lvBig appArg = true -> checkBC lv appArg =true)
+ *
+ (forall (appArg:BTerm) lvBig lv,
+     subset lv lvBig -> checkBC_bt lvBig appArg = true ->  checkBC_bt lv appArg = true).
 Proof using.
-  revert lv.
-  induction lamBody using NTerm_better_ind;
-    [intros; simpl; cases_if; auto; fail|].
-  simpl. intros lv Hdis Hca Hcl.
-  rewrite map_map. unfold compose. simpl.
-Abort.
+  apply NTerm_BTerm_ind;
+    [refl| |].
+- intros ? ? Hind ? ? Hsub Hc. simpl in *.
+  rewrite ball_map_true in *.  eauto.
+- intros blv ? Hind ? ? Hsub Hc. simpl in *.
+  rewrite andb_true  in *. repnd. rewrite Decidable_spec in Hc. rewrite Decidable_spec.
+  rewrite disjoint_sym in Hc.
+  rewrite disjoint_sym.
+  dands;[| eauto using subset_disjoint; fail].
+  revert Hc0.
+  apply Hind.
+  apply subsetvAppLR; eauto.
+Qed.
+
+Lemma checkBCdisjoint:
+(forall (A:NTerm) (lv: list NVar),
+checkBC lv A = true
+-> disjoint lv (bound_vars A))
+*
+(forall (A:BTerm) (lv: list NVar),
+checkBC_bt lv A = true
+-> disjoint lv (bound_vars_bterm A)).
+Proof using.
+  apply NTerm_BTerm_ind;
+    [simpl; intros; disjoint_reasoningv2| |];[|].
+- intros ? ? Hind ? Hc. simpl in *. rewrite disjoint_flat_map_r.
+  rewrite ball_map_true in Hc. eauto.   
+- intros blv bnt Hind ? Hc. simpl in *. rewrite andb_true in Hc. repnd.
+  rewrite Decidable_spec in Hc. disjoint_reasoningv.
+  apply Hind. revert Hc0. apply (fst checkBCSubset).
+  apply subset_app_l. eauto.
+Qed.
 
 Lemma checkBCEqset :
  (forall (appArg:NTerm) lv1 lv2,
