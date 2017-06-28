@@ -6668,6 +6668,48 @@ Proof using.
   rewrite map_map. unfold compose. simpl.
 Abort.
 
+Lemma checkBCEqset :
+ (forall (appArg:NTerm) lv1 lv2,
+      eq_set lv1 lv2 -> checkBC lv1 appArg = checkBC lv2 appArg)
+ *
+ (forall (appArg:BTerm) lv1 lv2,
+     eq_set lv1 lv2 -> checkBC_bt lv1 appArg =  checkBC_bt lv2 appArg).
+Proof using.
+  apply NTerm_BTerm_ind;
+    [refl| |].
+- intros ? ? Hind ? ? Heq. simpl in *. f_equal.
+  apply eq_maps. eauto.
+- intros blv ? Hind ? ? Heq. simpl in *.
+  f_equal;
+  [| eapply proper_decider2;[| apply eq_set_refl | apply Heq];
+     eauto with typeclass_instances].
+  apply Hind. rewrite Heq. reflexivity.
+Qed.
+
+Lemma checkBCStrengthen blv :
+ (forall (appArg:NTerm) lv,
+     disjoint (all_vars appArg) blv -> checkBC lv appArg = true -> checkBC (blv ++ lv) appArg = true)
+ *
+ (forall (appArg:BTerm) lv,
+     disjoint (all_vars_bt appArg) blv -> checkBC_bt lv appArg = true -> checkBC_bt (blv ++ lv) appArg = true).
+Proof using.
+  clear dependent varcl. clear freshv.
+  apply NTerm_BTerm_ind;
+    [refl| |].
+- intros ? ? Hind lv Hdis. simpl in *. rewrite all_vars_ot in Hdis.
+  do 2 rewrite ball_map_true. rewrite disjoint_flat_map_l in Hdis. eauto.
+- intros bblv bnt Hind lv Hdis. simpl. rewrite allvars_bterm in Hdis.
+  specialize (Hind (bblv++lv)). do 2 rewrite andb_true.
+  do 2 rewrite Decidable_spec.
+  intros Hc. repnd.
+  dands;[| disjoint_reasoningv2];[].
+  rewrite <- Hind; auto;[| disjoint_reasoningv2];[].
+  apply checkBCEqset.
+  do 2 rewrite app_assoc.
+  apply eqsetv_app; [| refl].
+  apply eqset_app_comm.
+Qed.
+
 Lemma betaPreservesBC (lamVar:NVar) (appArg:NTerm):
  (forall (lamBody:NTerm) lv,
   disjoint (all_vars appArg) (bound_vars lamBody)
@@ -6697,8 +6739,12 @@ Proof using.
   dands;[| assumption].
   cases_if;[rewrite ssubst_aux_nil; assumption|].
   apply Hind; auto;[disjoint_reasoningv|].
-Abort.
+  disjoint_reasoning.
+  revert Hca. revert Hdis0. clear.
+  apply checkBCStrengthen.
+Qed.
 
+  
 End SubstGeneric2.
 
 Lemma dom_sub_map_range {NVar} {gtsi} {gtso} : forall (f : @NTerm NVar gtsi -> @NTerm NVar gtso) sub,
