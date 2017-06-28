@@ -6651,7 +6651,7 @@ End Test.
  *)
   
 Definition bcSubst (t:NTerm) (sub: Substitution) : NTerm :=
-  let fvSub := flat_map free_vars (range sub) in 
+  let fvSub := flat_map all_vars (range sub) in 
   let tp := change_bvars_alpha fvSub t in
   ssubst_aux tp sub.
 
@@ -6688,17 +6688,17 @@ Qed.
 
 Lemma checkBCStrengthen blv :
  (forall (appArg:NTerm) lv,
-     disjoint (all_vars appArg) blv -> checkBC lv appArg = true -> checkBC (blv ++ lv) appArg = true)
+     disjoint (bound_vars appArg) blv -> checkBC lv appArg = true -> checkBC (blv ++ lv) appArg = true)
  *
  (forall (appArg:BTerm) lv,
-     disjoint (all_vars_bt appArg) blv -> checkBC_bt lv appArg = true -> checkBC_bt (blv ++ lv) appArg = true).
+     disjoint (bound_vars_bterm appArg) blv -> checkBC_bt lv appArg = true -> checkBC_bt (blv ++ lv) appArg = true).
 Proof using.
   clear dependent varcl. clear freshv.
   apply NTerm_BTerm_ind;
     [refl| |].
-- intros ? ? Hind lv Hdis. simpl in *. rewrite all_vars_ot in Hdis.
+- intros ? ? Hind lv Hdis. simpl in *.
   do 2 rewrite ball_map_true. rewrite disjoint_flat_map_l in Hdis. eauto.
-- intros bblv bnt Hind lv Hdis. simpl. rewrite allvars_bterm in Hdis.
+- intros bblv bnt Hind lv Hdis. simpl in *. 
   specialize (Hind (bblv++lv)). do 2 rewrite andb_true.
   do 2 rewrite Decidable_spec.
   intros Hc. repnd.
@@ -6712,13 +6712,13 @@ Qed.
 
 Lemma betaPreservesBC (lamVar:NVar) (appArg:NTerm):
  (forall (lamBody:NTerm) lv,
-  disjoint (all_vars appArg) (bound_vars lamBody)
+  disjoint (bound_vars appArg) (bound_vars lamBody)
   -> checkBC lv appArg = true
   -> checkBC lv lamBody = true
   -> checkBC lv (ssubst_aux lamBody [(lamVar, appArg)]) = true)
  *
  (forall (lamBody:BTerm) lv,
-  disjoint (all_vars appArg) (bound_vars_bterm lamBody)
+  disjoint (bound_vars appArg) (bound_vars_bterm lamBody)
   -> checkBC lv appArg = true
   -> checkBC_bt lv lamBody = true
   -> checkBC_bt lv (ssubst_bterm_aux lamBody [(lamVar, appArg)]) = true).
@@ -6744,7 +6744,18 @@ Proof using.
   apply checkBCStrengthen.
 Qed.
 
-  
+
+Lemma betaPreservesBC2 (lamVar:NVar) (appArg:NTerm):
+ forall (lamBody:NTerm) lv,
+  checkBC lv appArg = true
+  -> checkBC lv lamBody = true
+  -> checkBC lv (bcSubst lamBody [(lamVar, appArg)]) = true.
+Proof using.
+  unfold bcSubst.
+  intros. simpl. rewrite app_nil_r.
+  apply betaPreservesBC; auto.
+Abort.
+
 End SubstGeneric2.
 
 Lemma dom_sub_map_range {NVar} {gtsi} {gtso} : forall (f : @NTerm NVar gtsi -> @NTerm NVar gtso) sub,
