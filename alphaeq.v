@@ -766,27 +766,28 @@ Local Transparent decide.
   disjoint_reasoningv.
 Qed.
 
-
-Lemma betaPreservesBC2 o (lamVar:NVar) (lamBody appArg:NTerm) lv:
+Lemma bcSubstBetaPreservesBC o (lamVar:NVar) (lamBody appArg:NTerm) lv:
   let lam := bterm [lamVar] lamBody in
   let appT := (oterm o [lam ; bterm [] appArg]) in
-  subset (free_vars appT) lv
-  -> checkBC lv appT =true
-  -> checkBC lv (bcSubst lamBody [(lamVar, appArg)]) = true.
-Proof using.
+   checkBC lv appT =true
+  -> checkBC lv (bcSubst lv lamBody [(lamVar, appArg)]) = true.
+Proof using varclass.
   Local Opaque decide.
-  simpl. rewrite app_nil_r.
+  simpl.
   setoid_rewrite decide_true at 2;[| disjoint_reasoningv2].
-  intros Hs Hc.
+  intros  Hc.
   ring_simplify in Hc.
   repeat rewrite andb_true in Hc. repnd.
   unfold bcSubst.
-  apply betaPreservesBC; auto; simpl; rewrite app_nil_r.
-  - admit. (*easy. *)
-  - (* impossible to prove. [change_bvars_alpha] does not have access to [lv] currently.
-       [lv] may have variables bound above in the subtree, but are not free in [lamBody] or [appArg].
-       Nothing prevents [change_bvars_alpha] from picking the same variables again.  *)
-Abort.
+  simpl. rewrite app_nil_r.
+  pose proof (fst (change_bvars_alpha_checkbc_aux (lv ++ bound_vars appArg)) lamBody) as Hbc.
+  pose proof (fst (change_bvars_alpha_spec_aux (lv ++ bound_vars appArg)) lamBody) as Hsp.
+  simpl in *. revert Hbc Hsp.
+  generalize (change_bvars_alpha (lv ++ bound_vars appArg) lamBody).
+  intros tc ? ?. repnd.
+  apply betaPreservesBC; auto; simpl;[disjoint_reasoningv2|].
+  revert Hbc. apply (fst checkBCSubset). apply subset_app_r. reflexivity.
+Qed.
 
 Lemma alpha_eq_cons : forall o1 o2 lbt1 lbt2 b1 b2,
 alpha_eq_bterm b1 b2

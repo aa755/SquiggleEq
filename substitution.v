@@ -6649,10 +6649,6 @@ Section Test.
 End Test.  
  *)
   
-Definition bcSubst (t:NTerm) (sub: Substitution) : NTerm :=
-  let fvSub := (free_vars t) ++ flat_map all_vars (range sub) in 
-  let tp := change_bvars_alpha fvSub t in
-  ssubst_aux tp sub.
 
 
 Lemma checkBCSubset :
@@ -6800,6 +6796,14 @@ Proof using.
   clear hdeq. intros. unfold var_ren. rewrite combine_of_map_snd.
   split; intros; apply boundvars_substvars_checkbc.
 Qed.
+
+Definition bcSubst (lva: list NVar) (t:NTerm) (sub: Substitution) : NTerm :=
+  (* in intended apps, callee is supposed to ensure that free vars are supposed to be in [lva]. 
+     [lva] is supposed to contain all enclosing binders of the subtree where t and [sub] are located,
+    during reduction.*)
+  let avoid := lva ++ flat_map bound_vars (range sub) in 
+  let tp := change_bvars_alpha avoid t in
+  ssubst_aux tp sub.
 
 
 End SubstGeneric2.
