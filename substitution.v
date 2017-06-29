@@ -6801,7 +6801,7 @@ Definition bcSubst (lva: list NVar) (t:NTerm) (sub: Substitution) : NTerm :=
   (* in intended apps, callee is supposed to ensure that free vars are supposed to be in [lva]. 
      [lva] is supposed to contain all enclosing binders of the subtree where t and [sub] are located,
     during reduction.*)
-  let avoid := lva ++ flat_map bound_vars (range sub) in 
+  let avoid := (dom_sub sub) ++ lva ++ flat_map bound_vars (range sub) in 
   let tp := change_bvars_alpha avoid t in
   ssubst_aux tp sub.
 

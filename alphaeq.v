@@ -780,13 +780,14 @@ Proof using varclass.
   repeat rewrite andb_true in Hc. repnd.
   unfold bcSubst.
   simpl. rewrite app_nil_r.
-  pose proof (fst (change_bvars_alpha_checkbc_aux (lv ++ bound_vars appArg)) lamBody) as Hbc.
-  pose proof (fst (change_bvars_alpha_spec_aux (lv ++ bound_vars appArg)) lamBody) as Hsp.
+  pose proof (fst (change_bvars_alpha_checkbc_aux (lamVar::lv ++ bound_vars appArg)) lamBody) as Hbc.
+  pose proof (fst (change_bvars_alpha_spec_aux (lamVar::lv ++ bound_vars appArg)) lamBody) as Hsp.
   simpl in *. revert Hbc Hsp.
-  generalize (change_bvars_alpha (lv ++ bound_vars appArg) lamBody).
+  generalize (change_bvars_alpha (lamVar::lv ++ bound_vars appArg) lamBody).
   intros tc ? ?. repnd.
   apply betaPreservesBC; auto; simpl;[disjoint_reasoningv2|].
-  revert Hbc. apply (fst checkBCSubset). apply subset_app_r. reflexivity.
+  revert Hbc. apply (fst checkBCSubset). apply subset_cons1.
+  apply subset_app_r. reflexivity.
 Qed.
 
 Lemma alpha_eq_cons : forall o1 o2 lbt1 lbt2 b1 b2,
@@ -942,6 +943,35 @@ Proof using varclass.
   eauto.
 Qed.
 
+Lemma change_bvars_alpha_spec2: forall (nt : NTerm) (lv : list NVar),
+    let cc := change_bvars_alpha lv nt in
+    checkBC lv cc = true
+    /\   disjoint lv (bound_vars cc)
+    /\ alpha_eq nt cc
+    /\ (forall vc, varsOfClass (bound_vars nt) vc 
+             -> varsOfClass (bound_vars cc) vc).
+Proof using. simpl.
+  intros. dands; intros;
+            try apply change_bvars_alpha_spec_varclass;
+            try apply change_bvars_alpha_checkbc_aux;
+            try apply  change_bvars_alpha_spec_aux. assumption.
+Qed.                                                  
+
+Lemma change_bvars_alphabt_spec2: forall (nt : BTerm) (lv : list NVar),
+    let cc := change_bvars_alphabt lv nt in
+    checkBC_bt lv cc = true
+    /\   disjoint lv (bound_vars_bterm cc)
+    /\ alpha_eq_bterm nt (change_bvars_alphabt lv nt)
+    /\ (forall vc, varsOfClass (bound_vars_bterm nt) vc 
+             -> varsOfClass (bound_vars_bterm cc) vc).
+Proof using. simpl.
+  intros. dands; intros;
+            try apply change_bvars_alpha_spec_varclass;
+            try apply change_bvars_alpha_checkbc_aux;
+            try apply  change_bvars_alpha_spec_aux. assumption.
+Qed.                                   
+
+
 (*
 Lemma change_bvars_alpha_spec_varclass: forall lv vc,
   (forall nt, varsOfClass (bound_vars nt) vc 
@@ -956,6 +986,13 @@ match goal with
     remember (change_bvars_alphabt  lv nt) as cb; simpl in Hn
 end.
 
+Ltac add_changebvar_spec4 cb Hn:=
+match goal with 
+| [ |- context[change_bvars_alpha ?lv ?nt] ] => pose proof (change_bvars_alpha_spec2 nt lv) as Hn;
+    remember (change_bvars_alpha  lv nt) as cb; simpl in Hn
+| [ |- context[change_bvars_alphabt ?lv ?nt] ] => pose proof (change_bvars_alphabt_spec2 lv nt) as Hn;
+    remember (change_bvars_alphabt  lv nt) as cb; simpl in Hn
+end.
 
 Theorem alphaeqbt_preserves_wf: 
   forall bt1 bt2, alpha_eq_bterm bt1 bt2 -> (bt_wf bt2 <=> bt_wf bt1).
@@ -4288,3 +4325,12 @@ autorewrite with SquiggleEq;
   destruct H as [Hnrd H]
 end); disjoint_reasoningv; 
 repeat rewrite in_single_iff in *; subst; try tauto.
+
+
+Ltac add_changebvar_spec4 cb Hn:=
+match goal with 
+| [ |- context[change_bvars_alpha ?lv ?nt] ] => pose proof (change_bvars_alpha_spec2 nt lv) as Hn;
+    remember (change_bvars_alpha  lv nt) as cb; simpl in Hn
+| [ |- context[change_bvars_alphabt ?lv ?nt] ] => pose proof (change_bvars_alphabt_spec2 lv nt) as Hn;
+    remember (change_bvars_alphabt  lv nt) as cb; simpl in Hn
+end.
