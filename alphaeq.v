@@ -295,8 +295,7 @@ SearchAbout @map @combine @prod.
         Focus 2.
           introv Hin Hc.
           rewrite boundvars_ssubst_aux_vars in Hc; auto.
-          rewrite boundvars_ssubst_aux_vars in Hc; auto;
-           [|congruence].
+          rewrite boundvars_ssubst_aux_vars in Hc; auto.
           apply in_app_iff in Hc; auto.
           dorn Hc; [apply Hdis0 in Hin|apply Hdis in Hin];sp; fail.
 
@@ -443,8 +442,7 @@ Proof using.
         Focus 2.
           introv Hin Hc.
           rewrite boundvars_ssubst_aux_vars in Hc; auto.
-          rewrite boundvars_ssubst_aux_vars in Hc; auto;
-           [|congruence].
+          rewrite boundvars_ssubst_aux_vars in Hc; auto.
           apply in_app_iff in Hc; auto.
           dorn Hc; [apply Hdis0 in Hin|apply Hdis in Hin];sp; fail.
 
@@ -542,7 +540,7 @@ Proof using.
   inverts Hal as Ha1 Ha2 Ha3 Ha4 Ha5.
   apply (alpha_eq3_change_avoidvars _ (lv4++lv++lva)) in Ha5.
   apply alpha3_ssubst_aux_allvars_congr2 in Ha5;[| congruence | ].
-  Focus 2. rewrite boundvars_ssubst_aux_vars; [|congruence].
+  Focus 2. rewrite boundvars_ssubst_aux_vars.
       rewrite boundvars_ssubst_aux_vars;disjoint_reasoningv.
   rewrite ssubst_aux_nest_vars_same in Ha5;auto;
     [| congruence| disjoint_reasoningv| disjoint_reasoningv].
@@ -740,6 +738,56 @@ Proof using.
       eauto.
 Qed.
 
+
+Lemma change_bvars_alpha_checkbc_aux: forall lv,
+  (forall nt:NTerm, 
+  let nt' := change_bvars_alpha lv nt in
+  checkBC ((*free_vars nt++*)lv) nt' = true)
+  * (forall bt:BTerm,
+  let bt' := change_bvars_alphabt lv bt in
+  checkBC_bt ((*free_vars_bterm bt ++ *)lv) bt' = true).
+Proof using varclass.
+  intros. apply NTerm_BTerm_ind;
+    [intro v; cpx| |].
+- intros ? ? Hind.
+  simpl. rewrite ball_map_true. 
+  intros x Hin. apply in_map_iff in Hin. exrepnd. subst.
+  eauto.
+
+Local Opaque decide.
+- intros blv bnt Hind.
+  simpl.
+  addFreshVarsSpec2 vn pp.
+  exrepnd. allsimpl.
+  rewrite decide_true;[ring_simplify| disjoint_reasoningv2].
+Local Transparent decide.
+  rewrite (fst (boundvars_substvars_checkbc2 blv vn)).
+  apply (checkBCStrengthen vn);[| assumption].
+  disjoint_reasoningv.
+Qed.
+
+
+Lemma betaPreservesBC2 o (lamVar:NVar) (lamBody appArg:NTerm) lv:
+  let lam := bterm [lamVar] lamBody in
+  let appT := (oterm o [lam ; bterm [] appArg]) in
+  subset (free_vars appT) lv
+  -> checkBC lv appT =true
+  -> checkBC lv (bcSubst lamBody [(lamVar, appArg)]) = true.
+Proof using.
+  Local Opaque decide.
+  simpl. rewrite app_nil_r.
+  setoid_rewrite decide_true at 2;[| disjoint_reasoningv2].
+  intros Hs Hc.
+  ring_simplify in Hc.
+  repeat rewrite andb_true in Hc. repnd.
+  unfold bcSubst.
+  apply betaPreservesBC; auto; simpl; rewrite app_nil_r.
+  - admit. (*easy. *)
+  - (* impossible to prove. [change_bvars_alpha] does not have access to [lv] currently.
+       [lv] may have variables bound above in the subtree, but are not free in [lamBody] or [appArg].
+       Nothing prevents [change_bvars_alpha] from picking the same variables again.  *)
+Abort.
+
 Lemma alpha_eq_cons : forall o1 o2 lbt1 lbt2 b1 b2,
 alpha_eq_bterm b1 b2
 -> alpha_eq (oterm o1 lbt1) (oterm o1 lbt2)
@@ -811,7 +859,7 @@ Proof using.
   addFreshVarsSpec2 vn pp.
   exrepnd. allsimpl.
   dands.
-   + setoid_rewrite boundvars_ssubst_aux_vars;[|congruence].
+   + setoid_rewrite boundvars_ssubst_aux_vars.
      apply NoDupApp; noRepDis.
 
    +  introv Hin Hinc. rename t into vv.

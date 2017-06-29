@@ -5152,12 +5152,11 @@ Qed.
 
 Lemma boundvars_ssubst_aux_vars:
   forall nt lvi lvo,
-  length lvi = length lvo
-  -> bound_vars (ssubst_aux nt (var_ren lvi lvo))
+   bound_vars (ssubst_aux nt (var_ren lvi lvo))
      = bound_vars nt.
 Proof using.
   clear hdeq.
-  nterm_ind1s nt as [v | o lbt Hind] Case; introv Hl; auto.
+  nterm_ind1s nt as [v | o lbt Hind] Case; intros ? ? . auto.
   - Case "vterm". simpl. rewrite sub_lmap_find. 
     destruct (lmap_find deq_nvar (var_ren lvi lvo) v) as [s1s| n1n];auto; exrepnd.
     allsimpl. apply in_var_ren in s1s0. exrepnd. subst. auto.
@@ -5173,7 +5172,7 @@ Qed.
 
 Lemma boundvars_ssubst_vars:
   forall nt lvi lvo,
-  length lvi = length lvo
+  length lvi = length lvo (*not necessary although it may complicate the proof a bit*)
   -> disjoint lvo (bound_vars nt)
   -> bound_vars (ssubst nt (var_ren lvi lvo))
      = bound_vars nt.
@@ -6651,7 +6650,7 @@ End Test.
  *)
   
 Definition bcSubst (t:NTerm) (sub: Substitution) : NTerm :=
-  let fvSub := flat_map all_vars (range sub) in 
+  let fvSub := (free_vars t) ++ flat_map all_vars (range sub) in 
   let tp := change_bvars_alpha fvSub t in
   ssubst_aux tp sub.
 
@@ -6773,16 +6772,35 @@ Proof using.
 Qed.
 
 
-Lemma betaPreservesBC2 (lamVar:NVar) (appArg:NTerm):
- forall (lamBody:NTerm) lv,
-  checkBC lv appArg = true
-  -> checkBC lv lamBody = true
-  -> checkBC lv (bcSubst lamBody [(lamVar, appArg)]) = true.
+Lemma boundvars_substvars_checkbc:
+  (forall (nt:NTerm) lva vsub,
+  checkBC lva (ssubst_aux nt (ALMapRange vterm vsub))
+     = checkBC lva nt)*
+  (forall (nt:BTerm) lva vsub,
+  checkBC_bt lva (ssubst_bterm_aux nt (ALMapRange vterm vsub))
+     = checkBC_bt lva nt).
 Proof using.
-  unfold bcSubst.
-  intros. simpl. rewrite app_nil_r.
-  apply betaPreservesBC; auto.
-Abort.
+  clear hdeq. apply NTerm_BTerm_ind.
+- intros ? ? ?. simpl. unfold sub_find. rewrite ALMapRangeFindCommute.
+  dALFind s; refl.    
+- intros ? ? Hind ? ?. simpl. f_equal. rewrite map_map. apply eq_maps.
+  intros ? Hin. unfold compose. simpl. eauto.
+- intros blv bnt Hind ? ?. simpl. f_equal.
+  unfold sub_filter. rewrite ALMapRangeFilterCommute. apply Hind.
+Qed.
+
+Lemma boundvars_substvars_checkbc2  lvi lvo :
+  (forall (nt:NTerm) lva,
+  checkBC lva (ssubst_aux nt (var_ren lvi lvo))
+     = checkBC lva nt)*
+  (forall (nt:BTerm) lva,
+  checkBC_bt lva (ssubst_bterm_aux nt (var_ren lvi lvo))
+     = checkBC_bt lva nt).
+Proof using.
+  clear hdeq. intros. unfold var_ren. rewrite combine_of_map_snd.
+  split; intros; apply boundvars_substvars_checkbc.
+Qed.
+
 
 End SubstGeneric2.
 
