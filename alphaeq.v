@@ -4162,24 +4162,60 @@ SearchAbout AssocList.
 Definition ALFindEndo {Key:Type} {d:Deq Key} (sub: AssocList Key Key)  (k:Key) : Key :=
   ALFindDef sub k k.
 
+(* Move to AssocList *)
+Lemma ALFindEndoId {Key:Type} {d:Deq Key} (sub: AssocList Key Key) v :
+  disjoint [v] (ALDom sub)
+  -> ALFindEndo sub v = v.
+Proof using.
+  intros.
+  unfold ALFindEndo, ALFindDef.
+  rewrite ALFindNoneIf;[refl|].
+  noRepDis.
+Qed.
+
+(* Move to AssocList *)
+Lemma ALFindMapEndoId {Key:Type} {d:Deq Key} (sub: AssocList Key Key) lv:
+  disjoint lv (ALDom sub)
+  -> map (ALFindEndo sub) lv = lv.
+Proof using.
+  intros Hd.
+  rewrite <- (map_id lv) at 2.
+  apply eq_maps.
+  intros ? Hin.
+  apply ALFindEndoId.
+  eapply subset_disjoint;[| apply Hd].
+  apply singleton_subset. assumption.
+Qed.
+
+(** because the 2 hypotheses, no filtering occurs in ssubst_aux, thus making it equivalent to
+tvmap  which happily maps ALL VARS, tottally agnostic to the concept of bvars *)
 Lemma var_ren_vmap :
   (forall t lv sub, 
   checkBC lv t = true
+  -> disjoint (ALDom sub) (bound_vars t) 
   -> tvmap (ALFindEndo sub) t = ssubst_aux t (ALMapRange vterm sub))*
   (forall t lv sub, 
   checkBC_bt lv t = true
+  -> disjoint (ALDom sub) (bound_vars_bterm t)
   -> tvmap_bterm (ALFindEndo sub) t = ssubst_bterm_aux t (ALMapRange vterm sub)).
 Proof using.
   apply NTerm_BTerm_ind.
-- simpl. intros v lv sub _. unfold tvmap, ALFindEndo, ALFindDef, sub_find. simpl.
+- simpl. intros v lv sub _ Hd. unfold tvmap, ALFindEndo, ALFindDef, sub_find. simpl.
   rewrite ALMapRangeFindCommute. destruct (ALFind sub v); auto.
-- intros ? ? Hind ? ? Hc. unfold tvmap, id. simpl.  f_equal. simpl in *.
-  apply eq_maps. intros ? Hin. apply Hind with (lv:=lv); auto;[].
-  rewrite ball_map_true in Hc. eauto.
-- intros blv bnt Hind ? ? Hc. unfold tvmap_bterm. simpl.
-  rewrite ALFind.    
-  unfold ALMapRange    
-  Lemma var_rel_bc_alpha (f:NVar -> NVar):
+- intros ? ? Hind ? ? Hc Hd. unfold tvmap, id. simpl.  f_equal. simpl in *.
+  apply eq_maps. intros ? Hin.
+  rewrite ball_map_true in Hc.
+  rewrite disjoint_flat_map_r in Hd.
+  apply Hind with (lv:=lv); auto.
+- intros blv bnt Hind ? ? Hc Hd. unfold tvmap_bterm. simpl in *. unfold dom_lmap.
+  rewrite ALFindMapEndoId by disjoint_reasoningv2.
+  rewrite andb_true in Hc. repnd.
+  f_equal. rewrite sub_filter_disjoint1;[eapply Hind; eauto; disjoint_reasoningv2|];[].
+  unfold dom_sub, ALMapRange, ALDom, ALMap. rewrite map_map. unfold compose. simpl.
+  disjoint_reasoningv2.
+Qed.
+
+Lemma var_rel_bc_alpha (f:NVar -> NVar):
   (forall t,
   (forall v:NVar,  In v (free_vars t) -> f v =v)
   -> checkBC (free_vars t) (tvmap f t) = true
