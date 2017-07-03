@@ -4156,6 +4156,26 @@ Proof.
 Qed.
 
 
+
+Lemma var_rel_bc_alpha (f:NVar -> NVar):
+  (forall t,
+  (forall v:NVar,  In v (free_vars t) -> f v =v)
+  -> checkBC (free_vars t) (tvmap f t) = true
+  -> alpha_eq t (tvmap f t))*
+  (forall t,
+  (forall v:NVar,  In v (free_vars_bterm t) -> f v =v)
+  -> checkBC_bt (free_vars_bterm t) (tvmap_bterm f t) = true
+  -> alpha_eq_bterm t (tvmap_bterm f t)).
+Proof using.
+  apply NTerm_BTerm_ind;
+    [ intros v Hin Hc; unfold tvmap; simpl; rewrite Hin; auto; simpl; cpx | |].
+- intros ? ? Hind Hin Hc. unfold tvmap. simpl. unfold id.
+  constructor;[autorewrite with list; auto|]. admit. (* easy *)
+- intros ? ? Hind Hin Hc. unfold tvmap_bterm. simpl. simpl in Hc.
+  apply andb_true in Hc. repnd. SearchAbout decide.
+  apply prove_alpha_bterm2.
+  SearchAbout alpha_eq_bterm.
+
 End AlphaGeneric.
 
 Lemma alpha_eq_map_bt_op
@@ -4334,3 +4354,26 @@ match goal with
 | [ |- context[change_bvars_alphabt ?lv ?nt] ] => pose proof (change_bvars_alphabt_spec2 lv nt) as Hn;
     remember (change_bvars_alphabt  lv nt) as cb; simpl in Hn
 end.
+
+
+  
+Section AlphaPres.
+
+Context {NVar VarClass Opid1 Opid2} {deqnvar : Deq NVar} {varcl freshv} 
+  {varclass: @VarType NVar VarClass deqnvar varcl freshv} 
+  {hdeq1 : Deq Opid1}  {hdeq2 : Deq Opid2}
+  {gts1 : GenericTermSig Opid1}
+  {gts2 : GenericTermSig Opid2}.
+
+Variable f: (@NTerm NVar Opid1) -> (@NTerm NVar Opid2).
+
+Hypothesis fVar : forall (v:NVar), alpha_eq (f (vterm v)) (f (vterm v)).
+
+Lemma preservesAlphaBC lv (t1 t2: @NTerm NVar Opid1) :
+  checkBC lv t1 = true
+  -> checkBC lv t2 = true
+  -> alpha_eq t1  t2 ->  alpha_eq (f t1)  (f t2).
+Proof using.
+  intros H1c H2c Hal. induction Hal;[ apply fVar |].
+Abort.  
+End AlphaPres.
