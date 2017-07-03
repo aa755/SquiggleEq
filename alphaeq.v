@@ -4239,15 +4239,26 @@ Proof using.
   constructor;[autorewrite with list; auto|]. admit. (* easy *)
 - intros blv bnt Hind ? Hd Hc. unfold tvmap_bterm. simpl. simpl in Hc.
   repeat rewrite andb_true in Hc. repeat rewrite Decidable_spec in Hc.
+  repnd. symmetry.
+  apply prove_alpha_bterm2; try rewrite map_length; auto.
+  Focus 3.
+  symmetry.
+  change_to_ssubst_aux8.
+  unfold var_ren. do 1 rewrite combine_of_map_snd.
+  setoid_rewrite <- (fst var_ren_vmap); eauto.
+  symmetry. apply H
+  
+  
   apply prove_alpha_bterm with (lva:=[]);[| rewrite map_length; refl].
   rewrite app_nil_r. intros lvn H1d _ Hl Hnd.
+  SearchAbout ssubst_aux.
   unfold var_ren. do 2 rewrite combine_of_map_snd. repnd.
   simpl in *.
   pose proof Hc1 as Hdis. apply checkBCdisjoint in Hdis.
   setoid_rewrite <- (fst var_ren_vmap); eauto.
   Focus 4. (* subgoal 3 will come from the additional hypothesis *)
     setoid_rewrite <- combine_map_fst2;[disjoint_reasoningv2|rw map_length; omega].
-    
+  SearchAbout NoDup map.
   Focus 4. (* will come from the additional hypothesis *) admit.
   Search alpha_eq_bterm.
 Abort.
