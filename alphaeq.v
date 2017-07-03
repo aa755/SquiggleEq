@@ -4155,9 +4155,31 @@ Proof.
   assumption.
 Qed.
 
+Require Import AssociationList. 
+SearchAbout AssocList.
 
+(* Move to AssocList *)
+Definition ALFindEndo {Key:Type} {d:Deq Key} (sub: AssocList Key Key)  (k:Key) : Key :=
+  ALFindDef sub k k.
 
-Lemma var_rel_bc_alpha (f:NVar -> NVar):
+Lemma var_ren_vmap :
+  (forall t lv sub, 
+  checkBC lv t = true
+  -> tvmap (ALFindEndo sub) t = ssubst_aux t (ALMapRange vterm sub))*
+  (forall t lv sub, 
+  checkBC_bt lv t = true
+  -> tvmap_bterm (ALFindEndo sub) t = ssubst_bterm_aux t (ALMapRange vterm sub)).
+Proof using.
+  apply NTerm_BTerm_ind.
+- simpl. intros v lv sub _. unfold tvmap, ALFindEndo, ALFindDef, sub_find. simpl.
+  rewrite ALMapRangeFindCommute. destruct (ALFind sub v); auto.
+- intros ? ? Hind ? ? Hc. unfold tvmap, id. simpl.  f_equal. simpl in *.
+  apply eq_maps. intros ? Hin. apply Hind with (lv:=lv); auto;[].
+  rewrite ball_map_true in Hc. eauto.
+- intros blv bnt Hind ? ? Hc. unfold tvmap_bterm. simpl.
+  rewrite ALFind.    
+  unfold ALMapRange    
+  Lemma var_rel_bc_alpha (f:NVar -> NVar):
   (forall t,
   (forall v:NVar,  In v (free_vars t) -> f v =v)
   -> checkBC (free_vars t) (tvmap f t) = true
