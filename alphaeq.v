@@ -4220,24 +4220,36 @@ Proof using.
   disjoint_reasoningv2.
 Qed.
 
-Lemma var_rel_bc_alpha (f:NVar -> NVar):
-  (forall t,
-  (forall v:NVar,  In v (free_vars t) -> f v =v)
+Lemma var_rel_bc_alpha :
+  (forall t sub,
+   let f:= (ALFindEndo sub) in (* may contain [bvars t]. renaming some of them is the whole point *)
+  disjoint (ALDom sub) (free_vars t)
   -> checkBC (free_vars t) (tvmap f t) = true
   -> alpha_eq t (tvmap f t))*
-  (forall t,
-  (forall v:NVar,  In v (free_vars_bterm t) -> f v =v)
+  (forall t sub,
+   let f:= (ALFindEndo sub) in
+  disjoint (ALDom sub) (free_vars_bterm t)
   -> checkBC_bt (free_vars_bterm t) (tvmap_bterm f t) = true
   -> alpha_eq_bterm t (tvmap_bterm f t)).
 Proof using.
-  apply NTerm_BTerm_ind;
-    [ intros v Hin Hc; unfold tvmap; simpl; rewrite Hin; auto; simpl; cpx | |].
-- intros ? ? Hind Hin Hc. unfold tvmap. simpl. unfold id.
+  simpl.
+  apply NTerm_BTerm_ind.
+- intros v ? Hin _; unfold tvmap; simpl in *. rewrite ALFindEndoId;[refl|disjoint_reasoningv2].
+- intros ? ? ? Hind Hin Hc. unfold tvmap. simpl. unfold id.
   constructor;[autorewrite with list; auto|]. admit. (* easy *)
-- intros ? ? Hind Hin Hc. unfold tvmap_bterm. simpl. simpl in Hc.
-  apply andb_true in Hc. repnd. SearchAbout decide.
-  apply prove_alpha_bterm2.
-  SearchAbout alpha_eq_bterm.
+- intros blv bnt Hind ? Hd Hc. unfold tvmap_bterm. simpl. simpl in Hc.
+  repeat rewrite andb_true in Hc. repeat rewrite Decidable_spec in Hc.
+  apply prove_alpha_bterm with (lva:=[]);[| rewrite map_length; refl].
+  rewrite app_nil_r. intros lvn H1d _ Hl Hnd.
+  unfold var_ren. do 2 rewrite combine_of_map_snd. repnd.
+  simpl in *.
+  pose proof Hc1 as Hdis. apply checkBCdisjoint in Hdis.
+  setoid_rewrite <- (fst var_ren_vmap); eauto.
+  Focus 4. (* subgoal 3 will come from the additional hypothesis *)
+    setoid_rewrite <- combine_map_fst2;[disjoint_reasoningv2|rw map_length; omega].
+    
+  Focus 4. (* will come from the additional hypothesis *) admit.
+  Search alpha_eq_bterm.
 Abort.
 
 End AlphaGeneric.
