@@ -4166,6 +4166,7 @@ SearchAbout AssocList.
 Definition ALFindEndo {Key:Type} {d:Deq Key} (sub: AssocList Key Key)  (k:Key) : Key :=
   ALFindDef sub k k.
 
+
 (* Move to AssocList *)
 Lemma ALFindEndoId {Key:Type} {d:Deq Key} (sub: AssocList Key Key) v :
   disjoint [v] (ALDom sub)
@@ -4175,6 +4176,17 @@ Proof using.
   unfold ALFindEndo, ALFindDef.
   rewrite ALFindNoneIf;[refl|].
   noRepDis.
+Qed.
+
+(* Move to AssocList *)
+Lemma ALFindEndoId2 {Key:Type} {d:Deq Key} lv v:
+  ALFindEndo (map (fun x=> (x,x)) lv) v = v.
+Proof using.
+  unfold ALFindEndo, ALFindDef.
+  dALFind sd; [| refl].
+  symmetry in Heqsd.
+  apply ALFindSome in Heqsd. apply in_map_iff in Heqsd.
+  exrepnd. inverts Heqsd0. refl.
 Qed.
 
 (* Move to AssocList *)
@@ -4220,15 +4232,79 @@ Proof using.
   disjoint_reasoningv2.
 Qed.
 
+(* Move :there must be something similar in stdlib or, Extlib, or UsefulTypes.v *)
+Definition eqfun {A B:Type} (f g : A -> B) :=
+  forall a, f a = g a.
+
+Global Instance eqfunEquiv {A B:Type}: Equivalence (@eqfun A B).
+Proof using.
+  constructor; introv; unfold eqfun; try congruence.
+Qed.
+
+(* Move to terms.v *)
+Lemma tmap_ext (V1 V2 O1 O2 : Type) (fv gv: V1 -> V2) (fo go : O1 -> O2)
+  (veq : eqfun fv gv) (oeq : eqfun fo go):
+  (forall (t : terms.NTerm), tmap fv fo t =  tmap gv go t)*
+  (forall (t : terms.BTerm), tmap_bterm fv fo t =  tmap_bterm gv go t).
+Proof using.
+  unfold eqfun in *.
+  apply NTerm_BTerm_ind; simpl; intros; try congruence; f_equal; try congruence;
+    apply eq_maps; eauto.
+Qed.
+
+Global Instance tmapext {V1 V2 O1 O2 : Type}:
+    Proper (eqfun ==> eqfun ==> eq ==> eq) (@tmap V1 V2 O1 O2).
+Proof using.
+  intros ? ? ?  ? ? ? ? ? ?. subst.
+  apply tmap_ext; assumption.
+Qed.
+
+
+(* Move to AssocList.v  *)
+Lemma vmap_app_nest (sub1 sub2: AssocList NVar NVar):
+  disjoint (ALRange sub1) (ALDom sub2)
+  -> eqfun (ALFindEndo (sub1++sub2)) ((ALFindEndo sub2) ∘ (ALFindEndo sub1)).
+Proof using.
+  intros Hd.
+  intros v. unfold compose, ALFindEndo, ALFindDef.
+  rewrite ALFindApp. dALFind s1v; auto.
+  rewrite ALFindNoneIf;[refl|].
+  apply Hd. symmetry in Heqs1v.
+  apply ALFindSome in Heqs1v. apply in_map_iff.
+  eexists; dands ; eauto.
+Qed.
+  
+(* Move to AssocList.v *)
+Lemma vmap_decompose (lv : list NVar) (sub: AssocList NVar NVar):
+  let subOuter := map (fun v => (v,  (ALFindEndo sub) v)) lv in
+  let subInner := ALFilter sub lv in
+  disjoint (ALRange sub) lv
+  -> eqfun (ALFindEndo sub) ((ALFindEndo subOuter) ∘ (ALFindEndo subInner)).
+Proof using.
+  simpl. intros Hd a.
+  rewrite  <- vmap_app_nest;
+    [| setoid_rewrite map_map; unfold compose; simpl; rewrite map_id;
+       eapply subset_disjoint; try apply Hd; apply map_monotone, ALFilterSubset].
+  unfold ALFindEndo, ALFindDef.
+  setoid_rewrite ALFindApp. symmetry.
+  dALFind sfa; simpl; symmetry in Heqsfa;
+    [apply ALFindFilterSome in Heqsfa | apply ALFindFilterNone in Heqsfa]; repnd;
+      try rewrite  Heqsfa0;[refl|].
+  dALFind sm; symmetry in Heqsm.
+  - apply ALFindSome in Heqsm. apply in_map_iff in Heqsm. exrepnd. inverts Heqsm0. refl.
+  - apply ALFindNone in Heqsm. setoid_rewrite map_map in Heqsm. unfold compose in Heqsm.
+    simpl in Heqsm. rewrite map_id in Heqsm. dorn Heqsfa; cpx;[]. rewrite Heqsfa. refl.
+Qed.
+
 Lemma var_rel_bc_alpha :
   (forall t sub,
    let f:= (ALFindEndo sub) in (* may contain [bvars t]. renaming some of them is the whole point *)
-  disjoint (ALDom sub) (free_vars t)
+  disjoint (ALDom sub) (free_vars t ++ ALRange sub) (** the item after ++ is WLOG. use 2 hops to rename all vars*)
   -> checkBC (free_vars t) (tvmap f t) = true
   -> alpha_eq t (tvmap f t))*
   (forall t sub,
    let f:= (ALFindEndo sub) in
-  disjoint (ALDom sub) (free_vars_bterm t)
+  disjoint (ALDom sub) (free_vars_bterm t ++ ALRange sub)
   -> checkBC_bt (free_vars_bterm t) (tvmap_bterm f t) = true
   -> alpha_eq_bterm t (tvmap_bterm f t)).
 Proof using.
@@ -4241,11 +4317,12 @@ Proof using.
   repeat rewrite andb_true in Hc. repeat rewrite Decidable_spec in Hc.
   repnd. symmetry.
   apply prove_alpha_bterm with (lva:=[]);[| rewrite map_length; refl].
-  rewrite app_nil_r. intros lvn H1d _ Hl Hnd.
-  fold (tvmap (ALFindEndo sub) bnt).
+  rewrite app_nil_r. intros lvn H1d _ Hl Hnd. simpl in *.
+  erewrite (fun rr p1 p2 => fst (@tmap_ext _ _ _ _ _ rr id id p1 p2));
+    [|apply  (vmap_decompose blv) | refl ].
   (*tvmap (ALFindEndo sub) bnt as 
     tvmap (combine blv ((map (ALFindEndo sub) blv))) 
-                (tvmap (ALFilterOut sub blv) bnt)
+                (tvmap (ALFilter sub blv) bnt)
    merge the outer tvmap into the outer one. *)
    tmap bnt
   unfold var_ren. do 2 rewrite combine_of_map_snd. repnd.
