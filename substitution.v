@@ -1092,7 +1092,7 @@ with checkBC_bt {NVar: Type}
 (bt: @BTerm NVar Opid) 
 : bool :=
 match bt with
-| bterm blv bnt => (checkBC (blv++lv) bnt) && decide (disjoint blv lv)
+| bterm blv bnt => (checkBC (blv++lv) bnt) && decide (NoDup blv) && decide (disjoint blv lv)
 end.
 
 Fixpoint uniq_change_bvars_alpha {NVar VarCl : Type}
@@ -6663,11 +6663,13 @@ Proof using.
 - intros ? ? Hind ? ? Hsub Hc. simpl in *.
   rewrite ball_map_true in *.  eauto.
 - intros blv ? Hind ? ? Hsub Hc. simpl in *.
-  rewrite andb_true  in *. repnd. rewrite Decidable_spec in Hc. rewrite Decidable_spec.
+  do 2 rewrite andb_true  in *. repnd.
+  setoid_rewrite Decidable_spec at 2.
+  rewrite Decidable_spec in Hc.
   rewrite disjoint_sym in Hc.
   rewrite disjoint_sym.
-  dands;[| eauto using subset_disjoint; fail].
-  revert Hc0.
+  dands; auto; [|]; [| eauto using subset_disjoint; fail].
+  revert Hc1.
   apply Hind.
   apply subsetvAppLR; eauto.
 Qed.
@@ -6685,9 +6687,9 @@ Proof using.
     [simpl; intros; disjoint_reasoningv2| |];[|].
 - intros ? ? Hind ? Hc. simpl in *. rewrite disjoint_flat_map_r.
   rewrite ball_map_true in Hc. eauto.   
-- intros blv bnt Hind ? Hc. simpl in *. rewrite andb_true in Hc. repnd.
+- intros blv bnt Hind ? Hc. simpl in *. do 2 rewrite andb_true in Hc. repnd.
   rewrite Decidable_spec in Hc. disjoint_reasoningv.
-  apply Hind. revert Hc0. apply (fst checkBCSubset).
+  apply Hind. revert Hc1. apply (fst checkBCSubset).
   apply subset_app_l. eauto.
 Qed.
 
@@ -6706,7 +6708,7 @@ Proof using.
   f_equal;
   [| eapply proper_decider2;[| apply eq_set_refl | apply Heq];
      eauto with typeclass_instances].
-  apply Hind. rewrite Heq. reflexivity.
+  f_equal. apply Hind. rewrite Heq. reflexivity.
 Qed.
 
 Lemma checkBCStrengthen blv :
@@ -6722,10 +6724,10 @@ Proof using.
 - intros ? ? Hind lv Hdis. simpl in *.
   do 2 rewrite ball_map_true. rewrite disjoint_flat_map_l in Hdis. eauto.
 - intros bblv bnt Hind lv Hdis. simpl in *. 
-  specialize (Hind (bblv++lv)). do 2 rewrite andb_true.
-  do 2 rewrite Decidable_spec.
+  specialize (Hind (bblv++lv)). do 4 rewrite andb_true.
+  do 3 rewrite Decidable_spec.
   intros Hc. repnd.
-  dands;[| disjoint_reasoningv2];[].
+  dands; auto;[| disjoint_reasoningv2];[].
   rewrite <- Hind; auto;[| disjoint_reasoningv2];[].
   apply checkBCEqset.
   do 2 rewrite app_assoc.
@@ -6757,9 +6759,9 @@ Proof using.
   apply Hind; auto; fail.
 - intros blv bnt Hind lv Hdis Hca Hcl.
   simpl in *.
-  apply andb_true.
-  apply andb_true in Hcl. repnd.
-  dands;[| assumption].
+  repeat rewrite andb_true.
+  repeat rewrite andb_true in Hcl. repnd.
+  dands; auto;[].
   cases_if;[rewrite ssubst_aux_nil; assumption|].
   apply Hind; auto;[disjoint_reasoningv|].
   disjoint_reasoning.
@@ -6781,8 +6783,9 @@ Proof using.
   dALFind s; refl.    
 - intros ? ? Hind ? ?. simpl. f_equal. rewrite map_map. apply eq_maps.
   intros ? Hin. unfold compose. simpl. eauto.
-- intros blv bnt Hind ? ?. simpl. f_equal.
-  unfold sub_filter. rewrite ALMapRangeFilterCommute. apply Hind.
+- intros blv bnt Hind ? ?. simpl. f_equal. f_equal.
+  unfold sub_filter. rewrite ALMapRangeFilterCommute.
+  apply Hind.
 Qed.
 
 Lemma boundvars_substvars_checkbc2  lvi lvo :

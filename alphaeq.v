@@ -760,6 +760,7 @@ Local Opaque decide.
   addFreshVarsSpec2 vn pp.
   exrepnd. allsimpl.
   rewrite decide_true;[ring_simplify| disjoint_reasoningv2].
+  rewrite decide_true;[ring_simplify| disjoint_reasoningv2].
 Local Transparent decide.
   rewrite (fst (boundvars_substvars_checkbc2 blv vn)).
   apply (checkBCStrengthen vn);[| assumption].
@@ -774,7 +775,10 @@ Lemma bcSubstBetaPreservesBC o (lamVar:NVar) (lamBody appArg:NTerm) lv:
 Proof using varclass.
   Local Opaque decide.
   simpl.
-  setoid_rewrite decide_true at 2;[| disjoint_reasoningv2].
+  setoid_rewrite decide_true at 4;[| disjoint_reasoningv2; fail].
+  simpl in *.
+  setoid_rewrite decide_true at 3;[| constructor].
+  setoid_rewrite decide_true at 1;[| repeat constructor; noRepDis1].
   intros  Hc.
   ring_simplify in Hc.
   repeat rewrite andb_true in Hc. repnd.
@@ -4209,8 +4213,9 @@ Proof using.
   apply Hind with (lv:=lv); auto.
 - intros blv bnt Hind ? ? Hc Hd. unfold tvmap_bterm. simpl in *. unfold dom_lmap.
   rewrite ALFindMapEndoId by disjoint_reasoningv2.
-  rewrite andb_true in Hc. repnd.
-  f_equal. rewrite sub_filter_disjoint1;[eapply Hind; eauto; disjoint_reasoningv2|];[].
+  do 2 rewrite andb_true in Hc. repnd.
+  f_equal.
+  rewrite sub_filter_disjoint1;[eapply Hind; eauto; noRepDis1|];[].
   unfold dom_sub, ALMapRange, ALDom, ALMap. rewrite map_map. unfold compose. simpl.
   disjoint_reasoningv2.
 Qed.
@@ -4233,6 +4238,7 @@ Proof using.
   apply andb_true in Hc. repnd. SearchAbout decide.
   apply prove_alpha_bterm2.
   SearchAbout alpha_eq_bterm.
+Abort.
 
 End AlphaGeneric.
 
