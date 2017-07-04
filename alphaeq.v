@@ -4385,7 +4385,7 @@ Proof using.
   fold lvi in Hc0.
   SearchAbout ssubst_aux.
   SearchAbout combine eq map.
-  setoid_rewrite <-  combine_of_map_snd.
+(*  setoid_rewrite <-  combine_of_map_snd.
   setoid_rewrite (fst var_ren_vmap).
   (*tvmap (ALFindEndo sub) bnt as 
     tvmap (combine blv ((map (ALFindEndo sub) blv))) 
@@ -4400,7 +4400,7 @@ Proof using.
     setoid_rewrite <- combine_map_fst2;[disjoint_reasoningv2| rewrite map_length; omega].
   fold (tvmap (ALFindEndo sub) bnt).
   Focus 4. (* will come from the additional hypothesis *) admit.
-  Search alpha_eq_bterm.
+  Search alpha_eq_bterm. *)
 Abort.
 
 End AlphaGeneric.
