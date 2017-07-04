@@ -4333,7 +4333,14 @@ Proof using.
   subst.
   dALFind  sa; simpl; symmetry in Heqsa.
 - admit.
-- admit.
+- assert (~ LIn a (remove_nvars vl vi)) as Ha by admit.
+  apply ALFindNone in Heqsa.
+  setoid_rewrite <- combine_map_fst2 in Heqsa;[| rewrite length_combine_eq; omega].
+  rewrite in_remove_nvars in Ha.
+  dALFind sia; auto.
+  symmetry in Heqsia.
+  apply ALFindSome in Heqsia.
+  apply in_combine_l in Heqsia. tauto.
 Abort.
 
 Lemma var_rel_bc_alpha :
