@@ -4252,6 +4252,17 @@ Proof using.
     apply eq_maps; eauto.
 Qed.
 
+Lemma tmap_compose (V1 V2 V3 O1 O2 O3 : Type) (gv: V1 -> V2) (fv : V2 -> V3)
+  (go : O1 -> O2) (fo : O2 -> O3):
+  (forall (t : terms.NTerm), tmap (fv ∘ gv) (fo ∘ go) t =  tmap fv fo (tmap gv go t))*
+  (forall (t : terms.BTerm), tmap_bterm (fv ∘ gv) (fo ∘ go) t =  tmap_bterm fv fo (tmap_bterm gv go t)).
+Proof using.
+  apply NTerm_BTerm_ind; simpl; intros;
+     simpl; try congruence; f_equal;
+       try rewrite map_map; try congruence.
+  apply eq_maps; eauto.
+Qed.
+
 Global Instance tmapext {V1 V2 O1 O2 : Type}:
     Proper (eqfun ==> eqfun ==> eq ==> eq) (@tmap V1 V2 O1 O2).
 Proof using.
@@ -4299,12 +4310,15 @@ Qed.
 Lemma var_rel_bc_alpha :
   (forall t sub,
    let f:= (ALFindEndo sub) in (* may contain [bvars t]. renaming some of them is the whole point *)
-  disjoint (ALDom sub) (free_vars t ++ ALRange sub) (** the item after ++ is WLOG. use 2 hops to rename all vars*)
+   disjoint (ALDom sub) (free_vars t)
+  -> disjoint  (ALRange sub) (bound_vars t)
+     (** WLOG, because we can use 2 hops. for 1st hop use a one to one papping, which alpha preserves *)
   -> checkBC (free_vars t) (tvmap f t) = true
   -> alpha_eq t (tvmap f t))*
   (forall t sub,
    let f:= (ALFindEndo sub) in
   disjoint (ALDom sub) (free_vars_bterm t ++ ALRange sub)
+  -> disjoint  (ALRange sub) (bound_vars_bterm t) (** WLOG, because we can use 2 hops *)
   -> checkBC_bt (free_vars_bterm t) (tvmap_bterm f t) = true
   -> alpha_eq_bterm t (tvmap_bterm f t)).
 Proof using.
@@ -4313,13 +4327,29 @@ Proof using.
 - intros v ? Hin _; unfold tvmap; simpl in *. rewrite ALFindEndoId;[refl|disjoint_reasoningv2].
 - intros ? ? ? Hind Hin Hc. unfold tvmap. simpl. unfold id.
   constructor;[autorewrite with list; auto|]. admit. (* easy *)
-- intros blv bnt Hind ? Hd Hc. unfold tvmap_bterm. simpl. simpl in Hc.
+- intros blv bnt Hind ? H1d H2d Hc. unfold tvmap_bterm. simpl. simpl in Hc.
   repeat rewrite andb_true in Hc. repeat rewrite Decidable_spec in Hc.
   repnd. symmetry.
   apply prove_alpha_bterm with (lva:=[]);[| rewrite map_length; refl].
-  rewrite app_nil_r. intros lvn H1d _ Hl Hnd. simpl in *.
+  rewrite app_nil_r. intros lvn Had _ Hl Hnd. simpl in *.
+  unfold var_ren at 1. do 1 rewrite combine_of_map_snd.
+  rewrite map_length in Hl.
+  pose proof Hc1 as Hdis. apply checkBCdisjoint in Hdis.
+  setoid_rewrite <- (fst var_ren_vmap) at 1; eauto;
+    [|setoid_rewrite <- combine_map_fst2;[disjoint_reasoningv2| rewrite map_length; omega]; fail].
   erewrite (fun rr p1 p2 => fst (@tmap_ext _ _ _ _ _ rr id id p1 p2));
-    [|apply  (vmap_decompose blv) | refl ].
+    [|apply  (vmap_decompose blv); disjoint_reasoningv2 | refl ].
+  change id with ((@id Opid) ∘ (@id Opid)).
+  rewrite (fst (tmap_compose _ _ _ _ _ _ _ _ _ _)).
+  unfold tvmap.
+  rewrite <- (fst (tmap_compose _ _ _ _ _ _ _ _ _ _)).
+  change  ((@id Opid) ∘ (@id Opid)) with (@id Opid).
+  rewrite <- combine_vars_map.
+  set (lvi := (map (ALFindEndo sub) blv)).
+  fold lvi in Hc0.
+  SearchAbout combine eq map.
+  setoid_rewrite <-  combine_of_map_snd.
+  setoid_rewrite (fst var_ren_vmap).
   (*tvmap (ALFindEndo sub) bnt as 
     tvmap (combine blv ((map (ALFindEndo sub) blv))) 
                 (tvmap (ALFilter sub blv) bnt)
