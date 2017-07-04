@@ -4307,6 +4307,35 @@ Proof using.
     simpl in Heqsm. rewrite map_id in Heqsm. dorn Heqsfa; cpx;[]. rewrite Heqsfa. refl.
 Qed.
 
+(* Move to AssocList.v *)
+Lemma vmap_nest_same (vl vi vr : list NVar):
+  let subOuter := combine vi vr  in
+  let subInner := combine vl vi in
+  let sub := combine vl vr in
+  length vi = length vr
+  -> length vi = length vl
+  -> NoDup vi
+  -> eqfun (ALFindEndo sub) ((ALFindEndo subOuter) ∘ (ALFindEndo subInner)).
+Proof using.
+  simpl. intros Hd H1l H2l a.
+  rewrite (combine_map_snd2 vr vi) at 1 by omega.
+  rewrite (combine_map_fst2 vi vr) at 3 by omega.
+  unfold ALFindEndo, ALFindDef. simpl.  simpl. unfold compose. simpl.
+  remember  (ALFind (combine vl (map fst (combine vi vr))) a) as ss.
+  do 1 rewrite combine_of_map_snd.
+  setoid_rewrite combine_of_map_snd in Heqss.
+  replace (map (fun x : NVar * (NVar * NVar) => (fst x, snd (snd x))) (combine vl (combine vi vr)))
+          with (ALMapRange snd  (combine vl (combine vi vr))) by refl.
+  replace (map (fun x : NVar * (NVar * NVar) => (fst x, fst (snd x))) (combine vl (combine vi vr)))
+     with (ALMapRange fst  (combine vl (combine vi vr))) in Heqss by refl.
+  setoid_rewrite ALFindMap3.
+  setoid_rewrite ALFindMap3 in Heqss.
+  subst.
+  dALFind  sa; simpl; symmetry in Heqsa.
+- admit.
+- admit.
+Abort.
+
 Lemma var_rel_bc_alpha :
   (forall t sub,
    let f:= (ALFindEndo sub) in (* may contain [bvars t]. renaming some of them is the whole point *)
@@ -4347,6 +4376,7 @@ Proof using.
   rewrite <- combine_vars_map.
   set (lvi := (map (ALFindEndo sub) blv)).
   fold lvi in Hc0.
+  SearchAbout ssubst_aux.
   SearchAbout combine eq map.
   setoid_rewrite <-  combine_of_map_snd.
   setoid_rewrite (fst var_ren_vmap).
