@@ -4043,3 +4043,32 @@ Lemma removeConsCancel {A:Type} {deq: Deq A} (r:A)(lv : list A):
 Proof using.
   apply (diffAddCancel [r]).
 Qed.
+
+(* need more assumptions. [f] could equate everything not in the list to f (head l).
+  then LHS would say 0 for such elements. RHS would always be not found for such elements. *)
+Lemma mapFirstIndex {A:Type} {deq: Deq A}(f:A->A) x l:
+  NoDup (map f l)
+  -> firstIndex (f x) (map f l) = firstIndex x l.
+Proof using.
+  intros Hnd.
+  induction l; [refl|].
+  simpl. symmetry. rewrite decide_decideP.
+  cases_if; subst;[rewrite deq_refl; refl|].
+Abort.
+
+Lemma mapNodupFirstIndex {A:Type} {deq: Deq A}(f:A->A) x l:
+  In x l
+  -> NoDup (map f l)
+  -> firstIndex (f x) (map f l) = firstIndex x l.
+Proof using.
+  intros Hin Hnd.
+  induction l; [refl|]. simpl in *.
+  simpl. symmetry. rewrite decide_decideP.
+  cases_if; subst;[rewrite deq_refl; refl|].
+  dorn Hin;[contradiction|].
+  invertsn Hnd. specialize (IHl Hin).
+  apply (in_map f) in Hin.
+  rewrite decide_decideP.
+  cases_if;[ congruence |].
+  f_equal. symmetry. eauto.
+Qed.

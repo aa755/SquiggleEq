@@ -1716,6 +1716,57 @@ Proof using getId getIdCorr getNameCorr.
     rewrite lookupNDef_inserts_neq_seq; auto. lia.
 Qed.
 
+(* TODO: delete *)
+Lemma mapNodupFirstIndex {A:Type} {deq: Deq A}(f:A->A) x l:
+  In x l
+  -> NoDup (map f l)
+  -> firstIndex (f x) (map f l) = firstIndex x l.
+Proof using.
+  intros Hin Hnd.
+  induction l; [refl|]. simpl in *.
+  simpl. symmetry. rewrite decide_decideP.
+  cases_if; subst;[rewrite deq_refl; refl|].
+  dorn Hin;[contradiction|].
+  invertsn Hnd. specialize (IHl Hin).
+  apply (in_map f) in Hin.
+  rewrite decide_decideP.
+  cases_if;[ congruence |].
+  f_equal. symmetry. eauto.
+Qed.
+
+
+Lemma var_rel_bc_alpha f
+  (namePres : forall v, getName (f v) = getName v)
+  :
+  (forall (t:@NTerm NVar Opid) (context: list NVar) ,
+  NoDup (map f context)
+  -> subset (free_vars t) context
+  -> checkBC  (map f context) (tvmap f t) = true
+  -> toDB getName context t = toDB getName (map f context) (tvmap f t))*
+  (forall (t:@BTerm NVar Opid) (context: list NVar) ,
+  NoDup (map f context)
+  -> subset (free_vars_bterm t) context
+  -> checkBC_bt  (map f context) (tvmap_bterm f t) = true
+  -> toDB_bt getName context t = toDB_bt getName (map f context) (tvmap_bterm f t)).
+Proof using.
+  Local Opaque decide.
+  apply terms2.NTerm_BTerm_ind.
+- intros v ? Hnd Hs Hc. simpl in *. f_equal. f_equal.
+  symmetry. apply mapNodupFirstIndex; auto;[]. apply singleton_subset. assumption.
+- intros ? ? Hind ? Hnd Hs Hc. simpl. f_equal.
+  repeat rewrite map_map in *. apply eq_maps. simpl in *.
+  rewrite map_map in Hc.
+  rewrite ball_map_true in Hc.
+  rewrite subset_flat_map in Hs.
+  intros. apply Hind; eauto.
+
+- intros blv bnt Hind ? Hnd Hs Hc.
+  simpl. rewrite map_map. unfold compose. f_equal; [apply eq_maps; eauto |].
+  rewrite <- map_rev, <- map_app. simpl in *.
+  repeat rewrite andb_true in Hc. repeat rewrite Decidable_spec in Hc.
+  repnd.
+  apply Hind; auto; try rewrite map_app;[apply NoDupApp; auto| |].
+Qed.
 End DBToNamed.
 
 
