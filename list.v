@@ -4072,3 +4072,18 @@ Proof using.
   cases_if;[ congruence |].
   f_equal. symmetry. eauto.
 Qed.
+
+
+Lemma eqsetRev {A:Type} (la: list A): eq_set la (rev la).
+Proof using.
+  apply eq_set_iff_eq_set2. unfold eq_set2.
+  apply in_rev.
+Qed.
+
+Lemma noDupRev {A:Type} (la: list A): NoDup la -> NoDup (rev la).
+Proof using.
+  induction la; auto.
+  intros Hd. simpl. invertsn Hd.
+  apply NoDupApp; eauto;[constructor; auto; constructor|].
+  rewrite <- eqsetRev.  apply disjoint_singleton_r. assumption.
+Qed.

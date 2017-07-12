@@ -6711,6 +6711,14 @@ Proof using.
   f_equal. apply Hind. rewrite Heq. reflexivity.
 Qed.
 
+
+Global Instance checkBCProper :
+  Proper (eq_set ==> eq ==>  eq) (@checkBC NVar _ Opid).
+Proof using.
+  intros ? ? ? ? ? ?. subst.
+  apply checkBCEqset. assumption.
+Qed.
+
 Lemma checkBCStrengthen blv :
  (forall (appArg:NTerm) lv,
      disjoint (bound_vars appArg) blv -> checkBC lv appArg = true -> checkBC (blv ++ lv) appArg = true)
@@ -7297,3 +7305,4 @@ Proof using.
   setoid_rewrite (ALFindMap3 f).
   refl.
 Qed.  
+

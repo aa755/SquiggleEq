@@ -1716,41 +1716,6 @@ Proof using getId getIdCorr getNameCorr.
     rewrite lookupNDef_inserts_neq_seq; auto. lia.
 Qed.
 
-(* TODO: delete *)
-Lemma mapNodupFirstIndex {A:Type} {deq: Deq A}(f:A->A) x l:
-  In x l
-  -> NoDup (map f l)
-  -> firstIndex (f x) (map f l) = firstIndex x l.
-Proof using.
-  intros Hin Hnd.
-  induction l; [refl|]. simpl in *.
-  simpl. symmetry. rewrite decide_decideP.
-  cases_if; subst;[rewrite deq_refl; refl|].
-  dorn Hin;[contradiction|].
-  invertsn Hnd. specialize (IHl Hin).
-  apply (in_map f) in Hin.
-  rewrite decide_decideP.
-  cases_if;[ congruence |].
-  f_equal. symmetry. eauto.
-Qed.
-
-(* Prove and Move to list.v *)
-Lemma noDupRev {A:Type} (la: list A): NoDup la -> NoDup (rev la).
-Proof using.
-Admitted.
-
-(* Prove and Move to list.v *)
-Lemma eqsetRev {A:Type} (la: list A): eq_set la (rev la).
-Proof using.
-Admitted.
-
-(** move to substitution.v *)
-Global Instance checkBCProper :
-  Proper (eq_set ==> eq ==>  eq) (@checkBC NVar _ Opid).
-Proof using.
-  intros ? ? ? ? ? ?. subst.
-  apply checkBCEqset. assumption.
-Qed.
 
 (** if we apply (even to binders, unlike subst) ANY varmap f to t, and the result is in BC,
    then the result is alpha equal to the input. Sounds too good to be true, but it is. 
