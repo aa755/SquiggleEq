@@ -1734,7 +1734,29 @@ Proof using.
   f_equal. symmetry. eauto.
 Qed.
 
+(* Prove and Move to list.v *)
+Lemma noDupRev {A:Type} (la: list A): NoDup la -> NoDup (rev la).
+Proof using.
+Admitted.
 
+(* Prove and Move to list.v *)
+Lemma eqsetRev {A:Type} (la: list A): eq_set la (rev la).
+Proof using.
+Admitted.
+
+(** move to substitution.v *)
+Global Instance checkBCProper :
+  Proper (eq_set ==> eq ==>  eq) (@checkBC NVar _ Opid).
+Proof using.
+  intros ? ? ? ? ? ?. subst.
+  apply checkBCEqset. assumption.
+Qed.
+
+(** if we apply (even to binders, unlike subst) ANY varmap f to t, and the result is in BC,
+   then the result is alpha equal to the input. Sounds too good to be true, but it is. 
+  Note that if the output is in BC, then the input must also be in BC (prove it):
+  f can only identify different vars, but not distinguish same vars.
+*)
 Lemma var_rel_bc_alpha f
   (namePres : forall v, getName (f v) = getName v)
   :
@@ -1764,8 +1786,9 @@ Proof using.
   simpl. rewrite map_map. unfold compose. f_equal; [apply eq_maps; eauto |].
   rewrite <- map_rev, <- map_app. simpl in *.
   repeat rewrite andb_true in Hc. repeat rewrite Decidable_spec in Hc.
-  repnd.
-  apply Hind; auto; try rewrite map_app;[apply NoDupApp; auto| |].
+  repnd. apply subsetv_remove_nvars in Hs. rewrite eqset_app_comm in Hs.
+  apply Hind; auto; try rewrite map_app; try rewrite map_rev;
+    [apply NoDupApp; eauto using noDupRev| |]; try rewrite <- eqsetRev; auto.
 Qed.
 End DBToNamed.
 
