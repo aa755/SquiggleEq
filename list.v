@@ -4087,3 +4087,30 @@ Proof using.
   apply NoDupApp; eauto;[constructor; auto; constructor|].
   rewrite <- eqsetRev.  apply disjoint_singleton_r. assumption.
 Qed.
+
+
+Global Instance  properEqsetCons {A : Type}:
+  Proper (eq ==> eq_set ==> eq_set) (@cons A).
+Proof using.
+  intros ? ? ? ? ? ?. subst.
+  unfold eq_set, subset in *. simpl in *.
+  firstorder.
+Qed.
+
+Definition singleton {A:Type} (a:A) : list A := [a].
+
+Lemma noDupConsIff {A : Type}:
+  forall a (lb : list A), NoDup (a::lb) <-> NoDup (singleton a) /\ NoDup lb /\ disjoint [a] lb.
+Proof using.
+  intros. rewrite <- noDupApp. refl.
+Qed.
+
+Lemma flat_map_fcons {A B : Type} (f: A->B) (g : A -> list B) (l : list A):
+  eq_set (flat_map (fun x : A => (f x):: g x) l) (map f l ++ flat_map g l).
+Proof using.
+  rewrite  <- flat_map_single.
+  rewrite <- flat_map_fapp.
+  refl.
+Qed.
+
+Hint Rewrite @noDupApp  @noDupConsIff: SquiggleEq.

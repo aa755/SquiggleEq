@@ -1528,3 +1528,14 @@ Definition varClassTypeOf (V:Type)  {T:Type} {_ : VarClass V T} := T.
 
 Hint Rewrite @memvar_nil_r : SquiggleEq.
 
+
+
+Lemma varsOfClassConsIff {NVar VClass : Type} {H0 : VarClass NVar VClass}:
+    forall v1 ( lv2 : list NVar) (vc : VClass),
+    varsOfClass (v1:: lv2) vc <-> varsOfClass (singleton v1) vc /\ varsOfClass lv2 vc.
+Proof using.
+  intros. rewrite <- varsOfClassApp. refl.
+Qed.  
+
+
+

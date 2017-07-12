@@ -2145,3 +2145,5 @@ Proof using.
   destruct l; invertsn Hn.
   simpl. f_equal. eauto.
 Qed.
+
+Hint Rewrite @noDupApp @all_vars_ot @allvars_bterm @varsOfClassConsIff @noDupConsIff: SquiggleEq.
