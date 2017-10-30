@@ -1765,3 +1765,11 @@ Definition getFirstBTermNames {V O }(t:list (@DBTerm V O)) : list V:=
   end.
 
 
+Lemma get_bcvars_subst_aux_bt {Name Opid} a n (b : @DBTerm Name Opid):
+  get_bvars (subst_aux_bt a n b) = get_bvars b.
+Proof using.
+  destruct b; refl.
+Qed.
+
+
+

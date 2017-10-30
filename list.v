@@ -4114,3 +4114,29 @@ Proof using.
 Qed.
 
 Hint Rewrite @noDupApp  @noDupConsIff: SquiggleEq.
+
+
+(* Move to SquiggleEq.list *)
+Hint Rewrite app_length repeat_length firstn_length : list.
+(* Move to SquiggleEq.list *)
+
+Lemma listPadId {A:Type} d (l: list A) n :
+  (n <= length l)%nat -> listPad d l n = l.
+Proof using.
+  clear.
+  intros Hyp.
+  unfold listPad.
+  assert (n-length l =0)%nat  as Heq by omega.
+  rewrite Heq. simpl.
+  autorewrite with list. refl.
+Qed.
+
+Lemma listPad_length_eq  {T} (def:T) (l: list T) (n: nat):
+(length l <= n  -> length (listPad  def l n) = n)%nat.
+Proof using.
+  setoid_rewrite app_length.
+  intros.
+  rewrite repeat_length.
+  omega.
+Qed.
+

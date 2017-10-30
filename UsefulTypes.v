@@ -771,3 +771,10 @@ Ltac destructDecideP :=
   match goal with
     [ |-  context [@decideP ?p ?d] ] => destruct (@decideP p d)
   end.
+
+Lemma rewritePairMatch {A B C:Type} (p:A*B)
+(f : A->B->C):
+(let (a,b) := p in f a b) = f (fst p) (snd p).
+Proof using.
+  destruct p; auto.
+Qed.
