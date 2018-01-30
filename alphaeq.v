@@ -295,8 +295,7 @@ SearchAbout @map @combine @prod.
         Focus 2.
           introv Hin Hc.
           rewrite boundvars_ssubst_aux_vars in Hc; auto.
-          rewrite boundvars_ssubst_aux_vars in Hc; auto;
-           [|congruence].
+          rewrite boundvars_ssubst_aux_vars in Hc; auto.
           apply in_app_iff in Hc; auto.
           dorn Hc; [apply Hdis0 in Hin|apply Hdis in Hin];sp; fail.
 
@@ -443,8 +442,7 @@ Proof using.
         Focus 2.
           introv Hin Hc.
           rewrite boundvars_ssubst_aux_vars in Hc; auto.
-          rewrite boundvars_ssubst_aux_vars in Hc; auto;
-           [|congruence].
+          rewrite boundvars_ssubst_aux_vars in Hc; auto.
           apply in_app_iff in Hc; auto.
           dorn Hc; [apply Hdis0 in Hin|apply Hdis in Hin];sp; fail.
 
@@ -542,7 +540,7 @@ Proof using.
   inverts Hal as Ha1 Ha2 Ha3 Ha4 Ha5.
   apply (alpha_eq3_change_avoidvars _ (lv4++lv++lva)) in Ha5.
   apply alpha3_ssubst_aux_allvars_congr2 in Ha5;[| congruence | ].
-  Focus 2. rewrite boundvars_ssubst_aux_vars; [|congruence].
+  Focus 2. rewrite boundvars_ssubst_aux_vars.
       rewrite boundvars_ssubst_aux_vars;disjoint_reasoningv.
   rewrite ssubst_aux_nest_vars_same in Ha5;auto;
     [| congruence| disjoint_reasoningv| disjoint_reasoningv].
@@ -740,6 +738,62 @@ Proof using.
       eauto.
 Qed.
 
+
+Lemma change_bvars_alpha_checkbc_aux: forall lv,
+  (forall nt:NTerm, 
+  let nt' := change_bvars_alpha lv nt in
+  checkBC ((*free_vars nt++*)lv) nt' = true)
+  * (forall bt:BTerm,
+  let bt' := change_bvars_alphabt lv bt in
+  checkBC_bt ((*free_vars_bterm bt ++ *)lv) bt' = true).
+Proof using varclass.
+  intros. apply NTerm_BTerm_ind;
+    [intro v; cpx| |].
+- intros ? ? Hind.
+  simpl. rewrite ball_map_true. 
+  intros x Hin. apply in_map_iff in Hin. exrepnd. subst.
+  eauto.
+
+Local Opaque decide.
+- intros blv bnt Hind.
+  simpl.
+  addFreshVarsSpec2 vn pp.
+  exrepnd. allsimpl.
+  rewrite decide_true;[ring_simplify| disjoint_reasoningv2].
+  rewrite decide_true;[ring_simplify| disjoint_reasoningv2].
+Local Transparent decide.
+  rewrite (fst (boundvars_substvars_checkbc2 blv vn)).
+  apply (checkBCStrengthen vn);[| assumption].
+  disjoint_reasoningv.
+Qed.
+
+Lemma bcSubstBetaPreservesBC o (lamVar:NVar) (lamBody appArg:NTerm) lv:
+  let lam := bterm [lamVar] lamBody in
+  let appT := (oterm o [lam ; bterm [] appArg]) in
+   checkBC lv appT =true
+  -> checkBC lv (bcSubst lv lamBody [(lamVar, appArg)]) = true.
+Proof using varclass.
+  Local Opaque decide.
+  simpl.
+  setoid_rewrite decide_true at 4;[| disjoint_reasoningv2; fail].
+  simpl in *.
+  setoid_rewrite decide_true at 3;[| constructor].
+  setoid_rewrite decide_true at 1;[| repeat constructor; noRepDis1].
+  intros  Hc.
+  ring_simplify in Hc.
+  repeat rewrite andb_true in Hc. repnd.
+  unfold bcSubst.
+  simpl. rewrite app_nil_r.
+  pose proof (fst (change_bvars_alpha_checkbc_aux (lamVar::lv ++ bound_vars appArg)) lamBody) as Hbc.
+  pose proof (fst (change_bvars_alpha_spec_aux (lamVar::lv ++ bound_vars appArg)) lamBody) as Hsp.
+  simpl in *. revert Hbc Hsp.
+  generalize (change_bvars_alpha (lamVar::lv ++ bound_vars appArg) lamBody).
+  intros tc ? ?. repnd.
+  apply betaPreservesBC; auto; simpl;[disjoint_reasoningv2|].
+  revert Hbc. apply (fst checkBCSubset). apply subset_cons1.
+  apply subset_app_r. reflexivity.
+Qed.
+
 Lemma alpha_eq_cons : forall o1 o2 lbt1 lbt2 b1 b2,
 alpha_eq_bterm b1 b2
 -> alpha_eq (oterm o1 lbt1) (oterm o1 lbt2)
@@ -811,7 +865,7 @@ Proof using.
   addFreshVarsSpec2 vn pp.
   exrepnd. allsimpl.
   dands.
-   + setoid_rewrite boundvars_ssubst_aux_vars;[|congruence].
+   + setoid_rewrite boundvars_ssubst_aux_vars.
      apply NoDupApp; noRepDis.
 
    +  introv Hin Hinc. rename t into vv.
@@ -893,6 +947,35 @@ Proof using varclass.
   eauto.
 Qed.
 
+Lemma change_bvars_alpha_spec2: forall (nt : NTerm) (lv : list NVar),
+    let cc := change_bvars_alpha lv nt in
+    checkBC lv cc = true
+    /\   disjoint lv (bound_vars cc)
+    /\ alpha_eq nt cc
+    /\ (forall vc, varsOfClass (bound_vars nt) vc 
+             -> varsOfClass (bound_vars cc) vc).
+Proof using. simpl.
+  intros. dands; intros;
+            try apply change_bvars_alpha_spec_varclass;
+            try apply change_bvars_alpha_checkbc_aux;
+            try apply  change_bvars_alpha_spec_aux. assumption.
+Qed.                                                  
+
+Lemma change_bvars_alphabt_spec2: forall (nt : BTerm) (lv : list NVar),
+    let cc := change_bvars_alphabt lv nt in
+    checkBC_bt lv cc = true
+    /\   disjoint lv (bound_vars_bterm cc)
+    /\ alpha_eq_bterm nt (change_bvars_alphabt lv nt)
+    /\ (forall vc, varsOfClass (bound_vars_bterm nt) vc 
+             -> varsOfClass (bound_vars_bterm cc) vc).
+Proof using. simpl.
+  intros. dands; intros;
+            try apply change_bvars_alpha_spec_varclass;
+            try apply change_bvars_alpha_checkbc_aux;
+            try apply  change_bvars_alpha_spec_aux. assumption.
+Qed.                                   
+
+
 (*
 Lemma change_bvars_alpha_spec_varclass: forall lv vc,
   (forall nt, varsOfClass (bound_vars nt) vc 
@@ -907,6 +990,13 @@ match goal with
     remember (change_bvars_alphabt  lv nt) as cb; simpl in Hn
 end.
 
+Ltac add_changebvar_spec4 cb Hn:=
+match goal with 
+| [ |- context[change_bvars_alpha ?lv ?nt] ] => pose proof (change_bvars_alpha_spec2 nt lv) as Hn;
+    remember (change_bvars_alpha  lv nt) as cb; simpl in Hn
+| [ |- context[change_bvars_alphabt ?lv ?nt] ] => pose proof (change_bvars_alphabt_spec2 lv nt) as Hn;
+    remember (change_bvars_alphabt  lv nt) as cb; simpl in Hn
+end.
 
 Theorem alphaeqbt_preserves_wf: 
   forall bt1 bt2, alpha_eq_bterm bt1 bt2 -> (bt_wf bt2 <=> bt_wf bt1).
@@ -4069,6 +4159,249 @@ Proof.
   assumption.
 Qed.
 
+Require Import AssociationList. 
+SearchAbout AssocList.
+
+(* Move to AssocList *)
+Definition ALFindEndo {Key:Type} {d:Deq Key} (sub: AssocList Key Key)  (k:Key) : Key :=
+  ALFindDef sub k k.
+
+
+(* Move to AssocList *)
+Lemma ALFindEndoId {Key:Type} {d:Deq Key} (sub: AssocList Key Key) v :
+  disjoint [v] (ALDom sub)
+  -> ALFindEndo sub v = v.
+Proof using.
+  intros.
+  unfold ALFindEndo, ALFindDef.
+  rewrite ALFindNoneIf;[refl|].
+  noRepDis.
+Qed.
+
+(* Move to AssocList *)
+Lemma ALFindEndoId2 {Key:Type} {d:Deq Key} lv v:
+  ALFindEndo (map (fun x=> (x,x)) lv) v = v.
+Proof using.
+  unfold ALFindEndo, ALFindDef.
+  dALFind sd; [| refl].
+  symmetry in Heqsd.
+  apply ALFindSome in Heqsd. apply in_map_iff in Heqsd.
+  exrepnd. inverts Heqsd0. refl.
+Qed.
+
+(* Move to AssocList *)
+Lemma ALFindMapEndoId {Key:Type} {d:Deq Key} (sub: AssocList Key Key) lv:
+  disjoint lv (ALDom sub)
+  -> map (ALFindEndo sub) lv = lv.
+Proof using.
+  intros Hd.
+  rewrite <- (map_id lv) at 2.
+  apply eq_maps.
+  intros ? Hin.
+  apply ALFindEndoId.
+  eapply subset_disjoint;[| apply Hd].
+  apply singleton_subset. assumption.
+Qed.
+
+(** because the 2 hypotheses, no filtering occurs in ssubst_aux, thus making it equivalent to
+tvmap  which happily maps ALL VARS, tottally agnostic to the concept of bvars *)
+Lemma var_ren_vmap :
+  (forall t lv sub, 
+  checkBC lv t = true
+  -> disjoint (ALDom sub) (bound_vars t) 
+  -> tvmap (ALFindEndo sub) t = ssubst_aux t (ALMapRange vterm sub))*
+  (forall t lv sub, 
+  checkBC_bt lv t = true
+  -> disjoint (ALDom sub) (bound_vars_bterm t)
+  -> tvmap_bterm (ALFindEndo sub) t = ssubst_bterm_aux t (ALMapRange vterm sub)).
+Proof using.
+  apply NTerm_BTerm_ind.
+- simpl. intros v lv sub _ Hd. unfold tvmap, ALFindEndo, ALFindDef, sub_find. simpl.
+  rewrite ALMapRangeFindCommute. destruct (ALFind sub v); auto.
+- intros ? ? Hind ? ? Hc Hd. unfold tvmap, id. simpl.  f_equal. simpl in *.
+  apply eq_maps. intros ? Hin.
+  rewrite ball_map_true in Hc.
+  rewrite disjoint_flat_map_r in Hd.
+  apply Hind with (lv:=lv); auto.
+- intros blv bnt Hind ? ? Hc Hd. unfold tvmap_bterm. simpl in *. unfold dom_lmap.
+  rewrite ALFindMapEndoId by disjoint_reasoningv2.
+  do 2 rewrite andb_true in Hc. repnd.
+  f_equal.
+  rewrite sub_filter_disjoint1;[eapply Hind; eauto; noRepDis1|];[].
+  unfold dom_sub, ALMapRange, ALDom, ALMap. rewrite map_map. unfold compose. simpl.
+  disjoint_reasoningv2.
+Qed.
+
+(* Move :there must be something similar in stdlib or, Extlib, or UsefulTypes.v *)
+Definition eqfun {A B:Type} (f g : A -> B) :=
+  forall a, f a = g a.
+
+Global Instance eqfunEquiv {A B:Type}: Equivalence (@eqfun A B).
+Proof using.
+  constructor; introv; unfold eqfun; try congruence.
+Qed.
+
+(* Move to terms.v *)
+Lemma tmap_ext (V1 V2 O1 O2 : Type) (fv gv: V1 -> V2) (fo go : O1 -> O2)
+  (veq : eqfun fv gv) (oeq : eqfun fo go):
+  (forall (t : terms.NTerm), tmap fv fo t =  tmap gv go t)*
+  (forall (t : terms.BTerm), tmap_bterm fv fo t =  tmap_bterm gv go t).
+Proof using.
+  unfold eqfun in *.
+  apply NTerm_BTerm_ind; simpl; intros; try congruence; f_equal; try congruence;
+    apply eq_maps; eauto.
+Qed.
+
+Lemma tmap_compose (V1 V2 V3 O1 O2 O3 : Type) (gv: V1 -> V2) (fv : V2 -> V3)
+  (go : O1 -> O2) (fo : O2 -> O3):
+  (forall (t : terms.NTerm), tmap (fv ∘ gv) (fo ∘ go) t =  tmap fv fo (tmap gv go t))*
+  (forall (t : terms.BTerm), tmap_bterm (fv ∘ gv) (fo ∘ go) t =  tmap_bterm fv fo (tmap_bterm gv go t)).
+Proof using.
+  apply NTerm_BTerm_ind; simpl; intros;
+     simpl; try congruence; f_equal;
+       try rewrite map_map; try congruence.
+  apply eq_maps; eauto.
+Qed.
+
+Global Instance tmapext {V1 V2 O1 O2 : Type}:
+    Proper (eqfun ==> eqfun ==> eq ==> eq) (@tmap V1 V2 O1 O2).
+Proof using.
+  intros ? ? ?  ? ? ? ? ? ?. subst.
+  apply tmap_ext; assumption.
+Qed.
+
+
+(* Move to AssocList.v  *)
+Lemma vmap_app_nest (sub1 sub2: AssocList NVar NVar):
+  disjoint (ALRange sub1) (ALDom sub2)
+  -> eqfun (ALFindEndo (sub1++sub2)) ((ALFindEndo sub2) ∘ (ALFindEndo sub1)).
+Proof using.
+  intros Hd.
+  intros v. unfold compose, ALFindEndo, ALFindDef.
+  rewrite ALFindApp. dALFind s1v; auto.
+  rewrite ALFindNoneIf;[refl|].
+  apply Hd. symmetry in Heqs1v.
+  apply ALFindSome in Heqs1v. apply in_map_iff.
+  eexists; dands ; eauto.
+Qed.
+  
+(* Move to AssocList.v *)
+Lemma vmap_decompose (lv : list NVar) (sub: AssocList NVar NVar):
+  let subOuter := map (fun v => (v,  (ALFindEndo sub) v)) lv in
+  let subInner := ALFilter sub lv in
+  disjoint (ALRange sub) lv
+  -> eqfun (ALFindEndo sub) ((ALFindEndo subOuter) ∘ (ALFindEndo subInner)).
+Proof using.
+  simpl. intros Hd a.
+  rewrite  <- vmap_app_nest;
+    [| setoid_rewrite map_map; unfold compose; simpl; rewrite map_id;
+       eapply subset_disjoint; try apply Hd; apply map_monotone, ALFilterSubset].
+  unfold ALFindEndo, ALFindDef.
+  setoid_rewrite ALFindApp. symmetry.
+  dALFind sfa; simpl; symmetry in Heqsfa;
+    [apply ALFindFilterSome in Heqsfa | apply ALFindFilterNone in Heqsfa]; repnd;
+      try rewrite  Heqsfa0;[refl|].
+  dALFind sm; symmetry in Heqsm.
+  - apply ALFindSome in Heqsm. apply in_map_iff in Heqsm. exrepnd. inverts Heqsm0. refl.
+  - apply ALFindNone in Heqsm. setoid_rewrite map_map in Heqsm. unfold compose in Heqsm.
+    simpl in Heqsm. rewrite map_id in Heqsm. dorn Heqsfa; cpx;[]. rewrite Heqsfa. refl.
+Qed.
+
+(* Move to AssocList.v *)
+Lemma vmap_nest_same (vl vi vr : list NVar):
+  let subOuter := combine vi vr  in
+  let subInner := combine vl vi in
+  let sub := combine vl vr in
+  length vi = length vr
+  -> length vi = length vl
+  -> NoDup vi
+  -> eqfun (ALFindEndo sub) ((ALFindEndo subOuter) ∘ (ALFindEndo subInner)).
+Proof using.
+  simpl. intros Hd H1l H2l a.
+  rewrite (combine_map_snd2 vr vi) at 1 by omega.
+  rewrite (combine_map_fst2 vi vr) at 3 by omega.
+  unfold ALFindEndo, ALFindDef. simpl.  simpl. unfold compose. simpl.
+  remember  (ALFind (combine vl (map fst (combine vi vr))) a) as ss.
+  do 1 rewrite combine_of_map_snd.
+  setoid_rewrite combine_of_map_snd in Heqss.
+  replace (map (fun x : NVar * (NVar * NVar) => (fst x, snd (snd x))) (combine vl (combine vi vr)))
+          with (ALMapRange snd  (combine vl (combine vi vr))) by refl.
+  replace (map (fun x : NVar * (NVar * NVar) => (fst x, fst (snd x))) (combine vl (combine vi vr)))
+     with (ALMapRange fst  (combine vl (combine vi vr))) in Heqss by refl.
+  setoid_rewrite ALFindMap3.
+  setoid_rewrite ALFindMap3 in Heqss.
+  subst.
+  dALFind  sa; simpl; symmetry in Heqsa.
+- admit.
+- assert (~ LIn a (remove_nvars vl vi)) as Ha by admit.
+  apply ALFindNone in Heqsa.
+  setoid_rewrite <- combine_map_fst2 in Heqsa;[| rewrite length_combine_eq; omega].
+  rewrite in_remove_nvars in Ha.
+  dALFind sia; auto.
+  symmetry in Heqsia.
+  apply ALFindSome in Heqsia.
+  apply in_combine_l in Heqsia. tauto.
+Abort.
+
+Lemma var_rel_bc_alpha :
+  (forall t sub,
+   let f:= (ALFindEndo sub) in (* may contain [bvars t]. renaming some of them is the whole point *)
+   disjoint (ALDom sub) (free_vars t)
+  -> disjoint  (ALRange sub) (bound_vars t)
+     (** WLOG, because we can use 2 hops. for 1st hop use a one to one papping, which alpha preserves *)
+  -> checkBC (free_vars t) (tvmap f t) = true
+  -> alpha_eq t (tvmap f t))*
+  (forall t sub,
+   let f:= (ALFindEndo sub) in
+  disjoint (ALDom sub) (free_vars_bterm t ++ ALRange sub)
+  -> disjoint  (ALRange sub) (bound_vars_bterm t) (** WLOG, because we can use 2 hops *)
+  -> checkBC_bt (free_vars_bterm t) (tvmap_bterm f t) = true
+  -> alpha_eq_bterm t (tvmap_bterm f t)).
+Proof using.
+  simpl.
+  apply NTerm_BTerm_ind.
+- intros v ? Hin _; unfold tvmap; simpl in *. rewrite ALFindEndoId;[refl|disjoint_reasoningv2].
+- intros ? ? ? Hind Hin Hc. unfold tvmap. simpl. unfold id.
+  constructor;[autorewrite with list; auto|]. admit. (* easy *)
+- intros blv bnt Hind ? H1d H2d Hc. unfold tvmap_bterm. simpl. simpl in Hc.
+  repeat rewrite andb_true in Hc. repeat rewrite Decidable_spec in Hc.
+  repnd. symmetry.
+  apply prove_alpha_bterm with (lva:=[]);[| rewrite map_length; refl].
+  rewrite app_nil_r. intros lvn Had _ Hl Hnd. simpl in *.
+  unfold var_ren at 1. do 1 rewrite combine_of_map_snd.
+  rewrite map_length in Hl.
+  pose proof Hc1 as Hdis. apply checkBCdisjoint in Hdis.
+  setoid_rewrite <- (fst var_ren_vmap) at 1; eauto;
+    [|setoid_rewrite <- combine_map_fst2;[disjoint_reasoningv2| rewrite map_length; omega]; fail].
+  erewrite (fun rr p1 p2 => fst (@tmap_ext _ _ _ _ _ rr id id p1 p2));
+    [|apply  (vmap_decompose blv); disjoint_reasoningv2 | refl ].
+  change id with ((@id Opid) ∘ (@id Opid)).
+  rewrite (fst (tmap_compose _ _ _ _ _ _ _ _ _ _)).
+  unfold tvmap.
+  rewrite <- (fst (tmap_compose _ _ _ _ _ _ _ _ _ _)).
+  change  ((@id Opid) ∘ (@id Opid)) with (@id Opid).
+  rewrite <- combine_vars_map.
+  set (lvi := (map (ALFindEndo sub) blv)).
+  fold lvi in Hc0.
+  SearchAbout ssubst_aux.
+  SearchAbout combine eq map.
+(*  setoid_rewrite <-  combine_of_map_snd.
+  setoid_rewrite (fst var_ren_vmap).
+  (*tvmap (ALFindEndo sub) bnt as 
+    tvmap (combine blv ((map (ALFindEndo sub) blv))) 
+                (tvmap (ALFilter sub blv) bnt)
+   merge the outer tvmap into the outer one. *)
+   tmap bnt
+  unfold var_ren. do 2 rewrite combine_of_map_snd. repnd.
+  simpl in *. rewrite map_length in Hl.
+  pose proof Hc1 as Hdis. apply checkBCdisjoint in Hdis.
+  setoid_rewrite <- (fst var_ren_vmap); eauto.
+  Focus 2. (* subgoal 3 will come from the additional hypothesis *)
+    setoid_rewrite <- combine_map_fst2;[disjoint_reasoningv2| rewrite map_length; omega].
+  fold (tvmap (ALFindEndo sub) bnt).
+  Focus 4. (* will come from the additional hypothesis *) admit.
+  Search alpha_eq_bterm. *)
+Abort.
 
 End AlphaGeneric.
 
@@ -4239,3 +4572,35 @@ autorewrite with SquiggleEq;
   destruct H as [Hnrd H]
 end); disjoint_reasoningv; 
 repeat rewrite in_single_iff in *; subst; try tauto.
+
+
+Ltac add_changebvar_spec4 cb Hn:=
+match goal with 
+| [ |- context[change_bvars_alpha ?lv ?nt] ] => pose proof (change_bvars_alpha_spec2 nt lv) as Hn;
+    remember (change_bvars_alpha  lv nt) as cb; simpl in Hn
+| [ |- context[change_bvars_alphabt ?lv ?nt] ] => pose proof (change_bvars_alphabt_spec2 lv nt) as Hn;
+    remember (change_bvars_alphabt  lv nt) as cb; simpl in Hn
+end.
+
+
+  
+Section AlphaPres.
+
+Context {NVar VarClass Opid1 Opid2} {deqnvar : Deq NVar} {varcl freshv} 
+  {varclass: @VarType NVar VarClass deqnvar varcl freshv} 
+  {hdeq1 : Deq Opid1}  {hdeq2 : Deq Opid2}
+  {gts1 : GenericTermSig Opid1}
+  {gts2 : GenericTermSig Opid2}.
+
+Variable f: (@NTerm NVar Opid1) -> (@NTerm NVar Opid2).
+
+Hypothesis fVar : forall (v:NVar), alpha_eq (f (vterm v)) (f (vterm v)).
+
+Lemma preservesAlphaBC lv (t1 t2: @NTerm NVar Opid1) :
+  checkBC lv t1 = true
+  -> checkBC lv t2 = true
+  -> alpha_eq t1  t2 ->  alpha_eq (f t1)  (f t2).
+Proof using.
+  intros H1c H2c Hal. induction Hal;[ apply fVar |].
+Abort.  
+End AlphaPres.

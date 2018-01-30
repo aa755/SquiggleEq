@@ -358,7 +358,7 @@ Lemma eqsetv_cons_l_iff :
   forall v vs1 vs2,
     eq_set (v :: vs1) vs2
     <=> (LIn v vs2 # eqsetv (remove_nvar vs1 v) (remove_nvar vs2 v)).
-Proof.
+Proof using.
   sp. do 2 (rewrite eqsetv_prop).
   split; intro i; sp; allrw in_remove_nvar; allsimpl.
   rw <- i; sp.
@@ -368,9 +368,10 @@ Proof.
   split; sp; subst; sp.
   destruct (eq_var_dec v x); subst; sp.
   gen_some x; allrw in_remove_nvar.
-  discover; sp. firstorder.
+  discover; sp. clear dependent VClass. firstorder.
   destruct (eq_var_dec v x); subst; sp.
   gen_some x; allrw in_remove_nvar.
+  clear dependent VClass.
   discover; sp; firstorder.
 Qed.
 
@@ -1008,8 +1009,9 @@ Lemma eqsetv_remove_nvars :
     eqsetv la lb
     -> eqsetv ra rb
     -> eqsetv (remove_nvars la ra) (remove_nvars lb rb).
-Proof.
+Proof using.
   unfold eq_set, subset. setoid_rewrite in_remove_nvars.
+  clear dependent VClass.
   firstorder.
 Qed.
 
@@ -1018,9 +1020,10 @@ Lemma eqsetv_app {A}:
     eqsetv la lb
     -> eqsetv ra rb
     -> eqsetv (app la ra) (app lb rb).
-Proof.
+Proof using.
   introv Ha Hb.
   unfold eq_set, subset. setoid_rewrite in_app_iff.
+  clear dependent VClass.
   firstorder.
 Qed.
 
@@ -1071,10 +1074,11 @@ Proof. sp. Qed.
 Lemma subsetv_eqsetv {A}:
   forall s1 s2 s3,
     subsetv s1 s2 -> eqsetv s1 s3 -> @subsetv A s3 s2.
-Proof.
+Proof using.
   introv s e.
   unfold eq_set in *.
   unfold subset in *.
+  clear dependent VClass.  
   firstorder.
 Qed.
 
@@ -1523,4 +1527,15 @@ Definition varClassTypeOf (V:Type)  {T:Type} {_ : VarClass V T} := T.
   Hint Resolve @varsOfClassSubset : subset.
 
 Hint Rewrite @memvar_nil_r : SquiggleEq.
+
+
+
+Lemma varsOfClassConsIff {NVar VClass : Type} {H0 : VarClass NVar VClass}:
+    forall v1 ( lv2 : list NVar) (vc : VClass),
+    varsOfClass (v1:: lv2) vc <-> varsOfClass (singleton v1) vc /\ varsOfClass lv2 vc.
+Proof using.
+  intros. rewrite <- varsOfClassApp. refl.
+Qed.  
+
+
 

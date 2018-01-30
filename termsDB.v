@@ -1716,6 +1716,45 @@ Proof using getId getIdCorr getNameCorr.
     rewrite lookupNDef_inserts_neq_seq; auto. lia.
 Qed.
 
+
+(** if we apply (even to binders, unlike subst) ANY varmap f to t, and the result is in BC,
+   then the result is alpha equal to the input. Sounds too good to be true, but it is. 
+  Note that if the output is in BC, then the input must also be in BC (prove it):
+  f can only identify different vars, but not distinguish same vars.
+*)
+Lemma var_rel_bc_alpha f
+  (namePres : forall v, getName (f v) = getName v)
+  :
+  (forall (t:@NTerm NVar Opid) (context: list NVar) ,
+  NoDup (map f context)
+  -> subset (free_vars t) context
+  -> checkBC  (map f context) (tvmap f t) = true
+  -> toDB getName context t = toDB getName (map f context) (tvmap f t))*
+  (forall (t:@BTerm NVar Opid) (context: list NVar) ,
+  NoDup (map f context)
+  -> subset (free_vars_bterm t) context
+  -> checkBC_bt  (map f context) (tvmap_bterm f t) = true
+  -> toDB_bt getName context t = toDB_bt getName (map f context) (tvmap_bterm f t)).
+Proof using.
+  Local Opaque decide.
+  apply terms2.NTerm_BTerm_ind.
+- intros v ? Hnd Hs Hc. simpl in *. f_equal. f_equal.
+  symmetry. apply mapNodupFirstIndex; auto;[]. apply singleton_subset. assumption.
+- intros ? ? Hind ? Hnd Hs Hc. simpl. f_equal.
+  repeat rewrite map_map in *. apply eq_maps. simpl in *.
+  rewrite map_map in Hc.
+  rewrite ball_map_true in Hc.
+  rewrite subset_flat_map in Hs.
+  intros. apply Hind; eauto.
+
+- intros blv bnt Hind ? Hnd Hs Hc.
+  simpl. rewrite map_map. unfold compose. f_equal; [apply eq_maps; eauto |].
+  rewrite <- map_rev, <- map_app. simpl in *.
+  repeat rewrite andb_true in Hc. repeat rewrite Decidable_spec in Hc.
+  repnd. apply subsetv_remove_nvars in Hs. rewrite eqset_app_comm in Hs.
+  apply Hind; auto; try rewrite map_app; try rewrite map_rev;
+    [apply NoDupApp; eauto using noDupRev| |]; try rewrite <- eqsetRev; auto.
+Qed.
 End DBToNamed.
 
 
@@ -1724,5 +1763,13 @@ Definition getFirstBTermNames {V O }(t:list (@DBTerm V O)) : list V:=
   | (bterm lv _)::_ => lv
   | [] => []
   end.
+
+
+Lemma get_bcvars_subst_aux_bt {Name Opid} a n (b : @DBTerm Name Opid):
+  get_bvars (subst_aux_bt a n b) = get_bvars b.
+Proof using.
+  destruct b; refl.
+Qed.
+
 
 

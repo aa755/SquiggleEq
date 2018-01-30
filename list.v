@@ -4026,4 +4026,117 @@ Proof using.
   rewrite IHla.
   split; intros; repnd; dands; auto; noRepDis1.
   constructor; noRepDis1.
-Qed. 
+Qed.
+
+
+Lemma diffAddCancel {A:Type} {deq: Deq A} (lr lv : list A):
+subset lv (lr ++ (lremove lr lv)).
+Proof using.
+  unfold eq_set, subset.
+  setoid_rewrite in_app_iff.
+  setoid_rewrite in_diff. firstorder.
+  destruct (decideP (In x lr)); firstorder.
+Qed.
+
+Lemma removeConsCancel {A:Type} {deq: Deq A} (r:A)(lv : list A):
+  subset lv (r::(remove r lv)).
+Proof using.
+  apply (diffAddCancel [r]).
+Qed.
+
+(* need more assumptions. [f] could equate everything not in the list to f (head l).
+  then LHS would say 0 for such elements. RHS would always be not found for such elements. *)
+Lemma mapFirstIndex {A:Type} {deq: Deq A}(f:A->A) x l:
+  NoDup (map f l)
+  -> firstIndex (f x) (map f l) = firstIndex x l.
+Proof using.
+  intros Hnd.
+  induction l; [refl|].
+  simpl. symmetry. rewrite decide_decideP.
+  cases_if; subst;[rewrite deq_refl; refl|].
+Abort.
+
+Lemma mapNodupFirstIndex {A:Type} {deq: Deq A}(f:A->A) x l:
+  In x l
+  -> NoDup (map f l)
+  -> firstIndex (f x) (map f l) = firstIndex x l.
+Proof using.
+  intros Hin Hnd.
+  induction l; [refl|]. simpl in *.
+  simpl. symmetry. rewrite decide_decideP.
+  cases_if; subst;[rewrite deq_refl; refl|].
+  dorn Hin;[contradiction|].
+  invertsn Hnd. specialize (IHl Hin).
+  apply (in_map f) in Hin.
+  rewrite decide_decideP.
+  cases_if;[ congruence |].
+  f_equal. symmetry. eauto.
+Qed.
+
+
+Lemma eqsetRev {A:Type} (la: list A): eq_set la (rev la).
+Proof using.
+  apply eq_set_iff_eq_set2. unfold eq_set2.
+  apply in_rev.
+Qed.
+
+Lemma noDupRev {A:Type} (la: list A): NoDup la -> NoDup (rev la).
+Proof using.
+  induction la; auto.
+  intros Hd. simpl. invertsn Hd.
+  apply NoDupApp; eauto;[constructor; auto; constructor|].
+  rewrite <- eqsetRev.  apply disjoint_singleton_r. assumption.
+Qed.
+
+
+Global Instance  properEqsetCons {A : Type}:
+  Proper (eq ==> eq_set ==> eq_set) (@cons A).
+Proof using.
+  intros ? ? ? ? ? ?. subst.
+  unfold eq_set, subset in *. simpl in *.
+  firstorder.
+Qed.
+
+Definition singleton {A:Type} (a:A) : list A := [a].
+
+Lemma noDupConsIff {A : Type}:
+  forall a (lb : list A), NoDup (a::lb) <-> NoDup (singleton a) /\ NoDup lb /\ disjoint [a] lb.
+Proof using.
+  intros. rewrite <- noDupApp. refl.
+Qed.
+
+Lemma flat_map_fcons {A B : Type} (f: A->B) (g : A -> list B) (l : list A):
+  eq_set (flat_map (fun x : A => (f x):: g x) l) (map f l ++ flat_map g l).
+Proof using.
+  rewrite  <- flat_map_single.
+  rewrite <- flat_map_fapp.
+  refl.
+Qed.
+
+Hint Rewrite @noDupApp  @noDupConsIff: SquiggleEq.
+
+
+(* Move to SquiggleEq.list *)
+Hint Rewrite app_length repeat_length firstn_length : list.
+(* Move to SquiggleEq.list *)
+
+Lemma listPadId {A:Type} d (l: list A) n :
+  (n <= length l)%nat -> listPad d l n = l.
+Proof using.
+  clear.
+  intros Hyp.
+  unfold listPad.
+  assert (n-length l =0)%nat  as Heq by omega.
+  rewrite Heq. simpl.
+  autorewrite with list. refl.
+Qed.
+
+Lemma listPad_length_eq  {T} (def:T) (l: list T) (n: nat):
+(length l <= n  -> length (listPad  def l n) = n)%nat.
+Proof using.
+  setoid_rewrite app_length.
+  intros.
+  rewrite repeat_length.
+  omega.
+Qed.
+

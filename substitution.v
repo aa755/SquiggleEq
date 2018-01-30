@@ -1078,6 +1078,23 @@ match bt with
          bterm lvn (ssubst_aux bnt' (var_ren blv lvn))
 end.
 
+Fixpoint checkBC {NVar: Type}
+`{Deq NVar}
+{Opid} (lv : list NVar) (t : (@NTerm NVar Opid)) 
+: bool :=
+match t with
+| vterm v => true
+| oterm o lbt => ball (map (checkBC_bt lv) lbt)
+end
+with checkBC_bt {NVar: Type} 
+ `{Deq NVar}
+  {Opid} (lv : list NVar)
+(bt: @BTerm NVar Opid) 
+: bool :=
+match bt with
+| bterm blv bnt => (checkBC (blv++lv) bnt) && decide (NoDup blv) && decide (disjoint blv lv)
+end.
+
 Fixpoint uniq_change_bvars_alpha {NVar VarCl : Type}
 `{Deq NVar}
     {fv : FreshVars NVar VarCl}
@@ -1223,8 +1240,11 @@ match b with
  bterm lvRemaining (apply_bterm b lt)
 end.
 
+
 Hint Rewrite @sub_filter_nil_r : SquiggleEq.
 
+Definition inBarendredgtConvention (t:NTerm) : bool :=
+  checkBC (free_vars t) t.
 
 Lemma ssubst_ssubst_aux_nb : 
   (forall (t:NTerm) sub, 
@@ -5132,12 +5152,11 @@ Qed.
 
 Lemma boundvars_ssubst_aux_vars:
   forall nt lvi lvo,
-  length lvi = length lvo
-  -> bound_vars (ssubst_aux nt (var_ren lvi lvo))
+   bound_vars (ssubst_aux nt (var_ren lvi lvo))
      = bound_vars nt.
 Proof using.
   clear hdeq.
-  nterm_ind1s nt as [v | o lbt Hind] Case; introv Hl; auto.
+  nterm_ind1s nt as [v | o lbt Hind] Case; intros ? ? . auto.
   - Case "vterm". simpl. rewrite sub_lmap_find. 
     destruct (lmap_find deq_nvar (var_ren lvi lvo) v) as [s1s| n1n];auto; exrepnd.
     allsimpl. apply in_var_ren in s1s0. exrepnd. subst. auto.
@@ -5153,7 +5172,7 @@ Qed.
 
 Lemma boundvars_ssubst_vars:
   forall nt lvi lvo,
-  length lvi = length lvo
+  length lvi = length lvo (*not necessary although it may complicate the proof a bit*)
   -> disjoint lvo (bound_vars nt)
   -> bound_vars (ssubst nt (var_ren lvi lvo))
      = bound_vars nt.
@@ -6598,6 +6617,204 @@ Proof using varcl freshv.
     destruct scs; auto. contradiction.
 Qed.
 
+(**
+This doesn't hold. consider the substitution in the beta reduction of
+(\x.\y.x) (\y.y) --> (\y.(\y.y))
+The input was in barendredgt form, but the output is not.
+We need the boundvars of [lamBody] to be distinct from [bound_vars appArg] (to maintain BC)
+and [free_vars appArg] (to avoid capture)
+*)
+
+Lemma betaPreservesBC (appOpid:Opid) (lamBody appArg:NTerm) (lamVar:NVar):
+  let lam := bterm [lamVar] lamBody in
+  inBarendredgtConvention (oterm appOpid [lam ; bterm [] appArg])=true
+  -> inBarendredgtConvention (apply_bterm lam [appArg]) = true.
+Proof using.
+  Local Opaque decide.
+  simpl. unfold inBarendredgtConvention. simpl. unfold apply_bterm.
+  simpl.
+  rwsimplC. intros Hyp.
+  setoid_rewrite decide_true  in Hyp  at 2;[| disjoint_reasoningv].
+  simpl. ring_simplify in Hyp. repeat rewrite andb_true_iff in Hyp.
+  repnd.
+  dands.
+Abort.
+
+(*
+Section Test.
+  Variable l:Opid.
+  Let f := (oterm l [bterm [nvarx] (oterm l [bterm [nvary] (vterm nvarx)])]).
+  Let arg := (oterm l [bterm [nvary] (vterm nvary)]).
+  Eval compute in (checkBC [] f). (* vars need to be concrete for this to run *)
+End Test.  
+ *)
+  
+
+
+Lemma checkBCSubset :
+ (forall (appArg:NTerm) lvBig lv,
+      subset lv lvBig -> checkBC lvBig appArg = true -> checkBC lv appArg =true)
+ *
+ (forall (appArg:BTerm) lvBig lv,
+     subset lv lvBig -> checkBC_bt lvBig appArg = true ->  checkBC_bt lv appArg = true).
+Proof using.
+  apply NTerm_BTerm_ind;
+    [refl| |].
+- intros ? ? Hind ? ? Hsub Hc. simpl in *.
+  rewrite ball_map_true in *.  eauto.
+- intros blv ? Hind ? ? Hsub Hc. simpl in *.
+  do 2 rewrite andb_true  in *. repnd.
+  setoid_rewrite Decidable_spec at 2.
+  rewrite Decidable_spec in Hc.
+  rewrite disjoint_sym in Hc.
+  rewrite disjoint_sym.
+  dands; auto; [|]; [| eauto using subset_disjoint; fail].
+  revert Hc1.
+  apply Hind.
+  apply subsetvAppLR; eauto.
+Qed.
+
+Lemma checkBCdisjoint:
+(forall (A:NTerm) (lv: list NVar),
+checkBC lv A = true
+-> disjoint lv (bound_vars A))
+*
+(forall (A:BTerm) (lv: list NVar),
+checkBC_bt lv A = true
+-> disjoint lv (bound_vars_bterm A)).
+Proof using.
+  apply NTerm_BTerm_ind;
+    [simpl; intros; disjoint_reasoningv2| |];[|].
+- intros ? ? Hind ? Hc. simpl in *. rewrite disjoint_flat_map_r.
+  rewrite ball_map_true in Hc. eauto.   
+- intros blv bnt Hind ? Hc. simpl in *. do 2 rewrite andb_true in Hc. repnd.
+  rewrite Decidable_spec in Hc. disjoint_reasoningv.
+  apply Hind. revert Hc1. apply (fst checkBCSubset).
+  apply subset_app_l. eauto.
+Qed.
+
+Lemma checkBCEqset :
+ (forall (appArg:NTerm) lv1 lv2,
+      eq_set lv1 lv2 -> checkBC lv1 appArg = checkBC lv2 appArg)
+ *
+ (forall (appArg:BTerm) lv1 lv2,
+     eq_set lv1 lv2 -> checkBC_bt lv1 appArg =  checkBC_bt lv2 appArg).
+Proof using.
+  apply NTerm_BTerm_ind;
+    [refl| |].
+- intros ? ? Hind ? ? Heq. simpl in *. f_equal.
+  apply eq_maps. eauto.
+- intros blv ? Hind ? ? Heq. simpl in *.
+  f_equal;
+  [| eapply proper_decider2;[| apply eq_set_refl | apply Heq];
+     eauto with typeclass_instances].
+  f_equal. apply Hind. rewrite Heq. reflexivity.
+Qed.
+
+
+Global Instance checkBCProper :
+  Proper (eq_set ==> eq ==>  eq) (@checkBC NVar _ Opid).
+Proof using.
+  intros ? ? ? ? ? ?. subst.
+  apply checkBCEqset. assumption.
+Qed.
+
+Lemma checkBCStrengthen blv :
+ (forall (appArg:NTerm) lv,
+     disjoint (bound_vars appArg) blv -> checkBC lv appArg = true -> checkBC (blv ++ lv) appArg = true)
+ *
+ (forall (appArg:BTerm) lv,
+     disjoint (bound_vars_bterm appArg) blv -> checkBC_bt lv appArg = true -> checkBC_bt (blv ++ lv) appArg = true).
+Proof using.
+  clear dependent varcl. clear freshv.
+  apply NTerm_BTerm_ind;
+    [refl| |].
+- intros ? ? Hind lv Hdis. simpl in *.
+  do 2 rewrite ball_map_true. rewrite disjoint_flat_map_l in Hdis. eauto.
+- intros bblv bnt Hind lv Hdis. simpl in *. 
+  specialize (Hind (bblv++lv)). do 4 rewrite andb_true.
+  do 3 rewrite Decidable_spec.
+  intros Hc. repnd.
+  dands; auto;[| disjoint_reasoningv2];[].
+  rewrite <- Hind; auto;[| disjoint_reasoningv2];[].
+  apply checkBCEqset.
+  do 2 rewrite app_assoc.
+  apply eqsetv_app; [| refl].
+  apply eqset_app_comm.
+Qed.
+
+Lemma betaPreservesBC (lamVar:NVar) (appArg:NTerm):
+ (forall (lamBody:NTerm) lv,
+  disjoint (bound_vars appArg) (bound_vars lamBody)
+  -> checkBC lv appArg = true
+  -> checkBC lv lamBody = true
+  -> checkBC lv (ssubst_aux lamBody [(lamVar, appArg)]) = true)
+ *
+ (forall (lamBody:BTerm) lv,
+  disjoint (bound_vars appArg) (bound_vars_bterm lamBody)
+  -> checkBC lv appArg = true
+  -> checkBC_bt lv lamBody = true
+  -> checkBC_bt lv (ssubst_bterm_aux lamBody [(lamVar, appArg)]) = true).
+Proof using.
+  apply NTerm_BTerm_ind;
+    [intros; simpl; cases_if; auto; fail| |].
+- simpl. intros o lbt Hind lv Hdis Hca Hcl.
+  rewrite map_map. unfold compose. simpl.
+  apply ball_map_true.
+  rewrite ball_map_true in Hcl.
+  intros ? Hin. specialize (Hind _ Hin lv).
+  rewrite disjoint_flat_map_r in Hdis.
+  apply Hind; auto; fail.
+- intros blv bnt Hind lv Hdis Hca Hcl.
+  simpl in *.
+  repeat rewrite andb_true.
+  repeat rewrite andb_true in Hcl. repnd.
+  dands; auto;[].
+  cases_if;[rewrite ssubst_aux_nil; assumption|].
+  apply Hind; auto;[disjoint_reasoningv|].
+  disjoint_reasoning.
+  revert Hca. revert Hdis0. clear.
+  apply checkBCStrengthen.
+Qed.
+
+
+Lemma boundvars_substvars_checkbc:
+  (forall (nt:NTerm) lva vsub,
+  checkBC lva (ssubst_aux nt (ALMapRange vterm vsub))
+     = checkBC lva nt)*
+  (forall (nt:BTerm) lva vsub,
+  checkBC_bt lva (ssubst_bterm_aux nt (ALMapRange vterm vsub))
+     = checkBC_bt lva nt).
+Proof using.
+  clear hdeq. apply NTerm_BTerm_ind.
+- intros ? ? ?. simpl. unfold sub_find. rewrite ALMapRangeFindCommute.
+  dALFind s; refl.    
+- intros ? ? Hind ? ?. simpl. f_equal. rewrite map_map. apply eq_maps.
+  intros ? Hin. unfold compose. simpl. eauto.
+- intros blv bnt Hind ? ?. simpl. f_equal. f_equal.
+  unfold sub_filter. rewrite ALMapRangeFilterCommute.
+  apply Hind.
+Qed.
+
+Lemma boundvars_substvars_checkbc2  lvi lvo :
+  (forall (nt:NTerm) lva,
+  checkBC lva (ssubst_aux nt (var_ren lvi lvo))
+     = checkBC lva nt)*
+  (forall (nt:BTerm) lva,
+  checkBC_bt lva (ssubst_bterm_aux nt (var_ren lvi lvo))
+     = checkBC_bt lva nt).
+Proof using.
+  clear hdeq. intros. unfold var_ren. rewrite combine_of_map_snd.
+  split; intros; apply boundvars_substvars_checkbc.
+Qed.
+
+Definition bcSubst (lva: list NVar) (t:NTerm) (sub: Substitution) : NTerm :=
+  (* in intended apps, callee is supposed to ensure that free vars are supposed to be in [lva]. 
+     [lva] is supposed to contain all enclosing binders of the subtree where t and [sub] are located,
+    during reduction.*)
+  let avoid := (dom_sub sub) ++ lva ++ flat_map bound_vars (range sub) in 
+  let tp := change_bvars_alpha avoid t in
+  ssubst_aux tp sub.
 
 
 End SubstGeneric2.
@@ -6608,6 +6825,7 @@ Proof using.
   induction sub; auto.
   simpl. f_equal. auto.
 Qed.
+
 Lemma map_sub_range_combine {NVar} {gtsi} {gtso} : forall (f : @NTerm NVar gtsi -> @NTerm NVar gtso) lv nt,
     map_sub_range f (combine lv nt) = combine lv (map f nt). 
 Proof using.
@@ -7087,3 +7305,4 @@ Proof using.
   setoid_rewrite (ALFindMap3 f).
   refl.
 Qed.  
+

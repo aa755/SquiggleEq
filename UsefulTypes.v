@@ -765,3 +765,16 @@ Definition pairMapl {A B A2:Type} (f: A-> A2) (p:A*B) : A2*B :=
 
 Definition pairMapr {A B B2:Type} (f: B-> B2) (p:A*B) : A*B2 :=
   let (a,b) := p in (a, f b).
+
+
+Ltac destructDecideP :=
+  match goal with
+    [ |-  context [@decideP ?p ?d] ] => destruct (@decideP p d)
+  end.
+
+Lemma rewritePairMatch {A B C:Type} (p:A*B)
+(f : A->B->C):
+(let (a,b) := p in f a b) = f (fst p) (snd p).
+Proof using.
+  destruct p; auto.
+Qed.
