@@ -1557,24 +1557,27 @@ Qed.
 
 Lemma fromDB_varprop (P : NVar-> Prop) (pres: forall p, P (mkNVar p)):
   (forall (e : DTerm) names n,
-   lforall P (free_vars (fromDB n names e)))*
+   lforall P (all_vars (fromDB n names e)))*
   (forall (e : DBTerm) names n,
-      lforall P (free_vars_bterm (fromDB_bt n names e))).
+      lforall P (terms2.all_vars_bt (fromDB_bt n names e))).
 Proof using.
   revert pres.
   clear. intros.
   apply NTerm_BTerm_ind; [ intros ? ? ? ? Hin;
                            apply in_single_iff in Hin; subst; auto;fail  | | ].
-- intros ? ? Hind ? ? ? Hin.
+- intros ? ? Hind ? ? ? Hin. unfold fromDB in Hin.
   simpl in Hin.
+  autorewrite with SquiggleEq in Hin.    
   rewrite flat_map_map in Hin.
   apply in_flat_map in Hin. exrepnd.
   eapply Hind; eauto.
-- intros ? ? Hind ? ? ? Hin.
+- intros ? ? Hind ? ? ? Hin. unfold fromDB_bt in Hin.
   simpl in Hin.
-  apply in_remove_nvars in Hin. apply proj1 in Hin.
-  eapply Hind. eauto.
-Qed.  
+  autorewrite with SquiggleEq in Hin.
+  apply in_app_iff in Hin.
+  dorn Hin;[ | eapply Hind; eauto; fail].
+  apply in_map_iff in Hin. exrepnd.  subst. eauto.
+Qed.
 
 
 Lemma fromDB_closed :  forall (e : DTerm) names,
