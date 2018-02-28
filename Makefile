@@ -10,7 +10,7 @@ install :
 clean:
 	make -f Makefile.coq clean
 	rm Makefile.coq
-	rm _CoqProject
+#	rm _CoqProject
 
 texdoc:
 	coqdoc --interpolate --latex -R . SquiggleEq terms.v terms2.v substitution.v alphaeq.v varInterface.v varImplZ.v 

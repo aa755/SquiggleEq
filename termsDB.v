@@ -260,6 +260,7 @@ Require Import Coq.Unicode.Utf8.
 
 Section DBToNamed.
 
+
 Context {Name NVar VarClass : Type} {deqv vcc fvv}
   `{vartyp: @VarType NVar VarClass deqv vcc fvv} `{deqo: Deq Opid} {gts : GenericTermSig Opid} (def:Name).
 
@@ -546,6 +547,22 @@ Qed.
 
 
 
+Let fromDB_bt:= (@fromDB_bt Name Opid NVar def mkNVar).
+
+Lemma fromDB_numbvars:
+  forall (e : DBTerm) names n,
+    terms.num_bvars (fromDB_bt n names e) = num_bvars e.
+Proof using.
+  clear.
+  unfold fromDB_bt.
+  intros e. destruct e. intros. simpl.
+  unfold num_bvars, terms.num_bvars. simpl.
+  simpl.
+  autorewrite with list.
+  refl.
+Qed.
+
+Let fromDB := (@fromDB Name Opid NVar def mkNVar).
 
 Let fvarsProp (n:N) names (vars : list NVar): Prop := 
 lforall
@@ -557,8 +574,7 @@ let id := (getId v) in
 
 
 
-Let fromDB := (@fromDB Name Opid NVar def mkNVar).
-Let fromDB_bt:= (@fromDB_bt Name Opid NVar def mkNVar).
+
 
 
 Lemma fromDB_fvars:
@@ -1511,6 +1527,56 @@ Proof using gts getIdCorr getId deqo.
   apply seq_NoDup.
 Qed.
 
+
+Lemma fromDB_nt_wf:
+  (forall (e : DTerm) names n,
+  nt_wf e
+  -> terms.nt_wf (fromDB n names e))*
+  (forall (e : DBTerm) names n,
+  bt_wf e
+  -> terms.bt_wf (fromDB_bt n names e)).
+Proof using.
+  clear.
+  apply NTerm_BTerm_ind; [ cpx | | ].
+- intros ? ? Hind ? ? Hwf.
+  unfold fromDB.    
+  inverts Hwf.
+  simpl. constructor.
+  + intros ? Hin. apply in_map_iff in Hin. exrepnd. subst.
+    eauto.
+  + rewrite map_map. unfold compose. simpl.
+    rewrite <- H2.
+    apply eq_maps.
+    intros ? Hin.
+    rewrite fromDB_numbvars. refl.
+- intros ? ? Hind ? ? Hwf.
+  inverts Hwf. unfold fromDB_bt. simpl.
+  constructor. eauto.
+Qed.
+
+
+Lemma fromDB_varprop (P : NVar-> Prop) (pres: forall p, P (mkNVar p)):
+  (forall (e : DTerm) names n,
+   lforall P (free_vars (fromDB n names e)))*
+  (forall (e : DBTerm) names n,
+      lforall P (free_vars_bterm (fromDB_bt n names e))).
+Proof using.
+  revert pres.
+  clear. intros.
+  apply NTerm_BTerm_ind; [ intros ? ? ? ? Hin;
+                           apply in_single_iff in Hin; subst; auto;fail  | | ].
+- intros ? ? Hind ? ? ? Hin.
+  simpl in Hin.
+  rewrite flat_map_map in Hin.
+  apply in_flat_map in Hin. exrepnd.
+  eapply Hind; eauto.
+- intros ? ? Hind ? ? ? Hin.
+  simpl in Hin.
+  apply in_remove_nvars in Hin. apply proj1 in Hin.
+  eapply Hind. eauto.
+Qed.  
+
+
 Lemma fromDB_closed :  forall (e : DTerm) names,
   fvars_below 0 e
   -> terms.closed (fromDB 0 names e).
@@ -1771,5 +1837,6 @@ Proof using.
   destruct b; refl.
 Qed.
 
+SearchAbout nt_wf.
 
 
