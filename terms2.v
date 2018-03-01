@@ -1666,6 +1666,11 @@ Proof using.
  intros. apply isprogram_ot_iff;spc.
 Qed.
 
+Definition getOpidBTerms (t: NTerm) : option (Opid * list BTerm):=
+match t with
+| terms.vterm _ => None
+| terms.oterm o lb => Some (o, lb)
+end.
 
 Lemma isprogramd :
   forall v, isprogram v
@@ -2147,3 +2152,18 @@ Proof using.
 Qed.
 
 Hint Rewrite @noDupApp @all_vars_ot @allvars_bterm @varsOfClassConsIff @noDupConsIff: SquiggleEq.
+
+(* MOVE to SquiggleEq.terms2 *)
+Lemma  wft_ntwf {Opid V} {gts : GenericTermSig Opid}: forall t: @NTerm V Opid,  wft t =true -> nt_wf t.
+Proof using.
+  induction t as [x | o lbt Hind] using NTerm_better_ind; intros Hwf; try (constructor; fail).
+  simpl in Hwf.
+  apply andb_eq_true in Hwf. repnd.
+  setoid_rewrite assert_beq_list in Hwf0.
+  constructor; auto.
+  rewrite ball_map_true in Hwf.
+  intros l. destruct l. intros. constructor.
+  eapply Hind; eauto.
+  specialize (Hwf _ H).
+  simpl in Hwf. assumption.
+  Qed.  

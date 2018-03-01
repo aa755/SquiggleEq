@@ -4140,3 +4140,85 @@ Proof using.
   omega.
 Qed.
 
+(* Move to SquiggleEq.list
+*)
+Lemma flattenSomeCons {A:Type} (loa: list (option A)) a:
+  isSome (flatten (a::loa))
+  -> isSome (flatten loa).
+Proof using.
+  intros Hs.
+  simpl in Hs.
+  destruct a; firstorder.
+  destruct (flatten loa); firstorder.
+Qed.
+
+(* Move to SquiggleEq.list
+*)
+Lemma flattenLift2 {A B:Type} (f: A-> option B) g  l:
+  (forall b, In b l -> f b = g b)
+  -> isSome (flatten (map f l))
+  -> flatten (map f l) = flatten (map g l).
+Proof using.
+  intros Heq Hs.
+  induction l; try (firstorder; fail).
+  pose proof Heq as Heqb.
+  specialize (Heq a). simpl.
+  pose proof Hs as Hsb.
+  simpl in Hsb.
+  destruct (f a);[ | firstorder].
+  specialize (Heq (ltac:(simpl;auto))).
+  rewrite <- Heq.
+  apply flattenSomeCons in Hs.
+  rewrite IHl;[reflexivity | firstorder| assumption].
+Qed.
+
+(* Move to SquiggleEq.Usefultypes
+*)
+Lemma isSomeIf {A:Type} oa (a: A):
+  oa = Some a -> isSome oa.
+Proof using.
+  firstorder.
+  subst. refl.
+Qed.
+
+(* Move to SquiggleEq.list
+*)
+Lemma flattenLift {A B:Type} (f: A-> option B) g  l:
+  (forall b, isSome (f b) -> f b = g b)
+  -> (forall b, isSome (g b) -> isSome (f b))
+  -> flatten (map f l) = flatten (map g l).
+Proof using.
+  intros Heq Hn.
+  induction l;firstorder. simpl in *.
+  specialize (Heq a).
+  specialize (Hn a).
+  destruct (f a).
+- unfold isSome in Heq.
+  specialize (Heq (ltac:(auto))). 
+  rewrite <- Heq. rewrite IHl. refl.
+- clear Heq. destruct (g a); firstorder.
+Qed.
+
+
+(* MOVE to SquiggleEq.list *)
+Lemma lforallCons {A} (P:A->Prop) a l: lforall P l -> P a -> lforall P (a::l).
+Proof using.
+  intros.
+  intros ? Hin.
+  dorn Hin; subst; auto.
+Qed.
+
+(* Move to SquiggleEq.list
+*)
+Lemma flattenSomeIn {A:Type} (loa: list (option A)) a:
+  isSome (flatten loa)
+  -> In a loa -> isSome a.
+Proof using.
+  revert a.
+  induction loa as [ | a loa]; destruct a; intros aa; destruct aa; try (firstorder; fail).
+  intros Hs Hin. apply False_ind.
+  apply flattenSomeCons in Hs.
+  dorn Hin; firstorder.
+  inversion Hin.
+Qed.  
+  
