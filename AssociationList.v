@@ -885,3 +885,118 @@ Proof using.
   intros; destruct s; simpl in *; assumption.
 Qed.
 
+
+(* Move :there must be something similar in stdlib or, Extlib, or UsefulTypes.v *)
+Definition eqfun {A B:Type} (f g : A -> B) :=
+  forall a, f a = g a.
+
+Definition ALFindEndo {Key:Type} {d:Deq Key} (sub: AssocList Key Key)  (k:Key) : Key :=
+  ALFindDef sub k k.
+
+
+Lemma ALFindEndoId {Key:Type} {d:Deq Key} (sub: AssocList Key Key) v :
+  disjoint [v] (ALDom sub)
+  -> ALFindEndo sub v = v.
+Proof using.
+  intros.
+  unfold ALFindEndo, ALFindDef.
+  rewrite ALFindNoneIf;[refl|].
+  firstorder.
+Qed.
+
+Lemma ALFindEndoId2 {Key:Type} {d:Deq Key} lv v:
+  ALFindEndo (map (fun x=> (x,x)) lv) v = v.
+Proof using.
+  unfold ALFindEndo, ALFindDef.
+  dALFind sd; [| refl].
+  symmetry in Heqsd.
+  apply ALFindSome in Heqsd. apply in_map_iff in Heqsd.
+  exrepnd. inverts Heqsd1. refl.
+Qed.
+
+Lemma ALFindMapEndoId {Key:Type} {d:Deq Key} (sub: AssocList Key Key) lv:
+  disjoint lv (ALDom sub)
+  -> map (ALFindEndo sub) lv = lv.
+Proof using.
+  intros Hd.
+  rewrite <- (map_id lv) at 2.
+  apply eq_maps.
+  intros ? Hin.
+  apply ALFindEndoId.
+  eapply subset_disjoint;[| apply Hd].
+  apply singleton_subset. assumption.
+Qed.
+
+Lemma vmap_app_nest {NVar:Type} {deq : Deq NVar} (sub1 sub2: AssocList NVar NVar):
+  disjoint (ALRange sub1) (ALDom sub2)
+  -> eqfun (ALFindEndo (sub1++sub2)) ((ALFindEndo sub2) ∘ (ALFindEndo sub1)).
+Proof using.
+  intros Hd.
+  intros v. unfold compose, ALFindEndo, ALFindDef.
+  rewrite ALFindApp. dALFind s1v; auto.
+  rewrite ALFindNoneIf;[refl|].
+  apply Hd. symmetry in Heqs1v.
+  apply ALFindSome in Heqs1v. apply in_map_iff.
+  eexists; dands ; eauto. auto.
+Qed.
+  
+Lemma vmap_decompose {NVar:Type} {deq : Deq NVar}  (lv : list NVar) (sub: AssocList NVar NVar):
+  let subOuter := map (fun v => (v,  (ALFindEndo sub) v)) lv in
+  let subInner := ALFilter sub lv in
+  disjoint (ALRange sub) lv
+  -> eqfun (ALFindEndo sub) ((ALFindEndo subOuter) ∘ (ALFindEndo subInner)).
+Proof using.
+  simpl. intros Hd a.
+  rewrite  <- vmap_app_nest;
+    [| setoid_rewrite map_map; unfold compose; simpl; rewrite map_id;
+       eapply subset_disjoint; try apply Hd; apply map_monotone, ALFilterSubset].
+  unfold ALFindEndo, ALFindDef.
+  setoid_rewrite ALFindApp. symmetry.
+  dALFind sfa; simpl; symmetry in Heqsfa;
+    [apply ALFindFilterSome in Heqsfa | apply ALFindFilterNone in Heqsfa]; repnd;
+      try rewrite  Heqsfa0;[refl|].
+  dALFind sm; symmetry in Heqsm.
+  - apply ALFindSome in Heqsm. apply in_map_iff in Heqsm. exrepnd. inverts Heqsm1. refl.
+  - apply ALFindNone in Heqsm. setoid_rewrite map_map in Heqsm. unfold compose in Heqsm.
+    simpl in Heqsm. rewrite map_id in Heqsm. dorn Heqsfa; cpx;[]. rewrite Heqsfa. refl.
+Qed.
+
+Global Instance eqfunEquiv {A B:Type}: Equivalence (@eqfun A B).
+Proof using.
+  constructor; introv; unfold eqfun; try congruence.
+Qed.
+
+Lemma vmap_nest_same {NVar:Type} {deq : Deq NVar}  (vl vi vr : list NVar):
+  let subOuter := combine vi vr  in
+  let subInner := combine vl vi in
+  let sub := combine vl vr in
+  length vi = length vr
+  -> length vi = length vl
+  -> NoDup vi
+  -> eqfun (ALFindEndo sub) ((ALFindEndo subOuter) ∘ (ALFindEndo subInner)).
+Proof using.
+  simpl. intros Hd H1l H2l a.
+  rewrite (combine_map_snd2 vr vi) at 1 by omega.
+  rewrite (combine_map_fst2 vi vr) at 3 by omega.
+  unfold ALFindEndo, ALFindDef. simpl.  simpl. unfold compose. simpl.
+  remember  (ALFind (combine vl (map fst (combine vi vr))) a) as ss.
+  do 1 rewrite combine_of_map_snd.
+  setoid_rewrite combine_of_map_snd in Heqss.
+  replace (map (fun x : NVar * (NVar * NVar) => (fst x, snd (snd x))) (combine vl (combine vi vr)))
+          with (ALMapRange snd  (combine vl (combine vi vr))) by refl.
+  replace (map (fun x : NVar * (NVar * NVar) => (fst x, fst (snd x))) (combine vl (combine vi vr)))
+     with (ALMapRange fst  (combine vl (combine vi vr))) in Heqss by refl.
+  setoid_rewrite ALFindMap3.
+  setoid_rewrite ALFindMap3 in Heqss.
+  subst.
+  dALFind  sa; simpl; symmetry in Heqsa.
+- admit.
+- assert (~ LIn a (remove_nvars vl vi)) as Ha by admit.
+  apply ALFindNone in Heqsa.
+  setoid_rewrite <- combine_map_fst2 in Heqsa;[| rewrite length_combine_eq; omega].
+  rewrite in_remove_nvars in Ha.
+  dALFind sia; auto.
+  symmetry in Heqsia.
+  apply ALFindSome in Heqsia.
+  apply in_combine_l in Heqsia. tauto.
+Abort.

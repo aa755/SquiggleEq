@@ -4404,14 +4404,7 @@ Proof using.
   sp.  
 Qed.
 
-Lemma combine_of_map_snd {A B C :Type} (f: B->C) (la:list A) lb :
-  combine la (map f lb) = map (fun x => (fst x, f (snd x))) (combine la lb).
-Proof.
-  revert lb.
-  induction la as [| a la Hind]; intros;[|destruct lb as [|b lb]]; simpl; auto.
-  f_equal.
-  eauto.
-Qed.
+
 
 Lemma lmap_find_injection:
   forall {A B C: Type} (deqa : Deq A) 
