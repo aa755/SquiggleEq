@@ -4253,7 +4253,8 @@ Proof using.
   pose proof Hc1 as Hdis. apply checkBCdisjoint in Hdis.
   setoid_rewrite <- (fst var_ren_vmap) at 1; eauto;
     [|setoid_rewrite <- combine_map_fst2;[disjoint_reasoningv2| rewrite map_length; omega]; fail].
-  erewrite (fun rr p1 p2 => fst (@tmap_ext _ _ _ _ _ rr id id p1 p2));
+  
+(*  erewrite (fun rr p1 p2 => fst (@tmap_ext _ _ _ _ _ rr id id p1 p2));
     [|apply  (vmap_decompose blv); disjoint_reasoningv2 | refl ].
   change id with ((@id Opid) ∘ (@id Opid)).
   rewrite (fst (tmap_compose _ _ _ _ _ _ _ _ _ _)).
@@ -4265,7 +4266,7 @@ Proof using.
   fold lvi in Hc0.
   SearchAbout ssubst_aux.
   SearchAbout combine eq map.
-(*  setoid_rewrite <-  combine_of_map_snd.
+  setoid_rewrite <-  combine_of_map_snd.
   setoid_rewrite (fst var_ren_vmap).
   (*tvmap (ALFindEndo sub) bnt as 
     tvmap (combine blv ((map (ALFindEndo sub) blv))) 

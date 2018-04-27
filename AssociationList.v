@@ -966,6 +966,15 @@ Proof using.
   constructor; introv; unfold eqfun; try congruence.
 Qed.
 
+Lemma combine_of_map_snd {A B C :Type} (f: B->C) (la:list A) lb :
+  combine la (map f lb) = map (fun x => (fst x, f (snd x))) (combine la lb).
+Proof.
+  revert lb.
+  induction la as [| a la Hind]; intros;[|destruct lb as [|b lb]]; simpl; auto.
+  f_equal.
+  eauto.
+Qed.
+
 Lemma vmap_nest_same {NVar:Type} {deq : Deq NVar}  (vl vi vr : list NVar):
   let subOuter := combine vi vr  in
   let subInner := combine vl vi in
