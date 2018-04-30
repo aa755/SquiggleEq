@@ -4220,5 +4220,31 @@ Proof using.
   apply flattenSomeCons in Hs.
   dorn Hin; firstorder.
   inversion Hin.
-Qed.  
-  
+Qed.
+
+Require Import SetoidList.
+Lemma eqListA_refl {A} (R : A-> A-> Prop) lbt:
+  (forall l, In l lbt -> R l l) ->
+  SetoidList.eqlistA R lbt lbt.
+Proof using.
+  intros.
+  induction lbt; auto; constructor; firstorder.
+Qed.
+
+Lemma eqListA_map {A B} (f g: A->B)
+      (Ra : A -> A -> Prop) (Rb : B -> B -> Prop) l1 l2
+  (feq : forall a1 a2, In a1 l1 -> In a2 l2 -> Ra a1 a2 -> Rb (f a1) (g a2)):
+  SetoidList.eqlistA Ra l1 l2
+  -> SetoidList.eqlistA Rb (map f l1) (map g l2).
+Proof using.
+  intros Hp.
+  induction Hp; auto; simpl; firstorder; constructor; eauto.
+Qed.
+
+Lemma eqListA_eq {A} l1 l2:
+  SetoidList.eqlistA (@eq A) l1 l2
+  -> l1 = l2.
+Proof using.
+  intros Hp.
+  induction Hp; auto; subst; auto.
+Qed.

@@ -5970,12 +5970,12 @@ Proof using.
   introv. apply disjoint_sym; auto.
 Qed.
 
-Fixpoint sub_range_rel  (R : bin_rel NTerm) (subl subr : Substitution) : [univ] :=
-match (subl, subr) with 
+Definition sub_range_rel  (R : bin_rel NTerm) (subl subr : Substitution) : [univ] := ALRangeRel R subl subr.
+(*match (subl, subr) with 
 | ([],[]) => True
 | ((vl,tl) :: sl , (vr,tr) :: sr) => (vl=vr # R tl tr # sub_range_rel R sl sr)
 | ( _ , _) => False
-end.
+end. *)
 
 
 Lemma sub_range_rel_app : forall R subl1 subl2 subr1 subr2,

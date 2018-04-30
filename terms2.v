@@ -2153,7 +2153,6 @@ Qed.
 
 Hint Rewrite @noDupApp @all_vars_ot @allvars_bterm @varsOfClassConsIff @noDupConsIff: SquiggleEq.
 
-(* MOVE to SquiggleEq.terms2 *)
 Lemma  wft_ntwf {Opid V} {gts : GenericTermSig Opid}: forall t: @NTerm V Opid,  wft t =true -> nt_wf t.
 Proof using.
   induction t as [x | o lbt Hind] using NTerm_better_ind; intros Hwf; try (constructor; fail).
@@ -2167,3 +2166,13 @@ Proof using.
   specialize (Hwf _ H).
   simpl in Hwf. assumption.
   Qed.  
+
+
+Hint Rewrite @flat_map_bterm_nil_allvars: SquiggleEq.
+
+Inductive liftRBt {V O} (R : (@NTerm V O) -> (@NTerm V O) -> Prop)
+  : (@BTerm V O) -> (@BTerm V O) -> Prop :=
+  liftRbt : forall lv ntl ntr, R ntl ntr
+                          -> liftRBt R
+                              (bterm lv ntl)
+                              (bterm lv ntr).
