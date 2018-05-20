@@ -6874,7 +6874,18 @@ Proof using.
   rewrite all_vars_ot in *. rewrite subset_flat_map in *. firstorder.  
 Qed.
 
-
+Global Instance evalProp_conj P1 PB1 P2 PB2
+  {ep1: evalPresProps P1 PB1} {ep2: evalPresProps P2 PB2}:
+  evalPresProps (fun t => P1 t /\ P2 t) (fun t => PB1 t /\ PB2 t).
+Proof using.
+  revert ep1 ep2.
+  clear. intros. 
+  constructor.
+- intros. split; apply substPres; firstorder.
+- intros. split; repnd; eapply subtermPres; eauto.
+-  intros. do 2 rewrite subtermPresb. refl.
+- intros. split; repnd; eapply otermCongr; eauto; firstorder.
+Qed.  
 
 End SubstGeneric2.
 
