@@ -4248,3 +4248,9 @@ Proof using.
   intros Hp.
   induction Hp; auto; subst; auto.
 Qed.
+
+Ltac in_reasoning2 := unfold lforall;
+  match goal with
+    [ |- forall _:_, In _ _  -> _] => intros ? ?;
+                                     in_reasoning;subst; auto
+    end.

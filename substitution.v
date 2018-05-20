@@ -6375,7 +6375,8 @@ Lemma allvars_ssubst_aux :
   -> LIn v (all_vars nt)[+]
       {v' : NVar $
       {t : NTerm $ LIn (v', t) sub # LIn v' (free_vars nt) # LIn v (all_vars t)}}.
-Proof using varclass varcl gts freshv VarClass.
+Proof using.
+  clear varclass freshv gts.
   intros ? ? ? Hin.
   apply in_app_or in Hin.
   dorn Hin.
@@ -6808,6 +6809,71 @@ Definition bcSubst (lva: list NVar) (t:NTerm) (sub: Substitution) : NTerm :=
   let avoid := (dom_sub sub) ++ lva ++ flat_map bound_vars (range sub) in 
   let tp := change_bvars_alpha avoid t in
   ssubst_aux tp sub.
+
+(* move to SquiggleEq *)
+Class evalPresProps (P: NTerm -> Prop) (PB: BTerm ->Prop) : Prop :=
+  {
+    substPres: forall t sub, PB t -> lforall P sub -> num_bvars t = length sub
+                        -> P (apply_bterm t sub);
+    subtermPres: forall o lbt, P (oterm o lbt) -> lforall PB lbt;
+    subtermPresb: forall t, PB (bterm [] t) <-> P t;
+    otermCongr: forall o1 o2 lbt1 lbt2,
+        OpBindings o1 = OpBindings o2
+        -> map num_bvars lbt1 = map num_bvars lbt2
+        -> P (oterm o1 lbt1)
+        -> lforall PB lbt2
+        -> P (oterm o2 lbt2)
+  }.
+
+(* move to SquiggleEq *)
+Lemma preBNilBTerm Pre PreB  {Hpre: evalPresProps Pre PreB} es :
+  (forall a : BTerm, LIn a (map (bterm []) es) -> PreB a) <->
+      (forall a : NTerm, LIn a es -> Pre a).
+Proof using. revert Hpre.
+  clear. intros Hpre.
+  setoid_rewrite in_map_iff. destruct Hpre. firstorder. subst. firstorder.
+Qed.
+
+Definition closedSubsetVars lv (e : NTerm) :=
+  closed e /\ subset (all_vars e) lv. (* the latter is preserved by substitution due to the former. Thus evalPresProps has to be proven together for these*)
+
+Definition closedSubsetVars_bt lv (e : BTerm) :=
+  closed_bt e /\ subset (all_vars_bt e) lv.
+
+Lemma apply_bterm_ssubst_aux bt lnt:
+  lforall closed lnt
+  -> apply_bterm bt lnt = ssubst_aux (get_nt bt) (combine (get_vars bt) lnt).
+Proof using. clear.
+    intros. unfold apply_bterm.
+    rewrite ssubst_ssubst_aux;[refl | ].
+    rewrite (proj2 (flat_map_empty _ _ _ _));[disjoint_reasoning | ].
+    intros ? Hin. unfold range in Hin.
+    apply in_map_iff in Hin. exrepnd.
+    subst. apply in_combine in Hin1. simpl. firstorder.
+Qed.
+
+Global Instance closedSubsetVars_evalProp lv:
+  evalPresProps (closedSubsetVars lv)
+                                                         (closedSubsetVars_bt lv).
+Proof using.
+  clear varclass.
+  unfold closedSubsetVars, closedSubsetVars_bt.
+  constructor.
+- intros. split.
+  + apply closed_bt_implies; try omega; firstorder.
+  + rewrite apply_bterm_ssubst_aux;[ | firstorder].
+    destruct t. simpl in *. rewrite allvars_bterm in H. repnd.
+    apply subset_app in H. repnd.
+    intros ? Hin. apply allvars_ssubst_aux in Hin. dorn Hin;[ firstorder  | ].
+    exrepnd. apply in_combine in Hin0. firstorder.
+- intros ? ? Hc. repnd. rewrite closed_nt in Hc0.
+  rewrite all_vars_ot in Hc. rewrite subset_flat_map in Hc.
+  firstorder.
+- intros. firstorder.
+- intros. repnd. rewrite closed_nt in *.
+  rewrite all_vars_ot in *. rewrite subset_flat_map in *. firstorder.  
+Qed.
+
 
 
 End SubstGeneric2.
@@ -7298,4 +7364,3 @@ Proof using.
   setoid_rewrite (ALFindMap3 f).
   refl.
 Qed.  
-

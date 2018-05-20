@@ -854,3 +854,9 @@ match lv with
 | _ => idtac
 end.
 
+Ltac dimpr H :=
+  match type of H with
+    | ?T1 -> ?T2 =>
+      let name := fresh H "hyp" in
+      assert T1 as name; auto; [ | specialize (H name)]
+  end.
