@@ -778,3 +778,8 @@ Lemma rewritePairMatch {A B C:Type} (p:A*B)
 Proof using.
   destruct p; auto.
 Qed.
+
+  Definition Rpair {A1 A2 B1 B2 : Type} (R1 : A1 -> A2 -> Prop) (R2 : B1 -> B2 -> Prop)
+             (p1: A1*B1) (p2: A2*B2) :=
+    let (d1, b1) := p1 in let (d2,b2) := p2 in R1 d1 d2 /\ R2 b1 b2.
+

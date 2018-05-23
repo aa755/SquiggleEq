@@ -1009,3 +1009,12 @@ Proof using.
   apply ALFindSome in Heqsia.
   apply in_combine_l in Heqsia. tauto.
 Abort.
+
+Require Import SetoidList.
+(* move to SquiggleEq.AssocList *)
+   Lemma ALRangeRelCombine {V T:Type} (lv:list V) lt1 lt2  (R: T-> T-> Prop):
+    eqlistA R lt1 lt2 -> ALRangeRel R (combine lv lt1) (combine lv lt2).
+ Proof using.
+   intros Heq. revert lv.
+   induction Heq;destruct lv; simpl; eauto.
+ Qed.

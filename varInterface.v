@@ -1406,61 +1406,6 @@ Ltac provesv :=
   end.
 
 
-Ltac inj0_step :=
-  match goal with
-    | [ H : (_, _) = (_, _)     |- _ ] => apply pair_inj in H; repd; subst; GC
-    | [ H : S _ = S _           |- _ ] => apply S_inj    in H; repd; subst; GC
-    | [ H : S _ < S _           |- _ ] => apply S_lt_inj in H; repd; subst; GC
-    | [ H : snoc _ _ = snoc _ _ |- _ ] => apply snoc_inj in H; repd; subst; GC
-  end.
-
-Ltac inj0 := repeat inj0_step.
-
-(*
-Ltac inj :=
-  repeat match goal with
-             [ H : _ |- _ ] =>
-             (apply pair_inj in H
-              || apply S_inj in H
-              || apply S_lt_inj in H
-              || apply snoc_inj in H);
-               repd; subst; GC
-         end; try (complete sp).
-*)
-
-Ltac inj := inj0; try (complete auto); try (complete sp).
-
-Ltac cpx :=
-  repeat match goal with
-           (* false hypothesis *)
-           | [ H : [] = snoc _ _ |- _ ] =>
-             complete (apply nil_snoc_false in H; sp)
-           | [ H : snoc _ _ = [] |- _ ] =>
-             complete (symmetry in H; apply nil_snoc_false in H; sp)
-
-           (* simplifications *)
-           | [ H : _ :: _ = _ :: _ |- _ ] => inversion H; subst; GC
-
-           | [ H : 0 = length _ |- _ ] =>
-             symmetry in H; trw_h length0 H; subst
-           | [ H : length _ = 0 |- _ ] =>
-             trw_h length0 H; subst
-
-           | [ H : 1 = length _ |- _ ] =>
-             symmetry in H; trw_h length1 H; exrepd; subst
-           | [ H : length _ = 1 |- _ ] =>
-             trw_h length1 H; exrepd; subst
-
-           | [ H : [_] = snoc _ _ |- _ ] =>
-             symmetry in H; trw_h snoc1 H; repd; subst
-           | [ H : snoc _ _ = [_] |- _ ] =>
-             trw_h snoc1 H; repd; subst
-
-           | [ H : context[length (snoc _ _)] |- _ ] =>
-             rewrite length_snoc in H
-         end;
-  inj;
-  try (complete (allsimpl; sp)).
   
   Ltac sp3 :=
   (repeat match goal with

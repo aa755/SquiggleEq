@@ -7375,3 +7375,6 @@ Proof using.
   setoid_rewrite (ALFindMap3 f).
   refl.
 Qed.  
+  Ltac simplCombine := unfold dom_sub , range, ALDom, ALRange;
+                       try rewrite <- combine_map_snd ; autorewrite with list; auto; try congruence;
+                       try rewrite <- combine_map_fst ; autorewrite with list; auto; try congruence.

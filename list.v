@@ -4254,3 +4254,98 @@ Ltac in_reasoning2 := unfold lforall;
     [ |- forall _:_, In _ _  -> _] => intros ? ?;
                                      in_reasoning;subst; auto
     end.
+
+Ltac inj0_step :=
+  match goal with
+    | [ H : (_, _) = (_, _)     |- _ ] => apply pair_inj in H; repd; subst; GC
+    | [ H : S _ = S _           |- _ ] => apply S_inj    in H; repd; subst; GC
+    | [ H : S _ < S _           |- _ ] => apply S_lt_inj in H; repd; subst; GC
+    | [ H : snoc _ _ = snoc _ _ |- _ ] => apply snoc_inj in H; repd; subst; GC
+  end.
+
+Ltac inj0 := repeat inj0_step.
+
+(*
+Ltac inj :=
+  repeat match goal with
+             [ H : _ |- _ ] =>
+             (apply pair_inj in H
+              || apply S_inj in H
+              || apply S_lt_inj in H
+              || apply snoc_inj in H);
+               repd; subst; GC
+         end; try (complete sp).
+*)
+
+Ltac inj := inj0; try (complete auto); try (complete sp).
+
+Ltac cpx :=
+  repeat match goal with
+           (* false hypothesis *)
+           | [ H : [] = snoc _ _ |- _ ] =>
+             complete (apply nil_snoc_false in H; sp)
+           | [ H : snoc _ _ = [] |- _ ] =>
+             complete (symmetry in H; apply nil_snoc_false in H; sp)
+
+           (* simplifications *)
+           | [ H : _ :: _ = _ :: _ |- _ ] => inversion H; subst; GC
+
+           | [ H : 0 = length _ |- _ ] =>
+             symmetry in H; trw_h length0 H; subst
+           | [ H : length _ = 0 |- _ ] =>
+             trw_h length0 H; subst
+
+           | [ H : 1 = length _ |- _ ] =>
+             symmetry in H; trw_h length1 H; exrepd; subst
+           | [ H : length _ = 1 |- _ ] =>
+             trw_h length1 H; exrepd; subst
+
+           | [ H : [_] = snoc _ _ |- _ ] =>
+             symmetry in H; trw_h snoc1 H; repd; subst
+           | [ H : snoc _ _ = [_] |- _ ] =>
+             trw_h snoc1 H; repd; subst
+
+           | [ H : context[length (snoc _ _)] |- _ ] =>
+             rewrite length_snoc in H
+         end;
+  inj;
+  try (complete (allsimpl; sp)).
+
+(* Move to SquiggleEq *)
+Lemma in_combine_same {A:Type} (e v: A) pvs: LIn (e, v) (combine pvs pvs)
+                                             -> e =v /\ In e pvs.
+Proof using.
+  induction pvs; cpx; simpl. 
+  firstorder; inverts H ;auto.
+Qed.
+
+(* Move to SquiggleEq *)
+Tactic Notation "forder" ident_list (idl) :=
+  revert idl; clear; firstorder.
+  Lemma   select_Rl {A:Type} lbt lbtp n (bt:A) R:
+  select n lbt = Some bt ->
+  eqlistA R lbt lbtp ->
+  exists btp, select n lbtp = Some btp /\ R bt btp.
+Proof using.
+  intros Hs Heq. revert dependent n.
+  induction Heq; intros; destruct n;  inverts Hs; simpl.
+- eexists; eauto.
+- eauto.
+Qed.  
+
+(* move to SquiggleEq *)
+  Ltac simpl_combine := 
+                        (
+match goal with
+| [ H : context[map snd (combine _ _)] |- _] =>rewrite <- combine_map_snd  in H; [ |try(simpl_list);spc;idtac "check lengths in combine";fail]
+| [ |- context[map snd (combine _ _)] ] =>rewrite <- combine_map_snd ;[ |try(simpl_list);spc;idtac "check lengths in combine";fail]
+| [ H : context[map fst (combine _ _)] |- _] =>rewrite <- combine_map_fst  in H; [ |try(simpl_list);spc;idtac "check lengths in combine";fail]
+| [  |- context[map fst (combine _ _)] ] =>rewrite <- combine_map_fst ;[ |try(simpl_list);spc;idtac "check lengths in combine";fail]
+end).
+
+ (* Move to SquiggleEq *)
+ Lemma eq_eqListA {A} l1 l2:
+  l1 = l2 -> SetoidList.eqlistA (@eq A) l1 l2.
+Proof using.
+  intros. subst. induction l2; auto.
+Qed.

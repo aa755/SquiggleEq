@@ -1375,6 +1375,44 @@ Qed.
 Notation oterm := (@oterm NVar Opid).
 Notation vterm := (@vterm NVar Opid).
 
+Inductive liftRBt (R : (NTerm) -> (NTerm) -> Prop)
+  : (@BTerm) -> (@BTerm) -> Prop :=
+  liftRbt : forall lv ntl ntr, R ntl ntr
+                          -> liftRBt R
+                              (bterm lv ntl)
+                              (bterm lv ntr).
+
+Require Import SetoidList.
+(* Move to SquiggleEq and heterogenize *)
+Lemma liftRBTeqlist (R : NTerm ->  NTerm -> Prop) es lbt:
+  eqlistA (liftRBt R) (map (bterm []) es) lbt
+  -> exists esp, eqlistA R es esp /\ lbt = map (bterm []) esp.
+Proof using.
+  revert es lbt.
+  induction es; intros ? Heq; inverts Heq.
+  + eexists. split. constructor. refl.
+  + inverts H1. apply IHes in H3. exrepnd. eexists. split. econstructor; eauto.
+      subst. auto.
+Qed.
+
+Lemma liftRbt_eqlista   (R : NTerm ->  NTerm -> Prop)  vs vsp:
+  eqlistA R vs vsp ->
+  eqlistA (liftRBt R) (map (bterm []) vs) (map (bterm []) vsp).
+Proof using.
+  intros H. induction H; constructor; auto.
+  constructor; auto.
+Qed.
+
+  Lemma liftRbtsiglist {dcon:Type} (R: NTerm -> NTerm -> Prop):
+    forall  (bs : list (dcon * BTerm)) (lbtp : list BTerm),
+  eqlistA (liftRBt R) (map snd bs) lbtp ->
+  map (fun x : dcon * BTerm => num_bvars (snd x)) bs = map num_bvars lbtp.
+Proof using.
+  intros ? ? Heq. remember (map snd bs) as msb. revert dependent bs.
+  induction Heq; intros; destruct bs; invertsn Heqmsb; auto.
+  simpl. f_equal; eauto. 
+  inverts H; auto. 
+Qed.
 
 Lemma bterm_eq :
   forall l1 l2 n1 n2,
@@ -2170,9 +2208,3 @@ Proof using.
 
 Hint Rewrite @flat_map_bterm_nil_allvars: SquiggleEq.
 
-Inductive liftRBt {V O} (R : (@NTerm V O) -> (@NTerm V O) -> Prop)
-  : (@BTerm V O) -> (@BTerm V O) -> Prop :=
-  liftRbt : forall lv ntl ntr, R ntl ntr
-                          -> liftRBt R
-                              (bterm lv ntl)
-                              (bterm lv ntr).
