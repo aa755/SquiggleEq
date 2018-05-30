@@ -4349,3 +4349,12 @@ end).
 Proof using.
   intros. subst. induction l2; auto.
 Qed.
+
+  Definition listAddNoDup {A} {deqa: Deq A} (la: list A) a :=
+    if (decide (In a la)) then la else a::la.
+
+  Definition flatten {A} := @flat_map _ _ (@id (list A)).
+
+Definition isSuffixOfL {A:Type} (la lb : list A):Prop :=
+  exists l, l++la=lb.
+
