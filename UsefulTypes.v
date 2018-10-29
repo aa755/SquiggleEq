@@ -113,6 +113,9 @@ Defined.
 
 Class DeqSumbool T := deceqSumbool :> forall (a b:T), DecidableSumbool (a=b).
 
+
+Arguments decSumbool P {_}.
+
 Global Instance  deqAsSumbool {T:Type} `{DeqSumbool T} : Deq T.
 Proof.
    intros ? ?. apply decAsSumbool.
@@ -782,4 +785,31 @@ Qed.
   Definition Rpair {A1 A2 B1 B2 : Type} (R1 : A1 -> A2 -> Prop) (R2 : B1 -> B2 -> Prop)
              (p1: A1*B1) (p2: A2*B2) :=
     let (d1, b1) := p1 in let (d2,b2) := p2 in R1 d1 d2 /\ R2 b1 b2.
+
+(* Move to SquiggleEq*)
+Lemma DeqSumboolRefl
+      A
+      (a:DeqSumbool A) (x: A):
+  decSumbool  (x=x) = left eq_refl.
+Proof.
+  destruct (decSumbool (x = x));[| congruence].
+  f_equal.
+  apply Eqdep_dec.UIP_dec. exact a.
+Qed.
+
+Global Instance   optionDeqSumbool A (s:DeqSumbool A) :
+  DeqSumbool (option A).
+Proof using.
+  unfold DeqSumbool, DecidableSumbool  in *.
+  intros. decide equality.
+Defined.
+
+Global Instance sumDeqSumbool {A B}
+       {a:DeqSumbool A}
+       {b:DeqSumbool B}:
+  DeqSumbool (A+B).
+Proof using.
+  unfold DeqSumbool, DecidableSumbool  in *.
+  intros. decide equality.
+Defined.
 
