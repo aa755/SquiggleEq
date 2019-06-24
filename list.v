@@ -24,6 +24,8 @@
 *)
 
 
+Require Import String.
+Open Scope list_scope.
 Require Import bin_rels.
 Require Import eq_rel.
 Require Import universe.

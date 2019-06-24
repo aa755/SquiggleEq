@@ -1,4 +1,4 @@
-
+Require Import String.
 Require Import bin_rels.
 Require Import eq_rel.
 Require Import universe.
@@ -19,6 +19,7 @@ Require Import Recdef.
 Require Import Eqdep_dec.
 Require Import varInterface.
 Require Import terms.
+Open Scope list_scope.
 
 (** printing #  $\times$ #×# *)
 (** printing <=>  $\Leftrightarrow$ #&hArr;# *)
@@ -1520,6 +1521,8 @@ Proof using.
   intros. apply map_diff_commute.
   introv Hc. inverts Hc. auto.
 Qed.
+
+Open Scope list_scope.
 
 Definition all_vars_bt (bt : BTerm) := free_vars_bterm bt ++ bound_vars_bterm bt.
 

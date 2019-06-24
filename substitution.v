@@ -1370,6 +1370,15 @@ Definition ssubst_auxv (subv : list (NVar*NVar)) (t:NTerm):=
 
 Hint Rewrite ssubst_nil.
 
+Require Import Coq.Strings.String.
+Require Import Coq.Lists.List.
+(* the line below is important: many lemmas in SquiggleEq.list 
+are now in Coq.Lists.list. But those lemmas choose different 
+variable names (but types are same). This causes a lot of breakage
+in the proofs below, which can take hours to fix *)
+
+Require Import SquiggleEq.list.
+
 Lemma ssubst_aux_trivial_cl :
   forall (t:NTerm) (sub: @Substitution Opid),
     (forall v u, LIn (v, u) sub -> closed u # ! LIn v (free_vars t))

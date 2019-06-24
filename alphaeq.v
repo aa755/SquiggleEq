@@ -138,7 +138,9 @@ with alpha_eq_bterm3 (lva: list NVar) : BTerm -> BTerm -> [univ] :=
   with alpha_eq_bterm_mut := Induction for alpha_eq_bterm Sort Type.
 *)
 
-
+Require Import Coq.Strings.String.
+Require Import Coq.Lists.List.
+Require Import list.
 
  (* Definition alphaeq  (t1 t2 :NTerm) := alpha_eq t1 t2. *)
 Definition alphaeqbt  (t1 t2 :BTerm) := alpha_eq_bterm  t1 t2.
