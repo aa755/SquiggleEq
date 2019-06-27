@@ -1840,6 +1840,3 @@ Proof using.
   destruct b; refl.
 Qed.
 
-SearchAbout nt_wf.
-
-

@@ -45,8 +45,6 @@ Proof using.
   omega.
 Qed.
 
-SearchAbout NoDup.
-
 Fixpoint ball (l : list bool) : bool :=
   match l with
     | [] => true
@@ -2912,8 +2910,6 @@ Proof using.
    try tauto; specialize (H a); try tauto.
 Qed.
 
-SearchAbout ((?A -> ?B)-> (?A -> ?B) -> Prop).
-
 (* allows rewriting in maps using functional extensionality *)
 Global Instance properMapExt {A B}: Proper ((eq ==> eq) ==>  eq  ==> eq) (@map A B).
 Proof.
@@ -3589,8 +3585,6 @@ Qed.
 
 Definition boolNthTrue (len n:nat) : list bool:=
 map (fun m => if decide(n=m) then true else false )(List.seq 0 len).
-
-Print NoDup.
 
 Fixpoint noDupB {A:Type} {deq : Deq A} (la: list A) : bool :=
 match la with

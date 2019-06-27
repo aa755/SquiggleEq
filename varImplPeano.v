@@ -18,7 +18,6 @@ Notation VType := ((nat * VarCl)%type).
 
 Require Import Omega.
 Require Import Coq.Sorting.Sorting.
-Print VarType.
 
 Variable defClass : VarCl.
 

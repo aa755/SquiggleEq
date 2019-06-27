@@ -260,7 +260,6 @@ Proof using .
       apply_clear Hin.
       repeat(rw in_app_iff).
       repeat(rw in_app_iff in Hc).
-SearchAbout @map @combine @prod.
       rewrite boundvars_ssubst_aux_vars in Hc;auto.
       rewrite boundvars_ssubst_aux_vars in Hc;auto.
       repeat(dorn Hc); auto; [|];

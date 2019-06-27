@@ -239,9 +239,6 @@ Proof.
 Qed.
 
 (*
-Print NTerm_ind.
-
-Print eq_refl.
 
 Require Import Eqdep.
 

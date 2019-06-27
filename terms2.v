@@ -813,7 +813,6 @@ Definition get_wterm (t : WTerm) := let (a,_) := t in a.
 Definition get_cvterm (vs : list NVar) (t : CVTerm vs) := let (a,_) := t in a.
 Definition get_bcterm (bt : BCTerm) := let (a,_) := bt in a.
 
-Print BTerm.
 Definition selectbt (bts: list BTerm) (n:nat) : BTerm :=
   nth n bts (bterm [] (vterm nvarx)).
 
@@ -1481,7 +1480,6 @@ Proof using deqnvar hdeq.
 
   - Case "oterm".
     destruct y as [v2 | o2 lbt2]; [ right; intro Hc; inverts Hc | ].
-  SearchAbout Deq.
     destruct (decideP (o1=o2)); subst; [  | right; intro Hc; inverts Hc;sp].
     assert ((lbt1=lbt2) + (lbt1 <> lbt2)) as Hbt.
     Focus 2.

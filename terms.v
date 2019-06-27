@@ -229,8 +229,6 @@ tmap fv id.
 
 Require Import String.
 
-SearchAbout (list string -> string).
-
 
 Definition flatten (l:list string) : string :=
   List.fold_left append  l EmptyString.
