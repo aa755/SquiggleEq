@@ -1991,7 +1991,6 @@ Lemma fvars_ssubst1 :
 Proof using.
   intros. change_to_ssubst_aux4.
   apply fvars_ssubst_aux1;sp.
-  SearchAbout flat_map free_vars.
 Qed.
 
 Definition ssubsthide (t:NTerm) sub
@@ -2528,7 +2527,6 @@ Proof using.
   apply IHsub1; sp.
 Qed.
 
-Print Substitution.
 Definition map_sub_range {gtsi} {gtso} (f : @terms.NTerm _ gtsi -> @terms.NTerm _ gtso) 
   (sub : @Substitution gtsi): @Substitution gtso :=
   map (fun p => (fst p, f (snd p))) sub.
@@ -4416,8 +4414,6 @@ Proof using.
   apply in_map_iff.
   eexists. eauto.
 Qed.
-
-Print lmap_find_injection.
 
 Lemma lmap_apply_var: forall (lvi lvo : list NVar) v,
  (fun t=> @ssubst_aux _ _ Opid t (var_ren lvi lvo)) (vterm v)
