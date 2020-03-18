@@ -13,3 +13,5 @@
 #*#
 *.dblite
 Makefile.coq
+.coqdeps.d
+Makefile.coq.conf
