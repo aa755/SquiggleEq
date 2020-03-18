@@ -1,3 +1,4 @@
+
 Require Import bin_rels.
 Require Import eq_rel.
 Require Import universe.
@@ -12,8 +13,10 @@ Require Import Coq.Init.Notations.
 Require Import UsefulTypes.
 Require Import Coq.Classes.DecidableClass.
 Require Import Coq.Classes.Morphisms.
-Require Import list.
 
+Require Import ExtLib.Data.Map.FMapPositive.
+
+Require Import Ring.
 Require Import Recdef.
 Require Import Eqdep_dec.
 Require Import varInterface.
@@ -22,6 +25,9 @@ Require Import substitution.
 Require Import Nsatz.
 Require Import Psatz.
 Require Import AssociationList.
+Require Import SquiggleEq.list.
+Require Import alphaeq.
+
 
 Generalizable Variables Opid Name.
 
@@ -145,8 +151,6 @@ with maxFree_bt {Name Opid:Type}  (e:@DBTerm Name Opid): Z:=
 | bterm m t => (maxFree t) - (Z.of_nat (length m))
 end)%Z.
 
-Require Import ExtLib.Data.Map.FMapPositive.
-
 Definition lookupNDef {Name:Type} (def: Name) (names : pmap Name) (var:N) : Name :=
   opExtract def (pmap_lookup (N.succ_pos var) names).
 
@@ -174,7 +178,7 @@ with fromDB_bt {Name Opid NVar : Type} (defn: Name) (mkVar : (N * Name) -> NVar)
 match e with
 | bterm ln dt => 
     let len := length ln in
-    let vars := (seq N.succ max len) in
+    let vars := (SquiggleEq.list.seq N.succ max len) in
     let nvars := (combine vars ln) in
     let names := insertNs names nvars in
     let bvars := map mkVar nvars in
@@ -403,7 +407,7 @@ Qed.
   Lemma lookupNDef_inserts_neq_seq {T}
   : ∀ (k : N)  (def : T) (m : pmap T) len lv n,
   k < n →
-  lookupNDef def (insertNs m (combine (seq N.succ n len) lv)) k
+  lookupNDef def (insertNs m (combine (SquiggleEq.list.seq N.succ n len) lv)) k
   = lookupNDef def m k.
   Proof using.
     intros. apply lookupNDef_inserts_neq.
@@ -969,8 +973,6 @@ Proof.
   simpl.
 *)
 
-
-Require Import alphaeq.
 
 Infix "≡" := alpha_eq (at level 100).
 
