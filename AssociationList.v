@@ -18,6 +18,7 @@ Require Import Coq.Init.Notations.
 Require Import UsefulTypes.
 Require Import Coq.Classes.DecidableClass.
 Require Import Coq.Classes.Morphisms.
+Require Import varInterface.
 
 Hint Rewrite diff_nil : fast.
 Set Implicit Arguments.
@@ -65,7 +66,6 @@ ALMap (fun x=>x) f al.
 Definition ALMapDom {T : Type} (f : Key -> T) (al : AssocList):=
 ALMap f (fun x=>x)  al.
 
-Require Import varInterface.
 Context {deqKey : (Deq Key)}.
 (** All definitions/lemmas below need decidable equality on Key.
     If not, they should placed before the line above *)

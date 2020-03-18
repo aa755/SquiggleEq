@@ -1,4 +1,3 @@
-
 Require Import bin_rels.
 Require Import eq_rel.
 Require Import universe.
@@ -14,7 +13,7 @@ Require Import UsefulTypes.
 Require Import Coq.Classes.DecidableClass.
 Require Import Coq.Classes.Morphisms.
 Require Import list.
-
+Require Import Ring.
 Require Import Recdef.
 Require Import Eqdep_dec.
 Require Import varInterface.
