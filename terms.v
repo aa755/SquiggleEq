@@ -32,17 +32,18 @@ Class GenericTermSig (Opid : Type) : Type :=
 
 Generalizable Variable Opid.
 
-Section terms.
-
-
-Context {NVar VarClass} `{VarType NVar VarClass} `{Deq Opid} {gts : GenericTermSig Opid}.
-
-Inductive NTerm : Type :=
+Inductive NTerm {NVar Opid} : Type :=
 | vterm: NVar -> NTerm
 | oterm: Opid -> list BTerm -> NTerm
-with BTerm : Type :=
+with BTerm {NVar Opid} : Type :=
 | bterm: (list NVar) -> NTerm -> BTerm.
 
+Section terms.
+
+ Context {NVar VarClass} `{VarType NVar VarClass} `{Deq Opid} {gts : GenericTermSig Opid}.
+  
+ Notation NTerm := (@NTerm NVar Opid).
+ Notation BTerm := (@BTerm NVar Opid).
 
 (*
   The [Opid] type contains one element corresponding to every operator
@@ -111,7 +112,7 @@ Notation "\\ f" :=
 
 (* --- primitives --- *)
 
-Definition mk_var (nv : NVar) := vterm nv.
+Definition mk_var (nv : NVar)  : NTerm := vterm nv.
 
 (* end hide *)
 (** %\noindent% Whenever we talk about the [NTerm] of a [BTerm], this is
