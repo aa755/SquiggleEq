@@ -15,6 +15,7 @@ Require Import Coq.Classes.DecidableClass.
 Require Import Coq.Classes.Morphisms.
 Require Import list.
 
+Require Import Ring.
 Require Import Recdef.
 Require Import Eqdep_dec.
 Require Import varInterface.
@@ -3742,10 +3743,10 @@ Qed.
 (** replace simpl_sub with this *)
 Ltac simpl_sub2 :=
 (match goal with
-| [ H : context[dom_sub (combine _ _)] |- _] => rewrite dom_sub_combine in H;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
-| [ |-  context[dom_sub (combine _ _)] ] => rewrite dom_sub_combine;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
-| [ H : context[range (combine _ _)] |- _] => rewrite dom_range_combine in H;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
-| [ |-  context[range (combine _ _)] ] => rewrite dom_range_combine;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
+| [ H : context[dom_sub (combine _ _)] |- _] => rewrite dom_sub_combine in H;[|try(simpl_list);spc;fail]
+| [ |-  context[dom_sub (combine _ _)] ] => rewrite dom_sub_combine;[|try(simpl_list);spc;fail]
+| [ H : context[range (combine _ _)] |- _] => rewrite dom_range_combine in H;[|try(simpl_list);spc;fail]
+| [ |-  context[range (combine _ _)] ] => rewrite dom_range_combine;[|try(simpl_list);spc;fail]
 | [ H : context[range (var_ren _ _)] |- _] => unfold var_ren in H
 | [ |-  context[range (var_ren _ _)] ] => unfold var_ren
 | [ H : context[dom_sub (var_ren _ _)] |- _] => unfold var_ren in H
@@ -3762,10 +3763,10 @@ Ltac simpl_sub4 :=
 | [ H : (prog_sub _) |- _ ] => (allrewrite (prog_sub_flatmap_range _ H))
 | [ H : isprogram _ |- _ ] => allrewrite (fst (H))
 | [ H : (forall _ _, LIn (_, _) _  -> isprogram _) |- _ ] => (allrewrite (prog_sub_flatmap_range _ H))
-| [ H : context[dom_sub (combine _ _)] |- _] => rewrite dom_sub_combine in H;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
-| [ |-  context[dom_sub (combine _ _)] ] => rewrite dom_sub_combine;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
-| [ H : context[range (combine _ _)] |- _] => rewrite dom_range_combine in H;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
-| [ |-  context[range (combine _ _)] ] => rewrite dom_range_combine;[|try(simpl_list);spc;idtac "check lengths in combine";fail]
+| [ H : context[dom_sub (combine _ _)] |- _] => rewrite dom_sub_combine in H;[|try(simpl_list);spc;fail]
+| [ |-  context[dom_sub (combine _ _)] ] => rewrite dom_sub_combine;[|try(simpl_list);spc;fail]
+| [ H : context[range (combine _ _)] |- _] => rewrite dom_range_combine in H;[|try(simpl_list);spc;fail]
+| [ |-  context[range (combine _ _)] ] => rewrite dom_range_combine;[|try(simpl_list);spc;fail]
 | [ H : context[range (var_ren _ _)] |- _] => unfold var_ren in H
 | [ |-  context[range (var_ren _ _)] ] => unfold var_ren
 | [ H : context[dom_sub (var_ren _ _)] |- _] => unfold var_ren in H

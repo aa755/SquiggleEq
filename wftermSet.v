@@ -1,4 +1,3 @@
-
 Require Import bin_rels.
 Require Import eq_rel.
 Require Import universe.
@@ -30,6 +29,8 @@ Require Import terms2.
 (** Here are some handy definitions that will
     reduce the verbosity of some of our later definitions
 *)
+Require Import alphaeq.
+Require Import substitution.
 
 Generalizable Variable Opid.
 
@@ -49,8 +50,6 @@ Then there is the choice in this file, which is to duplicate some definitions (o
 Definition WTermSet :Set := { t : NTerm  | wf_term t }.
 Definition WBTermSet : Set := { bt : BTerm | wf_bterm bt }.
 
-Require Import alphaeq.
-Require Import substitution.
 
 Definition subst_wftset (t : WTermSet) (v : NVar) (u : WTermSet) : WTermSet :=
   let (a,x) := t in
