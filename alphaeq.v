@@ -1901,7 +1901,7 @@ Proof using.
   destruct subr as [ |(vr,tr) subr]; try invertsn Hsr.
   - repeat (apply ex_intro with ( x:=nil)); dands; spc. apply binrel_list_nil.
   - repnd. apply Hind in Hsr. exrepnd.
-    exists (vr::lv), (tl::lntl), (tr::lntr).
+    exists (vr::lv); exists (tl::lntl); exists (tr::lntr).
     allsimpl. dands; f_equal; spc.
     apply binrel_list_cons; spc.
 Qed.

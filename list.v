@@ -2304,7 +2304,7 @@ Global Instance decideDisjoint {T:Type} {deqt: Deq T} (la lb: list T)
   : Decidable (disjoint la lb).
 exists (decide_disjoint la lb).
   rewrite <- decide_disjoint_correct.
-  destruct (dec_disjoint deqt la lb); simpl; firstorder.
+  destruct (dec_disjoint deqt la lb); simpl; firstorder auto with *.
 Defined.
 
 Ltac simpl_list :=
@@ -3794,12 +3794,13 @@ Lemma RlistNth {A B:Type} (R: A-> B-> Prop) (la : list A) (lb : list B):
 Proof using.
   revert lb.
   induction la; intros lb; split; intros Hyp; destruct lb as [ | b lb]; simpl in *;
-    dlists_len;  try firstorder; try f_equal; try constructor; try firstorder;
+    dlists_len;  try firstorder auto with *; try f_equal; try constructor; try firstorder auto with *;
       rename H0 into Hyps0.
 - specialize (IHla lb).  rewrite IHla in Hyps0.
   apply proj2 in Hyps0.
   destruct n; eauto.
   apply Hyps0. omega.
+- exact nil.
 - specialize (Hyps0 0). simpl in *. apply Hyps0; eauto. omega.
 - apply IHla. dands; auto. intros. specialize (Hyps0 (S n)). simpl in *.
   apply Hyps0. omega.
