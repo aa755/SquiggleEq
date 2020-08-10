@@ -409,15 +409,15 @@ Proof.
   destruct (in_deq Key _ a0 vs);
   subst; cpx; split; introns Hyp; allsimpl; exrepnd; cpx.
   - dec. dorn Hyp; cpx; cpx. apply IHsub in Hyp.
-    exrepnd.
-    apply in_remove in Hyp; cpx.
+    exrepnd. 
+    eapply list.in_remove in Hyp; cpx.
   - dec. cpx.
      apply IHsub in Hyp; exrepnd; cpx.
   - dorn Hyp; cpx. apply IHsub in Hyp.
     exrepnd.
-    apply in_remove in Hyp; cpx.
+    apply list.in_remove in Hyp; cpx.
   - right. apply IHsub; dands; cpx.
-    apply in_remove; dands; cpx.
+    apply list.in_remove; dands; cpx.
 Qed.
 
 Lemma ALKeepFirstLinApp:

@@ -1,4 +1,6 @@
 *.vo
+*.vok
+*.vos
 *.v.d
 *.glob
 *.aux
@@ -15,3 +17,6 @@
 Makefile.coq
 .coqdeps.d
 Makefile.coq.conf
+.coqdeps.d
+*.Makefile.coq.d
+*.lia.cache
